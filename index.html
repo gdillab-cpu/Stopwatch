@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Curling Pro v7.3</title>
+    <style>
+        :root { --primary: #0056b3; --success: #28a745; --danger: #dc3545; --bg: #f0f2f5; --card: #ffffff; }
+        
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, system-ui, sans-serif; 
+            background: var(--bg); margin: 0; padding: 10px; color: #333;
+            touch-action: manipulation; user-select: none; -webkit-user-select: none;
+        }
+        
+        .container { max-width: 600px; margin: 0 auto; padding-bottom: 40px; }
+        .card { background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 12px; }
+        
+        /* Timer & Prediction */
+        .timer-display { font-size: 5.5rem; font-weight: 800; color: var(--primary); text-align: center; margin: 5px 0; letter-spacing: -3px; line-height: 1; }
+        .pred-box { text-align: center; background: #e7f3ff; border: 2px solid var(--primary); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+        .pred-val { font-size: 2.2rem; font-weight: bold; color: var(--primary); display: block; }
+        
+        /* Buttons */
+        .btn-main { 
+            background: var(--success); color: white; border: none; 
+            padding: 30px; border-radius: 16px; font-size: 1.8rem; 
+            font-weight: 900; width: 100%; margin: 10px 0; 
+            cursor: pointer; display: block; box-shadow: 0 6px 0 #1e7e34;
+        }
+        .btn-main:active { transform: translateY(4px); box-shadow: 0 2px 0 #1e7e34; }
+        .btn-stop { background: var(--danger); box-shadow: 0 6px 0 #bd2130; }
+        
+        .btn-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn-sub { 
+            flex: 1; padding: 18px; border-radius: 12px; border: none; 
+            background: #6c757d; color: white; font-weight: bold; font-size: 1.1rem;
+        }
+        
+        /* Table Styles */
+        .history-table { width: 100%; font-size: 0.95rem; border-collapse: collapse; }
+        .history-table th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #666; font-size: 0.8rem; }
+        .history-table td { padding: 16px 10px; border-bottom: 1px solid #eee; }
+        
+        /* Make row feel interactive */
+        .hist-row { cursor: pointer; -webkit-user-select: none; }
+        .hist-row:active { background-color: #f0f7ff; }
+        
+        .use-toggle { width: 24px; height: 24px; cursor: pointer; }
+        .player-tag { font-size: 0.7rem; color: #999; display: block; text-transform: uppercase; margin-bottom: 2px; }
+
+        .speed-table { width: 100%; font-size: 0.9rem; border-collapse: collapse; }
+        .speed-table td, .speed-table th { border: 1px solid #eee; padding: 10px; text-align: center; }
+        .highlight { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+
+        /* Modal */
+        #calib-modal { 
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.9); z-index: 999; 
+            align-items: center; justify-content: center; 
+        }
+        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; }
+        select { width: 100%; padding: 18px; font-size: 1.2rem; border-radius: 12px; margin: 15px 0; border: 2px solid #ddd; background: #fff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card" style="padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <select id="player-select" style="width: 55%; margin:0; border:none; font-weight: 800; font-size: 1.1rem; background: transparent;">
+            <option value="Team">🏆 Team Profile</option>
+            <option value="Skip">Skip</option>
+            <option value="Vice">Vice</option>
+            <option value="Second">Second</option>
+            <option value="Lead">Lead</option>
+        </select>
+        <div id="trend-text" style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">Ice Learning...</div>
+    </div>
+
+    <div class="timer-display" id="timer-val">0.00</div>
+
+    <div class="pred-box">
+        <span style="font-size: 0.8rem; text-transform: uppercase; color: #666; font-weight: 700;">Prediction</span>
+        <span class="pred-val" id="pred-text">--</span>
+    </div>
+
+    <button id="btn-action" class="btn-main">START</button>
+
+    <div class="btn-row">
+        <button id="btn-reset" class="btn-sub">Reset</button>
+        <button id="btn-cal-last" class="btn-sub" style="background:#ffc107; color:black;">Calibrate</button>
+    </div>
+
+    <div class="card">
+        <div style="font-weight: bold; margin-bottom: 8px; display:flex; justify-content: space-between; align-items: center;">
+            <span>SHOT HISTORY</span>
+            <span style="font-size: 0.7rem; color: var(--primary);">Tap row to set result</span>
+        </div>
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th style="width:50px;">Use</th>
+                    <th>Time</th>
+                    <th>Est. Target</th>
+                    <th>Actual</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+        </table>
+        <div id="empty-msg" style="padding: 20px; text-align: center; color: #999; font-style: italic;">No shots recorded</div>
+    </div>
+
+    <div class="card">
+        <div style="font-weight: bold; margin-bottom: 8px;">LIVE SPEED ESTIMATES</div>
+        <table class="speed-table">
+            <thead>
+                <tr><th>Target</th><th>Split</th><th>Hog-Hog</th></tr>
+            </thead>
+            <tbody id="speed-sheet-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="calib-modal">
+    <div class="modal-content">
+        <h2 style="margin-top:0">Set Actual Result</h2>
+        <p>Player: <b id="m-player"></b> | Time: <b id="m-time"></b>s</p>
+        <select id="calib-zone">
+            <option value="12">Board Weight</option>
+            <option value="11">Through House</option>
+            <option value="10">Back 12</option>
+            <option value="9">Back 8</option>
+            <option value="8">Back 4</option>
+            <option value="7">TEE LINE</option>
+            <option value="6">Top 4</option>
+            <option value="5">Top 8</option>
+            <option value="4">Top 12</option>
+            <option value="2">Guard</option>
+            <option value="1">Hogged</option>
+        </select>
+        <button id="btn-save-cal" class="btn-main" style="padding: 20px;">Save Result</button>
+        <button id="btn-cancel-cal" style="background:none; border:none; color: #dc3545; width:100%; padding: 15px; font-weight: bold;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    // --- Physics Engine ---
+    const n = 6.0; 
+    const H2H_RATIO = 4.05; 
+    const ZONES = { 12:"BOARD", 11:"Through", 10:"Back 12", 9:"Back 8", 8:"Back 4", 7:"TEE LINE", 6:"Top 4", 5:"Top 8", 4:"Top 12", 2:"Guard", 1:"Hogged" };
+    
+    let allShots = [];
+    let timer = { start: 0, val: 0, running: false, interval: null };
+    let editingId = null;
+
+    const getActivePlayer = () => document.getElementById('player-select').value;
+
+    function getIceConstant() {
+        const calibrated = allShots.filter(s => s.use && s.actualZone);
+        if (calibrated.length === 0) return 7 * Math.pow(3.75, n);
+        let tw = 0, tc = 0;
+        calibrated.slice(-12).forEach((s, i) => {
+            let w = i + 1; tc += (s.actualZone * Math.pow(s.time, n)) * w; tw += w;
+        });
+        return tc / tw;
+    }
+
+    function toggleTimer() {
+        const btn = document.getElementById('btn-action');
+        if (!timer.running) {
+            timer.start = Date.now();
+            timer.running = true;
+            btn.innerText = "STOP"; btn.classList.add('btn-stop');
+            timer.interval = setInterval(() => {
+                timer.val = (Date.now() - timer.start) / 1000;
+                document.getElementById('timer-val').innerText = timer.val.toFixed(2);
+            }, 30);
+        } else {
+            clearInterval(timer.interval);
+            timer.running = false;
+            btn.innerText = "START"; btn.classList.remove('btn-stop');
+            const C = getIceConstant();
+            const pred = Math.min(12, Math.max(1, Math.round(C / Math.pow(timer.val, n))));
+            allShots.push({ id: Date.now(), player: getActivePlayer(), time: timer.val, pred: pred, actualZone: null, use: true });
+            renderAll();
+        }
+    }
+
+    function renderAll() {
+        const C = getIceConstant();
+        const active = getActivePlayer();
+        const filtered = (active === 'Team') ? [...allShots] : allShots.filter(s => s.player === active);
+        
+        const last = allShots[allShots.length - 1];
+        document.getElementById('pred-text').innerText = last ? (ZONES[last.pred] || "Guard") : "--";
+
+        const body = document.getElementById('history-body');
+        body.innerHTML = "";
+        document.getElementById('empty-msg').style.display = filtered.length ? 'none' : 'block';
+        
+        [...filtered].reverse().slice(0, 8).forEach(s => {
+            const tr = document.createElement('tr');
+            tr.className = "hist-row";
+            tr.setAttribute('data-id', s.id);
+            if(!s.use) tr.style.opacity = "0.3";
+            tr.innerHTML = `
+                <td><input type="checkbox" class="use-toggle" ${s.use?'checked':''} data-id="${s.id}"></td>
+                <td><span class="player-tag">${s.player}</span><b>${s.time.toFixed(2)}</b></td>
+                <td>${ZONES[s.pred]||'Guard'}</td>
+                <td>${s.actualZone ? `<b>${ZONES[s.actualZone]}</b>` : '-'}</td>
+            `;
+            body.appendChild(tr);
+        });
+
+        const sheet = document.getElementById('speed-sheet-body');
+        sheet.innerHTML = "";
+        [12, 10, 7, 4, 1].forEach(z => {
+            const split = Math.pow(C/z, 1/n);
+            sheet.innerHTML += `<tr><td>${ZONES[z]}</td><td class="highlight">${split.toFixed(2)}s</td><td>${(split*H2H_RATIO).toFixed(2)}s</td></tr>`;
+        });
+    }
+
+    // --- Interaction Initialization ---
+    function init() {
+        // Main Stopwatch
+        document.getElementById('btn-action').addEventListener('pointerdown', (e) => {
+            e.preventDefault(); toggleTimer();
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            timer.val = 0; document.getElementById('timer-val').innerText = "0.00";
+        });
+
+        document.getElementById('btn-cal-last').addEventListener('click', () => {
+            if(allShots.length) openCalib(allShots[allShots.length-1].id);
+        });
+
+        document.getElementById('player-select').addEventListener('change', renderAll);
+
+        // HISTORY TABLE LOGIC
+        document.getElementById('history-body').addEventListener('click', (e) => {
+            const id = parseInt(e.target.closest('[data-id]').getAttribute('data-id'));
+            
+            // If they clicked the checkbox
+            if(e.target.classList.contains('use-toggle')) {
+                const s = allShots.find(x => x.id === id);
+                if(s) s.use = e.target.checked;
+                renderAll();
+            } 
+            // If they clicked anywhere else on the row
+            else {
+                openCalib(id);
+            }
+        });
+
+        // Modal Controls
+        document.getElementById('btn-save-cal').addEventListener('click', () => {
+            const s = allShots.find(x => x.id === editingId);
+            if(s) { s.actualZone = parseInt(document.getElementById('calib-zone').value); s.use = true; }
+            document.getElementById('calib-modal').style.display = 'none';
+            renderAll();
+        });
+        document.getElementById('btn-cancel-cal').addEventListener('click', () => {
+            document.getElementById('calib-modal').style.display = 'none';
+        });
+    }
+
+    function openCalib(id) {
+        const s = allShots.find(x => x.id === id);
+        if(!s) return;
+        editingId = id;
+        document.getElementById('m-time').innerText = s.time.toFixed(2);
+        document.getElementById('m-player').innerText = s.player;
+        document.getElementById('calib-zone').value = s.actualZone || s.pred;
+        document.getElementById('calib-modal').style.display = 'flex';
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    renderAll();
+</script>
+</body>
+</html>
