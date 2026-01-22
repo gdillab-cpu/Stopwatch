@@ -1,37 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Curling Stopwatch — Fixed</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Curling Stopwatch — Debug Build</title>
 <style>
 :root{--primary:#0b61b1;--accent:#28a745;--warn:#f0ad4e;--danger:#d9534f;--bg:#f6f8fa;--card:#fff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:#222;padding-bottom:140px}
-.container{max-width:560px;margin:8px auto;padding:10px}
+body{font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:#222;padding-bottom:150px}
+.container{max-width:640px;margin:8px auto;padding:10px}
 .card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.timer{font-size:3.8rem;font-weight:800;text-align:center;letter-spacing:0.5px}
+.timer{font-size:3.6rem;font-weight:800;text-align:center;letter-spacing:0.5px}
 .sub{display:flex;justify-content:space-between;color:#666;font-weight:600;margin-top:8px}
 .pred{background:#e9f3ff;border:2px solid var(--primary);padding:10px;border-radius:10px;text-align:center}
 .pred .val{font-size:1.6rem;font-weight:800;color:var(--primary);display:block;margin-top:6px}
 .table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.92rem}
 .table th,.table td{padding:8px;border-bottom:1px solid #eee;text-align:center}
 .thumbbar{position:fixed;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,#fff 75%,rgba(255,255,255,0))}
-.btn{width:100%;padding:22px;border-radius:14px;border:none;font-weight:900;font-size:1.5rem;background:var(--accent);color:#fff;box-shadow:0 6px 0 #1f7a36}
+.btn{width:100%;padding:20px;border-radius:14px;border:none;font-weight:900;font-size:1.4rem;background:var(--accent);color:#fff;box-shadow:0 6px 0 #1f7a36}
 .btn.split{background:var(--warn);color:#000;box-shadow:0 6px 0 #c78711}
 .btn.stop{background:var(--danger);box-shadow:0 6px 0 #a02521}
-.small{font-size:0.86rem;color:#666}
+.small{font-size:0.85rem;color:#666}
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);z-index:50}
 .modal .card{max-width:420px;width:92%}
 input[type="checkbox"]{width:18px;height:18px}
-select{padding:10px;border-radius:8px;border:1px solid #ddd;width:100%;font-size:1rem}
+select,input[type="text"]{padding:8px;border-radius:8px;border:1px solid #ddd;width:100%;font-size:1rem}
 .row-click{cursor:pointer}
 .label-abbrev{font-weight:700}
+.debug-banner{background:#fff3cd;border:1px solid #ffeeba;padding:8px;border-radius:8px;margin-bottom:10px;font-size:0.9rem;color:#856404}
+.error-banner{background:#f8d7da;border:1px solid #f5c6cb;padding:10px;border-radius:8px;margin-bottom:10px;color:#721c24}
 </style>
 </head>
 <body>
 <div class="container">
+
+  <div id="debugBanner" class="debug-banner">DEBUG: script not yet loaded</div>
+  <div id="errorBanner" class="error-banner" style="display:none"></div>
+
   <div class="card">
+    <label for="playerSelect">Player profile</label>
     <select id="playerSelect" aria-label="Player profile">
       <option>Team</option>
       <option>Skip</option>
@@ -54,137 +61,290 @@ select{padding:10px;border-radius:8px;border:1px solid #ddd;width:100%;font-size
   <div class="card">
     <strong>Live Split Estimates</strong>
     <table class="table" id="liveTable"><thead><tr><th>Target</th><th>Split (B–H)</th></tr></thead><tbody></tbody></table>
-    <div class="small">Estimates update as you calibrate shots (use toggles to ignore outliers).</div>
+    <div class="small">Estimates update from calibrated shots (use toggles to ignore outliers).</div>
   </div>
 
   <div class="card">
-    <strong>Shot History — Tap a row to set actual</strong>
-    <table class="table">
+    <strong>Shot History — tap a row to edit player or set actual</strong>
+    <table class="table" aria-live="polite">
       <thead><tr><th>P</th><th>B–H</th><th>Use</th><th>H–H</th><th>Use</th><th>Actual</th></tr></thead>
       <tbody id="historyBody"></tbody>
     </table>
   </div>
+
 </div>
 
 <div class="thumbbar">
   <button id="actionBtn" class="btn">START</button>
 </div>
 
-<!-- Calibration modal -->
-<div id="calibModal" class="modal" role="dialog" aria-modal="true">
+<!-- Modal -->
+<div id="calibModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="card">
-    <h3 style="margin-top:0">Set Actual Result</h3>
-    <div style="margin-bottom:8px">Player: <strong id="modalPlayer"></strong></div>
-    <select id="actualSelect" aria-label="Actual shot result"></select>
+    <h3 style="margin-top:0">Edit Shot</h3>
+    <div style="margin-bottom:8px">Player</div>
+    <select id="modalPlayerSelect"></select>
+    <div style="margin-top:8px;margin-bottom:6px">Actual</div>
+    <select id="modalActualSelect"></select>
     <div style="display:flex;gap:8px;margin-top:12px">
-      <button id="saveActualBtn" class="btn" style="flex:1">Save</button>
-      <button id="cancelActualBtn" class="btn" style="flex:1;background:#eee;color:#111;box-shadow:none">Cancel</button>
+      <button id="saveActualBtn" class="btn">Save</button>
+      <button id="cancelActualBtn" class="btn" style="background:#eee;color:#111;box-shadow:none">Cancel</button>
     </div>
   </div>
 </div>
 
 <script>
-/* ====== Configuration / Constants ====== */
-const n = 6.0;                      // exponent (empirical)
-const ICE_BASELINE = 14.0;          // reference hog-hog baseline (seconds)
-const DEFAULT_B2H = 3.8;            // initial draw split baseline
-const DEFAULT_INDEX = 9;            // default distance index / tuning (mid-tee/back12)
-const DEFAULT_C = DEFAULT_INDEX * Math.pow(DEFAULT_B2H, n); // baseline constant (C)
+/* Defensive debug wrapper so any startup error surfaces visibly */
+console.log('DEBUG: script loaded');
 
-/* Zones: index increases with distance (higher index => farther) */
-const ZONES = [
-  {index:2, label:'High Guard'},
-  {index:4, label:'Top 12'},
-  {index:6, label:'Tee'},
-  {index:8, label:'Back 12'},
-  {index:10, label:'Board'},
-  {index:12, label:'Control'},
-  {index:14, label:'Normal'},
-  {index:16, label:'Peel'}
-];
+document.addEventListener('DOMContentLoaded', function () {
+  console.log('DEBUG: DOMContentLoaded - starting init');
+  const debugBanner = document.getElementById('debugBanner');
+  const errorBanner = document.getElementById('errorBanner');
 
-/* ====== State ====== */
-let shots = [];          // {id, player, b2h, h2h, actual (index|null), useB, useH}
-let state = 'READY';     // READY -> B2H -> H2H
-let t0 = 0;
-let curB2H = 0;
-let curH2H = 0;
-let timerInt = null;
-let editingIndex = null; // index in shots[] of row being edited
+  try {
+    // ====== Constants ======
+    const n = 6.0;
+    const ICE_BASELINE = 14.0;
+    const DEFAULT_B2H = 3.8;
+    const DEFAULT_INDEX = 9;
+    const DEFAULT_C = DEFAULT_INDEX * Math.pow(DEFAULT_B2H, n);
 
-/* ====== Cached DOM references (grab these once) ====== */
-const playerSelect = document.getElementById('playerSelect');
-const mainTimeEl   = document.getElementById('mainTime');
-const b2hEl        = document.getElementById('b2h');
-const h2hEl        = document.getElementById('h2h');
-const predictionEl = document.getElementById('prediction');
-const liveTableTbody = document.querySelector('#liveTable tbody');
-const historyBody  = document.getElementById('historyBody');
-const actionBtn    = document.getElementById('actionBtn');
-const calibModal   = document.getElementById('calibModal');
-const actualSelect = document.getElementById('actualSelect');
-const modalPlayer  = document.getElementById('modalPlayer');
-const saveActualBtn = document.getElementById('saveActualBtn');
-const cancelActualBtn = document.getElementById('cancelActualBtn');
+    const ZONES = [
+      {index:2, label:'High Guard'},
+      {index:4, label:'Top 12'},
+      {index:6, label:'Tee'},
+      {index:8, label:'Back 12'},
+      {index:10,label:'Board'},
+      {index:12,label:'Control'},
+      {index:14,label:'Normal'},
+      {index:16,label:'Peel'}
+    ];
 
-/* populate actualSelect options */
-(function populateActualOptions(){
-  actualSelect.innerHTML = '';
-  ZONES.forEach(z=>{
-    const o = document.createElement('option');
-    o.value = z.index;
-    o.textContent = z.label;
-    actualSelect.appendChild(o);
-  });
-})();
+    // ====== State ======
+    let shots = [];
+    let state = 'READY';
+    let t0 = 0;
+    let curB2H = 0;
+    let curH2H = 0;
+    let timerInt = null;
+    let editingIdx = null;
 
-/* ====== Utility / Model functions ====== */
+    // ====== DOM refs ======
+    const playerSelect = document.getElementById('playerSelect');
+    const mainTimeEl   = document.getElementById('mainTime');
+    const b2hEl        = document.getElementById('b2h');
+    const h2hEl        = document.getElementById('h2h');
+    const predictionEl = document.getElementById('prediction');
+    const liveTableTbody = document.querySelector('#liveTable tbody');
+    const historyBody  = document.getElementById('historyBody');
+    const actionBtn    = document.getElementById('actionBtn');
+    const calibModal   = document.getElementById('calibModal');
+    const modalPlayerSelect = document.getElementById('modalPlayerSelect');
+    const modalActualSelect = document.getElementById('modalActualSelect');
+    const saveActualBtn = document.getElementById('saveActualBtn');
+    const cancelActualBtn = document.getElementById('cancelActualBtn');
 
-/**
- * Compute model constants from shots that have actual result and are marked 'use'
- * We compute weighted average:
- *   C ≈ sum(actual_index * b2h^n * weight) / sum(weight)
- * and an avg H2H to later use as ice multiplier if required.
- */
-function getConstants(){
-  // Shots used for learning: must have actual set and both use toggles true (or at least one -- choose to require both used)
-  const learn = shots.filter(s => s.actual != null && s.useB && s.useH);
-  if (!learn.length) {
-    return { C: DEFAULT_C, avgH2H: ICE_BASELINE };
+    // quick checkpoint
+    console.log('DEBUG: DOM refs acquired', {actionBtnPresent: !!actionBtn});
+
+    // fill modal selects
+    (function populateModalSelects(){
+      const players = Array.from(playerSelect.options).map(o=>o.textContent);
+      modalPlayerSelect.innerHTML = '';
+      players.forEach(p=>{
+        const opt = document.createElement('option'); opt.value = p; opt.textContent = p;
+        modalPlayerSelect.appendChild(opt);
+      });
+      modalActualSelect.innerHTML = '';
+      ZONES.forEach(z=>{
+        const opt = document.createElement('option'); opt.value = z.index; opt.textContent = z.label;
+        modalActualSelect.appendChild(opt);
+      });
+    })();
+
+    // ====== Model helpers ======
+    function getConstants(){
+      const train = shots.filter(s => (s.actual != null) && s.useB && s.useH);
+      if(train.length === 0){
+        return { C: DEFAULT_C, avgH2H: ICE_BASELINE };
+      }
+      let cSum = 0, wSum = 0, h2hWeightedSum = 0;
+      const recent = train.slice(-12);
+      recent.forEach((s, i) => {
+        const weight = i + 1;
+        cSum += (s.actual * Math.pow(s.b2h, n)) * weight;
+        h2hWeightedSum += s.h2h * weight;
+        wSum += weight;
+      });
+      const baseC = (wSum > 0) ? (cSum / wSum) : DEFAULT_C;
+      const avgH2H = (wSum > 0) ? (h2hWeightedSum / wSum) : ICE_BASELINE;
+      const iceFactor = avgH2H / ICE_BASELINE;
+      const C = baseC * iceFactor;
+      return { C: (isFinite(C) && C>0) ? C : DEFAULT_C, avgH2H: (isFinite(avgH2H) ? avgH2H : ICE_BASELINE) };
+    }
+
+    function predictZoneFromB2H(b2h){
+      if(!b2h || b2h <= 0) return null;
+      const { C } = getConstants();
+      const idx = C / Math.pow(b2h, n);
+      let best = ZONES[0], bestDiff = Math.abs(best.index - idx);
+      for(let i=1;i<ZONES.length;i++){
+        const d = Math.abs(ZONES[i].index - idx);
+        if(d < bestDiff){ best = ZONES[i]; bestDiff = d; }
+      }
+      return { zone: best, idx };
+    }
+
+    function updateLiveTable(){
+      const { C } = getConstants();
+      const targets = ['High Guard','Top 12','Tee','Back 12','Board'];
+      liveTableTbody.innerHTML = '';
+      targets.forEach(label => {
+        const z = ZONES.find(x => x.label === label);
+        if(!z) return;
+        const safe = Math.max(1e-9, C / z.index);
+        const split = Math.pow(safe, 1 / n);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="font-weight:700">${z.label}</td><td>${split.toFixed(2)} s</td>`;
+        liveTableTbody.appendChild(tr);
+      });
+    }
+
+    // ====== Timer functions ======
+    function tick(){
+      const t = ((Date.now() - t0) / 1000);
+      mainTimeEl.textContent = t.toFixed(2);
+      if(state === 'B2H'){ b2hEl.textContent = t.toFixed(2); }
+      if(state === 'H2H'){ h2hEl.textContent = t.toFixed(2); }
+    }
+
+    function resetTimerUI(){
+      clearInterval(timerInt); timerInt = null;
+      state = 'READY';
+      actionBtn.textContent = 'START';
+      actionBtn.className = 'btn';
+      mainTimeEl.textContent = '0.00';
+      b2hEl.textContent = '0.00';
+      h2hEl.textContent = '0.00';
+      predictionEl.textContent = '—';
+    }
+
+    // bind the main button safely
+    if(!actionBtn) throw new Error('Missing action button element (id="actionBtn")');
+
+    actionBtn.addEventListener('click', function(){
+      console.log('DEBUG: actionBtn clicked, current state=', state);
+      if(state === 'READY'){
+        t0 = Date.now();
+        state = 'B2H';
+        actionBtn.textContent = 'HOG 1';
+        actionBtn.className = 'btn split';
+        timerInt = setInterval(tick, 30);
+        return;
+      }
+      if(state === 'B2H'){
+        curB2H = (Date.now() - t0) / 1000;
+        console.log('DEBUG: captured b2h =', curB2H);
+        if(curB2H < 2.0){ resetTimerUI(); return; }
+        t0 = Date.now();
+        state = 'H2H';
+        actionBtn.textContent = 'HOG 2';
+        actionBtn.className = 'btn stop';
+        const predicted = predictZoneFromB2H(curB2H);
+        predictionEl.textContent = predicted ? predicted.zone.label : '—';
+        return;
+      }
+      if(state === 'H2H'){
+        curH2H = (Date.now() - t0) / 1000;
+        console.log('DEBUG: captured h2h =', curH2H);
+        if(curH2H < 5.0){ resetTimerUI(); return; }
+        shots.push({
+          id: Date.now(),
+          player: playerSelect.value,
+          b2h: +curB2H.toFixed(2),
+          h2h: +curH2H.toFixed(2),
+          actual: null,
+          useB: true,
+          useH: true
+        });
+        renderHistory();
+        updateLiveTable();
+        resetTimerUI();
+        return;
+      }
+    });
+
+    // ====== History rendering ======
+    function renderHistory(){
+      historyBody.innerHTML = '';
+      const recent = shots.slice().reverse();
+      recent.forEach((sRev, revIdx) => {
+        const originalIdx = shots.length - 1 - revIdx;
+        const tr = document.createElement('tr');
+        tr.className = 'row-click';
+        const playerAbbrev = `<span class="label-abbrev">${sRev.player.charAt(0)}</span>`;
+        const actualLabel = sRev.actual != null ? (ZONES.find(z => z.index === sRev.actual)?.label || '—') : '—';
+        tr.innerHTML = `
+          <td>${playerAbbrev}</td>
+          <td>${sRev.b2h.toFixed(2)}</td>
+          <td><input type="checkbox" data-which="b" ${sRev.useB ? 'checked' : ''}></td>
+          <td>${sRev.h2h.toFixed(2)}</td>
+          <td><input type="checkbox" data-which="h" ${sRev.useH ? 'checked' : ''}></td>
+          <td>${actualLabel}</td>
+        `;
+        tr.addEventListener('click', (ev) => {
+          if(ev.target && ev.target.tagName === 'INPUT') return;
+          editingIdx = originalIdx;
+          modalPlayerSelect.value = shots[editingIdx].player;
+          modalActualSelect.value = shots[editingIdx].actual != null ? shots[editingIdx].actual : (predictZoneFromB2H(shots[editingIdx].b2h)?.zone.index || ZONES[2].index);
+          showModal(true);
+        });
+        const chkB = tr.querySelector('input[data-which="b"]');
+        const chkH = tr.querySelector('input[data-which="h"]');
+        chkB.addEventListener('click', (ev) => { ev.stopPropagation(); shots[originalIdx].useB = ev.target.checked; updateLiveTable(); });
+        chkH.addEventListener('click', (ev) => { ev.stopPropagation(); shots[originalIdx].useH = ev.target.checked; updateLiveTable(); });
+        historyBody.appendChild(tr);
+      });
+    }
+
+    // ====== Modal functions ======
+    function showModal(show){
+      calibModal.style.display = show ? 'flex' : 'none';
+      calibModal.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+    saveActualBtn.addEventListener('click', ()=>{
+      if(editingIdx == null) { showModal(false); return; }
+      const newPlayer = modalPlayerSelect.value;
+      const newActual = parseFloat(modalActualSelect.value);
+      shots[editingIdx].player = newPlayer;
+      shots[editingIdx].actual = isFinite(newActual) ? newActual : shots[editingIdx].actual;
+      shots[editingIdx].useB = true; shots[editingIdx].useH = true;
+      editingIdx = null;
+      renderHistory();
+      updateLiveTable();
+      showModal(false);
+    });
+    cancelActualBtn.addEventListener('click', ()=>{ editingIdx = null; showModal(false); });
+    calibModal.addEventListener('click', (ev) => { if(ev.target === calibModal) { editingIdx = null; showModal(false); } });
+
+    // ====== initial render ======
+    updateLiveTable();
+    renderHistory();
+
+    // final debug checkpoint
+    debugBanner.textContent = 'DEBUG: init complete';
+    console.log('DEBUG: init complete');
+
+  } catch (err) {
+    // Surface an error banner and write stack to console so user can paste it to me
+    const msg = (err && err.stack) ? err.stack.toString() : String(err);
+    errorBanner.style.display = 'block';
+    errorBanner.textContent = 'Startup error: ' + (err && err.message ? err.message : String(err));
+    debugBanner.textContent = 'DEBUG: startup failed';
+    console.error('Startup error:', err);
   }
-  let cSum = 0, wSum = 0, h2hSum = 0;
-  const slice = learn.slice(-12); // recent up to 12 shots
-  slice.forEach((s, i) => {
-    const weight = i + 1; // more recent => higher weight
-    cSum += (s.actual * Math.pow(s.b2h, n)) * weight;
-    h2hSum += s.h2h * weight;
-    wSum += weight;
-  });
-  const avgH2H = (h2hSum / wSum) || ICE_BASELINE;
-  const baseC = (cSum / wSum) || DEFAULT_C;
-  // Scale C by ice factor: if avgH2H > baseline, ice is faster (stones travel farther), so scale up
-  const iceFactor = avgH2H / ICE_BASELINE;
-  const C = baseC * iceFactor;
-  return { C, avgH2H };
-}
-
-/** Predict zone object from a measured b2h time */
-function predictZoneFromB2H(b2h){
-  if(!b2h || b2h <= 0) return null;
-  const { C } = getConstants();
-  // idx increases with smaller b2h (faster split => farther)
-  const idx = C / Math.pow(b2h, n);
-  // pick closest zone by index distance
-  let best = ZONES[0];
-  let bestDiff = Math.abs(ZONES[0].index - idx);
-  for (let i = 1; i < ZONES.length; i++){
-    const d = Math.abs(ZONES[i].index - idx);
-    if(d < bestDiff){ best = ZONES[i]; bestDiff = d; }
-  }
-  return { zone: best, idx };
-}
-
-/** Update live reference table (High Guard, Top 12, Tee, Back 12, Board) */
-function updateLiveTable(){
-  const { C } = getConstants();
-  cons
+});
+</script>
+</body>
+</html>
