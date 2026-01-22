@@ -1,350 +1,683 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Curling Stopwatch — Debug Build</title>
-<style>
-:root{--primary:#0b61b1;--accent:#28a745;--warn:#f0ad4e;--danger:#d9534f;--bg:#f6f8fa;--card:#fff}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:#222;padding-bottom:150px}
-.container{max-width:640px;margin:8px auto;padding:10px}
-.card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.timer{font-size:3.6rem;font-weight:800;text-align:center;letter-spacing:0.5px}
-.sub{display:flex;justify-content:space-between;color:#666;font-weight:600;margin-top:8px}
-.pred{background:#e9f3ff;border:2px solid var(--primary);padding:10px;border-radius:10px;text-align:center}
-.pred .val{font-size:1.6rem;font-weight:800;color:var(--primary);display:block;margin-top:6px}
-.table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.92rem}
-.table th,.table td{padding:8px;border-bottom:1px solid #eee;text-align:center}
-.thumbbar{position:fixed;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,#fff 75%,rgba(255,255,255,0))}
-.btn{width:100%;padding:20px;border-radius:14px;border:none;font-weight:900;font-size:1.4rem;background:var(--accent);color:#fff;box-shadow:0 6px 0 #1f7a36}
-.btn.split{background:var(--warn);color:#000;box-shadow:0 6px 0 #c78711}
-.btn.stop{background:var(--danger);box-shadow:0 6px 0 #a02521}
-.small{font-size:0.85rem;color:#666}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);z-index:50}
-.modal .card{max-width:420px;width:92%}
-input[type="checkbox"]{width:18px;height:18px}
-select,input[type="text"]{padding:8px;border-radius:8px;border:1px solid #ddd;width:100%;font-size:1rem}
-.row-click{cursor:pointer}
-.label-abbrev{font-weight:700}
-.debug-banner{background:#fff3cd;border:1px solid #ffeeba;padding:8px;border-radius:8px;margin-bottom:10px;font-size:0.9rem;color:#856404}
-.error-banner{background:#f8d7da;border:1px solid #f5c6cb;padding:10px;border-radius:8px;margin-bottom:10px;color:#721c24}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>Curling Pro v7.0</title>
+    <style>
+        :root {
+            /* Palette */
+            --blue: #0A84FF;
+            --green: #30D158;
+            --red: #FF453A;
+            --yellow: #FFD60A;
+            --purple: #BF5AF2;
+            --grey: #98989D;
+            --dim: #3A3A3C;
+            --bg: #000000;
+            --surface: #1C1C1E;
+            --border: #2C2C2E;
+            --text: #FFFFFF;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- Header --- */
+        header {
+            padding: 12px 16px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            background: var(--surface);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            z-index: 20;
+        }
+        h1 { margin: 0; font-size: 17px; font-weight: 700; opacity: 0.9; }
+        
+        .profile-select {
+            background: #2C2C2E;
+            color: var(--blue);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            outline: none;
+            text-align-last: right;
+            appearance: none;
+        }
+
+        /* --- Scroll Content --- */
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 150px;
+        }
+
+        /* --- Readout --- */
+        .readout {
+            padding: 20px 15px;
+            background: linear-gradient(180deg, #1C1C1E 0%, #000000 100%);
+        }
+
+        .dual-pred {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .pred-card {
+            background: #222;
+            border-radius: 16px;
+            padding: 16px 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 110px;
+            border: 2px solid transparent;
+            transition: 0.2s;
+            position: relative;
+        }
+        .pred-card.active { border-color: var(--blue); background: #2A2A2A; }
+        .pred-card.running { border-color: var(--green); background: #2A2A2A; }
+
+        .pred-lbl { font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
+        
+        /* The Big Slot: Holds TIME now */
+        .pred-primary { 
+            font-size: 34px; 
+            font-weight: 300; 
+            font-family: monospace; /* Tabular numbers for timer */
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -1px;
+            line-height: 1.1; 
+            white-space: nowrap; 
+            min-height: 38px;
+        }
+        
+        /* The Sub Slot: Holds PREDICTION now */
+        .pred-secondary { 
+            font-size: 19px; 
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-top: 6px; 
+            min-height: 24px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* --- Tables --- */
+        .section-header {
+            background: #121212;
+            color: var(--grey);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 8px 16px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th, .data-table td { padding: 12px 8px; border-bottom: 1px solid var(--border); text-align: center; }
+        .data-table th { color: var(--grey); font-weight: 500; font-size: 10px; }
+        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 16px; }
+        
+        .mono { font-family: monospace; font-size: 15px; letter-spacing: -0.5px; }
+
+        /* --- State Colors for Time Toggles --- */
+        .time-active { color: #FFFFFF; font-weight: 700; cursor: pointer; }
+        .time-ignored { color: #444; font-weight: 400; cursor: pointer; text-decoration: none; }
+        
+        .player-badge {
+            font-size: 10px; padding: 3px 6px; border-radius: 4px;
+            background: #333; color: #ccc; font-weight: 700; letter-spacing: 0.5px;
+        }
+
+        /* --- Controls --- */
+        .controls-area {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            border-top: 1px solid var(--border);
+            display: flex; gap: 12px; z-index: 100;
+        }
+
+        button { border: none; outline: none; cursor: pointer; text-transform: uppercase; -webkit-touch-callout: none; }
+
+        #btn-main {
+            flex: 2; height: 72px; border-radius: 18px;
+            font-size: 24px; font-weight: 700; color: white;
+            background: var(--green);
+            box-shadow: 0 4px 15px rgba(48, 209, 88, 0.25);
+            transition: transform 0.1s;
+        }
+        #btn-main:active { transform: scale(0.96); }
+        
+        #btn-reset {
+            flex: 1; height: 72px; border-radius: 18px;
+            background: #2C2C2E; color: var(--text);
+            font-size: 14px; font-weight: 600;
+        }
+
+        .st-ready { background-color: var(--green) !important; }
+        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.25) !important; }
+        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 15px rgba(255, 69, 58, 0.25) !important; }
+
+        /* --- Modal --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none;
+            flex-direction: column; justify-content: flex-end; z-index: 200;
+        }
+        .modal-content { background: #1C1C1E; border-radius: 20px 20px 0 0; padding: 24px; border-top: 1px solid #333; }
+        .zone-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+        .zone-btn {
+            padding: 14px 0; background: #2C2C2E; color: white;
+            border-radius: 10px; font-weight: 600; font-size: 13px;
+        }
+
+        /* --- Zone Colors --- */
+        .z-guard { color: var(--yellow); }
+        .z-house { color: var(--green); }
+        .z-thru { color: var(--red); }
+        .z-heavy { color: var(--purple); }
+
+    </style>
 </head>
 <body>
-<div class="container">
 
-  <div id="debugBanner" class="debug-banner">DEBUG: script not yet loaded</div>
-  <div id="errorBanner" class="error-banner" style="display:none"></div>
+    <header>
+        <h1>CurlingPro</h1>
+        <select id="profile-select" class="profile-select">
+            <option value="TEAM">TEAM (All)</option>
+            <option value="-">-</option>
+            <option value="Lead">Lead</option>
+            <option value="2nd">Second</option>
+            <option value="Vice">Vice</option>
+            <option value="Skip">Skip</option>
+        </select>
+    </header>
 
-  <div class="card">
-    <label for="playerSelect">Player profile</label>
-    <select id="playerSelect" aria-label="Player profile">
-      <option>Team</option>
-      <option>Skip</option>
-      <option>Vice</option>
-      <option>Second</option>
-      <option>Lead</option>
-    </select>
-  </div>
+    <div class="scroll-area">
+        
+        <div class="readout">
+            <div class="dual-pred">
+                <!-- Back to Hog Card -->
+                <div class="pred-card" id="card-bh">
+                    <div class="pred-lbl">Back to Hog</div>
+                    <div class="pred-primary" id="time-bh">0.00</div>
+                    <div class="pred-secondary" id="pred-bh">--</div>
+                </div>
+                <!-- Hog to Hog Card -->
+                <div class="pred-card" id="card-hh">
+                    <div class="pred-lbl">Hog to Hog</div>
+                    <div class="pred-primary" id="time-hh">0.00</div>
+                    <div class="pred-secondary" id="pred-hh">--</div>
+                </div>
+            </div>
+        </div>
 
-  <div class="card">
-    <div class="timer" id="mainTime">0.00</div>
-    <div class="sub"><div>B–H: <span id="b2h">0.00</span></div><div>H–H: <span id="h2h">0.00</span></div></div>
-  </div>
+        <div class="section-header">
+            <span>Quick Reference</span>
+            <span id="ice-readout" style="color:var(--blue)">Neutral</span>
+        </div>
+        <table class="data-table" id="ref-table">
+            <thead>
+                <tr>
+                    <th>Target</th>
+                    <th>B-H</th>
+                    <th>H-H</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
 
-  <div class="card pred">
-    Prediction
-    <span class="val" id="prediction">—</span>
-  </div>
+        <div class="section-header" style="margin-top: 10px;">
+            <span>Shot History</span>
+            <span style="font-size:10px; font-weight:400; color:#666;">White=Used | Grey=Ignored</span>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>B-H</th>
+                    <th>H-H</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+        </table>
 
-  <div class="card">
-    <strong>Live Split Estimates</strong>
-    <table class="table" id="liveTable"><thead><tr><th>Target</th><th>Split (B–H)</th></tr></thead><tbody></tbody></table>
-    <div class="small">Estimates update from calibrated shots (use toggles to ignore outliers).</div>
-  </div>
-
-  <div class="card">
-    <strong>Shot History — tap a row to edit player or set actual</strong>
-    <table class="table" aria-live="polite">
-      <thead><tr><th>P</th><th>B–H</th><th>Use</th><th>H–H</th><th>Use</th><th>Actual</th></tr></thead>
-      <tbody id="historyBody"></tbody>
-    </table>
-  </div>
-
-</div>
-
-<div class="thumbbar">
-  <button id="actionBtn" class="btn">START</button>
-</div>
-
-<!-- Modal -->
-<div id="calibModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="card">
-    <h3 style="margin-top:0">Edit Shot</h3>
-    <div style="margin-bottom:8px">Player</div>
-    <select id="modalPlayerSelect"></select>
-    <div style="margin-top:8px;margin-bottom:6px">Actual</div>
-    <select id="modalActualSelect"></select>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button id="saveActualBtn" class="btn">Save</button>
-      <button id="cancelActualBtn" class="btn" style="background:#eee;color:#111;box-shadow:none">Cancel</button>
     </div>
-  </div>
-</div>
 
-<script>
-/* Defensive debug wrapper so any startup error surfaces visibly */
-console.log('DEBUG: script loaded');
+    <div class="controls-area">
+        <button id="btn-reset" onclick="app.reset()">RESET</button>
+        <button id="btn-main" class="st-ready">START</button>
+    </div>
 
-document.addEventListener('DOMContentLoaded', function () {
-  console.log('DEBUG: DOMContentLoaded - starting init');
-  const debugBanner = document.getElementById('debugBanner');
-  const errorBanner = document.getElementById('errorBanner');
+    <!-- Calibration Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 style="margin:0; font-size:18px;">Actual Result?</h3>
+            <p style="margin:5px 0 0 0; font-size:13px; color:var(--grey);">Calibrating for <span id="calib-profile">Team</span></p>
+            <div class="zone-grid" id="zone-grid"></div>
+            <button onclick="app.closeModal()" style="padding:15px; width:100%; background:transparent; color:var(--grey); margin-top:10px;">Cancel</button>
+        </div>
+    </div>
 
-  try {
-    // ====== Constants ======
-    const n = 6.0;
-    const ICE_BASELINE = 14.0;
-    const DEFAULT_B2H = 3.8;
-    const DEFAULT_INDEX = 9;
-    const DEFAULT_C = DEFAULT_INDEX * Math.pow(DEFAULT_B2H, n);
+    <script>
+        const CONFIG = {
+            // Physics Constants
+            bhSlope: -8.33, bhIntercept: 38.65,
+            hhSlope: -7.14, hhIntercept: 110.5,
 
-    const ZONES = [
-      {index:2, label:'High Guard'},
-      {index:4, label:'Top 12'},
-      {index:6, label:'Tee'},
-      {index:8, label:'Back 12'},
-      {index:10,label:'Board'},
-      {index:12,label:'Control'},
-      {index:14,label:'Normal'},
-      {index:16,label:'Peel'}
-    ];
+            // Validity Thresholds
+            minBH: 2.0, maxBH: 6.0,
+            minHH: 7.0, maxHH: 20.0,
 
-    // ====== State ======
-    let shots = [];
-    let state = 'READY';
-    let t0 = 0;
-    let curB2H = 0;
-    let curH2H = 0;
-    let timerInt = null;
-    let editingIdx = null;
+            // Zone Definitions
+            zones: {
+                13: "NORMAL", 12: "CONTROL", 
+                11.5: "BOARD", 11: "THROUGH", 10: "BACK 12", 9: "BACK 8", 8: "BACK 4",
+                7: "TEE LINE", 6: "TOP 4", 5: "TOP 8", 4: "TOP 12",
+                3: "HOG 12", 2: "GUARD", 1: "HOGGED", 0: "SHORT"
+            },
+            
+            // Reference Table Targets
+            refRows: [
+                { z: 11.5, n: "BOARD" }, 
+                { z: 10, n: "BACK 12" }, 
+                { z: 7, n: "TEE LINE" },
+                { z: 4, n: "TOP 12" }, 
+                { z: 2, n: "GUARD" }
+            ]
+        };
 
-    // ====== DOM refs ======
-    const playerSelect = document.getElementById('playerSelect');
-    const mainTimeEl   = document.getElementById('mainTime');
-    const b2hEl        = document.getElementById('b2h');
-    const h2hEl        = document.getElementById('h2h');
-    const predictionEl = document.getElementById('prediction');
-    const liveTableTbody = document.querySelector('#liveTable tbody');
-    const historyBody  = document.getElementById('historyBody');
-    const actionBtn    = document.getElementById('actionBtn');
-    const calibModal   = document.getElementById('calibModal');
-    const modalPlayerSelect = document.getElementById('modalPlayerSelect');
-    const modalActualSelect = document.getElementById('modalActualSelect');
-    const saveActualBtn = document.getElementById('saveActualBtn');
-    const cancelActualBtn = document.getElementById('cancelActualBtn');
+        const app = {
+            state: 'IDLE',
+            t0: 0, t1: 0,
+            split: 0, interval: 0,
+            timerInterval: null,
+            history: [],
+            currentProfile: 'TEAM',
+            iceOffset: 0,
+            editingId: null,
 
-    // quick checkpoint
-    console.log('DEBUG: DOM refs acquired', {actionBtnPresent: !!actionBtn});
+            // DOM Elements
+            elBtn: document.getElementById('btn-main'),
+            elCardBH: document.getElementById('card-bh'),
+            elTimeBH: document.getElementById('time-bh'),
+            elPredBH: document.getElementById('pred-bh'),
+            elCardHH: document.getElementById('card-hh'),
+            elTimeHH: document.getElementById('time-hh'),
+            elPredHH: document.getElementById('pred-hh'),
+            elProfile: document.getElementById('profile-select'),
 
-    // fill modal selects
-    (function populateModalSelects(){
-      const players = Array.from(playerSelect.options).map(o=>o.textContent);
-      modalPlayerSelect.innerHTML = '';
-      players.forEach(p=>{
-        const opt = document.createElement('option'); opt.value = p; opt.textContent = p;
-        modalPlayerSelect.appendChild(opt);
-      });
-      modalActualSelect.innerHTML = '';
-      ZONES.forEach(z=>{
-        const opt = document.createElement('option'); opt.value = z.index; opt.textContent = z.label;
-        modalActualSelect.appendChild(opt);
-      });
-    })();
+            init() {
+                this.loadData();
+                this.setupGrid();
+                this.bindEvents();
+                this.updateProfile();
+                this.renderUI();
+            },
 
-    // ====== Model helpers ======
-    function getConstants(){
-      const train = shots.filter(s => (s.actual != null) && s.useB && s.useH);
-      if(train.length === 0){
-        return { C: DEFAULT_C, avgH2H: ICE_BASELINE };
-      }
-      let cSum = 0, wSum = 0, h2hWeightedSum = 0;
-      const recent = train.slice(-12);
-      recent.forEach((s, i) => {
-        const weight = i + 1;
-        cSum += (s.actual * Math.pow(s.b2h, n)) * weight;
-        h2hWeightedSum += s.h2h * weight;
-        wSum += weight;
-      });
-      const baseC = (wSum > 0) ? (cSum / wSum) : DEFAULT_C;
-      const avgH2H = (wSum > 0) ? (h2hWeightedSum / wSum) : ICE_BASELINE;
-      const iceFactor = avgH2H / ICE_BASELINE;
-      const C = baseC * iceFactor;
-      return { C: (isFinite(C) && C>0) ? C : DEFAULT_C, avgH2H: (isFinite(avgH2H) ? avgH2H : ICE_BASELINE) };
-    }
+            bindEvents() {
+                const btn = document.getElementById('btn-main');
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); this.handleAction(); }, {passive: false});
+                btn.addEventListener('click', (e) => { if(e.detail !== 0) { e.preventDefault(); this.handleAction(); }});
+                
+                this.elProfile.addEventListener('change', (e) => {
+                    this.currentProfile = e.target.value;
+                    this.updateProfile();
+                    this.renderUI();
+                });
+            },
 
-    function predictZoneFromB2H(b2h){
-      if(!b2h || b2h <= 0) return null;
-      const { C } = getConstants();
-      const idx = C / Math.pow(b2h, n);
-      let best = ZONES[0], bestDiff = Math.abs(best.index - idx);
-      for(let i=1;i<ZONES.length;i++){
-        const d = Math.abs(ZONES[i].index - idx);
-        if(d < bestDiff){ best = ZONES[i]; bestDiff = d; }
-      }
-      return { zone: best, idx };
-    }
+            setupGrid() {
+                const container = document.getElementById('zone-grid');
+                const order = [13, 12, 11.5, 10, 8, 7, 6, 4, 2];
+                order.forEach(z => {
+                    const btn = document.createElement('button');
+                    btn.className = 'zone-btn';
+                    btn.innerText = CONFIG.zones[z] || z;
+                    if(z >= 12) btn.classList.add('z-heavy');
+                    else if(z >= 8) btn.classList.add('z-thru');
+                    else if(z >= 4) btn.classList.add('z-house');
+                    else btn.classList.add('z-guard');
+                    btn.onclick = () => this.calibrate(z);
+                    container.appendChild(btn);
+                });
+            },
 
-    function updateLiveTable(){
-      const { C } = getConstants();
-      const targets = ['High Guard','Top 12','Tee','Back 12','Board'];
-      liveTableTbody.innerHTML = '';
-      targets.forEach(label => {
-        const z = ZONES.find(x => x.label === label);
-        if(!z) return;
-        const safe = Math.max(1e-9, C / z.index);
-        const split = Math.pow(safe, 1 / n);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td style="font-weight:700">${z.label}</td><td>${split.toFixed(2)} s</td>`;
-        liveTableTbody.appendChild(tr);
-      });
-    }
+            handleAction() {
+                const now = Date.now();
+                if (this.state === 'IDLE') {
+                    // START
+                    this.state = 'RUNNING';
+                    this.t0 = now;
+                    this.startTimer();
+                    this.updateBtn("HOG 1", "st-split");
+                    
+                    // Visuals
+                    this.elCardBH.classList.add('running');
+                    this.elPredBH.innerText = "Timing...";
+                    this.elTimeBH.style.color = "var(--text)";
+                    
+                    // Reset H-H
+                    this.elTimeHH.innerText = "0.00"; 
+                    this.elPredHH.innerText = "--";
+                    this.elPredHH.style.color = "var(--grey)";
+                    
+                    this.vibrate(15);
 
-    // ====== Timer functions ======
-    function tick(){
-      const t = ((Date.now() - t0) / 1000);
-      mainTimeEl.textContent = t.toFixed(2);
-      if(state === 'B2H'){ b2hEl.textContent = t.toFixed(2); }
-      if(state === 'H2H'){ h2hEl.textContent = t.toFixed(2); }
-    }
+                } else if (this.state === 'RUNNING') {
+                    // SPLIT (Back to Hog Done)
+                    this.t1 = now;
+                    this.split = (this.t1 - this.t0) / 1000;
+                    this.state = 'INTERVAL';
+                    
+                    // Visuals: Lock B-H
+                    this.elCardBH.classList.remove('running');
+                    this.elCardBH.classList.add('active');
+                    this.elTimeBH.innerText = this.split.toFixed(2);
+                    this.predictBH(this.split); // Updates Prediction Slot
+                    
+                    // Visuals: Start H-H
+                    this.elCardHH.classList.add('running');
+                    this.elPredHH.innerText = "Timing...";
+                    
+                    this.updateBtn("HOG 2", "st-int");
+                    this.vibrate(30);
 
-    function resetTimerUI(){
-      clearInterval(timerInt); timerInt = null;
-      state = 'READY';
-      actionBtn.textContent = 'START';
-      actionBtn.className = 'btn';
-      mainTimeEl.textContent = '0.00';
-      b2hEl.textContent = '0.00';
-      h2hEl.textContent = '0.00';
-      predictionEl.textContent = '—';
-    }
+                } else if (this.state === 'INTERVAL') {
+                    // FINISH (Hog to Hog Done)
+                    this.interval = (now - this.t1) / 1000;
+                    this.state = 'FINISHED';
+                    this.stopTimer();
+                    
+                    // Visuals: Lock H-H
+                    this.elCardHH.classList.remove('running');
+                    this.elCardHH.classList.add('active');
+                    this.elTimeHH.innerText = this.interval.toFixed(2);
+                    this.predictHH(this.interval); // Updates Prediction Slot
+                    
+                    this.updateBtn("NEXT SHOT", "st-ready");
+                    this.saveShot();
+                    this.vibrate([10, 30, 10]);
 
-    // bind the main button safely
-    if(!actionBtn) throw new Error('Missing action button element (id="actionBtn")');
+                } else if (this.state === 'FINISHED') {
+                    this.reset();
+                }
+            },
 
-    actionBtn.addEventListener('click', function(){
-      console.log('DEBUG: actionBtn clicked, current state=', state);
-      if(state === 'READY'){
-        t0 = Date.now();
-        state = 'B2H';
-        actionBtn.textContent = 'HOG 1';
-        actionBtn.className = 'btn split';
-        timerInt = setInterval(tick, 30);
-        return;
-      }
-      if(state === 'B2H'){
-        curB2H = (Date.now() - t0) / 1000;
-        console.log('DEBUG: captured b2h =', curB2H);
-        if(curB2H < 2.0){ resetTimerUI(); return; }
-        t0 = Date.now();
-        state = 'H2H';
-        actionBtn.textContent = 'HOG 2';
-        actionBtn.className = 'btn stop';
-        const predicted = predictZoneFromB2H(curB2H);
-        predictionEl.textContent = predicted ? predicted.zone.label : '—';
-        return;
-      }
-      if(state === 'H2H'){
-        curH2H = (Date.now() - t0) / 1000;
-        console.log('DEBUG: captured h2h =', curH2H);
-        if(curH2H < 5.0){ resetTimerUI(); return; }
-        shots.push({
-          id: Date.now(),
-          player: playerSelect.value,
-          b2h: +curB2H.toFixed(2),
-          h2h: +curH2H.toFixed(2),
-          actual: null,
-          useB: true,
-          useH: true
-        });
-        renderHistory();
-        updateLiveTable();
-        resetTimerUI();
-        return;
-      }
-    });
+            startTimer() {
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => {
+                    const now = Date.now();
+                    
+                    if (this.state === 'RUNNING') {
+                        // Updating B-H Time Slot
+                        const t = (now - this.t0) / 1000;
+                        this.elTimeBH.innerText = t.toFixed(2);
+                    } else if (this.state === 'INTERVAL') {
+                        // Updating H-H Time Slot
+                        const t = (now - this.t1) / 1000;
+                        this.elTimeHH.innerText = t.toFixed(2);
+                    }
+                }, 37);
+            },
+            stopTimer() { clearInterval(this.timerInterval); },
 
-    // ====== History rendering ======
-    function renderHistory(){
-      historyBody.innerHTML = '';
-      const recent = shots.slice().reverse();
-      recent.forEach((sRev, revIdx) => {
-        const originalIdx = shots.length - 1 - revIdx;
-        const tr = document.createElement('tr');
-        tr.className = 'row-click';
-        const playerAbbrev = `<span class="label-abbrev">${sRev.player.charAt(0)}</span>`;
-        const actualLabel = sRev.actual != null ? (ZONES.find(z => z.index === sRev.actual)?.label || '—') : '—';
-        tr.innerHTML = `
-          <td>${playerAbbrev}</td>
-          <td>${sRev.b2h.toFixed(2)}</td>
-          <td><input type="checkbox" data-which="b" ${sRev.useB ? 'checked' : ''}></td>
-          <td>${sRev.h2h.toFixed(2)}</td>
-          <td><input type="checkbox" data-which="h" ${sRev.useH ? 'checked' : ''}></td>
-          <td>${actualLabel}</td>
-        `;
-        tr.addEventListener('click', (ev) => {
-          if(ev.target && ev.target.tagName === 'INPUT') return;
-          editingIdx = originalIdx;
-          modalPlayerSelect.value = shots[editingIdx].player;
-          modalActualSelect.value = shots[editingIdx].actual != null ? shots[editingIdx].actual : (predictZoneFromB2H(shots[editingIdx].b2h)?.zone.index || ZONES[2].index);
-          showModal(true);
-        });
-        const chkB = tr.querySelector('input[data-which="b"]');
-        const chkH = tr.querySelector('input[data-which="h"]');
-        chkB.addEventListener('click', (ev) => { ev.stopPropagation(); shots[originalIdx].useB = ev.target.checked; updateLiveTable(); });
-        chkH.addEventListener('click', (ev) => { ev.stopPropagation(); shots[originalIdx].useH = ev.target.checked; updateLiveTable(); });
-        historyBody.appendChild(tr);
-      });
-    }
+            reset() {
+                this.stopTimer();
+                this.state = 'IDLE';
+                this.elTimeBH.innerText = "0.00"; this.elPredBH.innerText = "--";
+                this.elTimeHH.innerText = "0.00"; this.elPredHH.innerText = "--";
+                this.elCardBH.className = 'pred-card';
+                this.elCardHH.className = 'pred-card';
+                this.elPredBH.style.color = "var(--grey)";
+                this.elPredHH.style.color = "var(--grey)";
+                this.updateBtn("START", "st-ready");
+            },
 
-    // ====== Modal functions ======
-    function showModal(show){
-      calibModal.style.display = show ? 'flex' : 'none';
-      calibModal.setAttribute('aria-hidden', show ? 'false' : 'true');
-    }
-    saveActualBtn.addEventListener('click', ()=>{
-      if(editingIdx == null) { showModal(false); return; }
-      const newPlayer = modalPlayerSelect.value;
-      const newActual = parseFloat(modalActualSelect.value);
-      shots[editingIdx].player = newPlayer;
-      shots[editingIdx].actual = isFinite(newActual) ? newActual : shots[editingIdx].actual;
-      shots[editingIdx].useB = true; shots[editingIdx].useH = true;
-      editingIdx = null;
-      renderHistory();
-      updateLiveTable();
-      showModal(false);
-    });
-    cancelActualBtn.addEventListener('click', ()=>{ editingIdx = null; showModal(false); });
-    calibModal.addEventListener('click', (ev) => { if(ev.target === calibModal) { editingIdx = null; showModal(false); } });
+            updateBtn(text, cls) {
+                this.elBtn.className = '';
+                this.elBtn.classList.add(cls);
+                this.elBtn.innerText = text;
+            },
 
-    // ====== initial render ======
-    updateLiveTable();
-    renderHistory();
+            // --- PREDICTION ---
+            predictBH(time) {
+                if (time < CONFIG.minBH || time > CONFIG.maxBH) {
+                    this.elPredBH.innerText = "-";
+                    this.elPredBH.style.color = "var(--grey)";
+                    return null;
+                }
+                const z = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffset;
+                const final = this.resolveZone(z);
+                this.displayPred(this.elPredBH, final);
+                return final;
+            },
 
-    // final debug checkpoint
-    debugBanner.textContent = 'DEBUG: init complete';
-    console.log('DEBUG: init complete');
+            predictHH(time) {
+                if (time < CONFIG.minHH || time > CONFIG.maxHH) {
+                    this.elPredHH.innerText = "-";
+                    this.elPredHH.style.color = "var(--grey)";
+                    return null;
+                }
+                const z = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffset;
+                const final = this.resolveZone(z);
+                this.displayPred(this.elPredHH, final);
+                return final;
+            },
 
-  } catch (err) {
-    // Surface an error banner and write stack to console so user can paste it to me
-    const msg = (err && err.stack) ? err.stack.toString() : String(err);
-    errorBanner.style.display = 'block';
-    errorBanner.textContent = 'Startup error: ' + (err && err.message ? err.message : String(err));
-    debugBanner.textContent = 'DEBUG: startup failed';
-    console.error('Startup error:', err);
-  }
-});
-</script>
+            resolveZone(z) {
+                if (z > 12.5) return 13; // Normal
+                if (z > 11.8) return 12; // Control
+                return Math.max(0, Math.min(11.5, z));
+            },
+
+            displayPred(el, zVal) {
+                const r = Math.round(zVal);
+                const txt = CONFIG.zones[zVal] || CONFIG.zones[r] || "UNKNOWN";
+                el.innerText = txt;
+                
+                if (zVal >= 12) el.style.color = "var(--purple)";
+                else if (zVal >= 8) el.style.color = "var(--red)";
+                else if (zVal >= 4) el.style.color = "var(--green)";
+                else el.style.color = "var(--yellow)";
+            },
+
+            saveShot() {
+                // Bounds Checking
+                const isValidBH = this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH;
+                const isValidHH = this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH;
+
+                let p = this.currentProfile;
+                if(p === 'TEAM') p = '-'; 
+
+                const s = {
+                    id: Date.now(),
+                    player: p,
+                    bh: this.split,
+                    hh: this.interval,
+                    actual: null,
+                    useBH: isValidBH,
+                    useHH: isValidHH,
+                    rawBH: (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept,
+                    rawHH: (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept
+                };
+                
+                this.history.unshift(s);
+                if (this.history.length > 50) this.history.pop();
+                this.saveStorage();
+                this.updateProfile();
+                this.renderUI();
+            },
+
+            updateProfile() {
+                const shots = this.currentProfile === 'TEAM' 
+                    ? this.history 
+                    : this.history.filter(s => s.player === this.currentProfile);
+                
+                let errSum = 0;
+                let count = 0;
+
+                shots.forEach(s => {
+                    // Only calibrate on Draw/Guard shots
+                    if (s.actual !== null && s.actual <= 11.5) {
+                        if (s.useBH) { errSum += (s.actual - s.rawBH); count++; }
+                        if (s.useHH) { errSum += (s.actual - s.rawHH); count++; }
+                    }
+                });
+
+                this.iceOffset = count > 0 ? (errSum / count) : 0;
+                const sign = this.iceOffset > 0 ? "+" : "";
+                document.getElementById('ice-readout').innerText = count > 0 
+                    ? `${this.currentProfile}: ${sign}${this.iceOffset.toFixed(1)}` 
+                    : "Neutral";
+            },
+
+            toggleTime(id, type) {
+                const s = this.history.find(x => x.id === id);
+                if(s) {
+                    if(type === 'bh') s.useBH = !s.useBH;
+                    if(type === 'hh') s.useHH = !s.useHH;
+                    this.saveStorage();
+                    this.updateProfile();
+                    this.renderUI();
+                }
+            },
+
+            cyclePlayer(id) {
+                const roles = ['-', 'Lead', '2nd', 'Vice', 'Skip'];
+                const s = this.history.find(x => x.id === id);
+                if(s) {
+                    const idx = roles.indexOf(s.player);
+                    const currentIdx = idx === -1 ? 0 : idx;
+                    s.player = roles[(currentIdx + 1) % roles.length];
+                    this.saveStorage();
+                    this.updateProfile();
+                    this.renderUI();
+                }
+            },
+
+            openModal(id) {
+                this.editingId = id;
+                const s = this.history.find(x => x.id === id);
+                document.getElementById('calib-profile').innerText = s.player;
+                document.getElementById('modal').style.display = 'flex';
+            },
+            closeModal() { document.getElementById('modal').style.display = 'none'; this.editingId = null; },
+
+            calibrate(val) {
+                const s = this.history.find(x => x.id === this.editingId);
+                if(s) {
+                    s.actual = val;
+                    // Auto-enable if within bounds
+                    if (s.bh >= CONFIG.minBH && s.bh <= CONFIG.maxBH) s.useBH = true;
+                    if (s.hh >= CONFIG.minHH && s.hh <= CONFIG.maxHH) s.useHH = true;
+                    this.saveStorage();
+                    this.updateProfile();
+                    this.renderUI();
+                }
+                this.closeModal();
+            },
+
+            renderUI() {
+                // --- Ref Table ---
+                const tbRef = document.getElementById('ref-table').querySelector('tbody');
+                tbRef.innerHTML = '';
+                CONFIG.refRows.forEach(r => {
+                    const bh = (r.z - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
+                    const hh = (r.z - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
+                    
+                    let color = "var(--yellow)";
+                    if (r.z >= 12) color = "var(--purple)";
+                    else if (r.z >= 8) color = "var(--red)";
+                    else if (r.z >= 4) color = "var(--green)";
+
+                    tbRef.innerHTML += `<tr>
+                        <td style="font-weight:700; color:${color}">${r.n}</td>
+                        <td class="mono">${bh.toFixed(2)}</td>
+                        <td class="mono">${hh.toFixed(2)}</td>
+                    </tr>`;
+                });
+
+                // --- History ---
+                const tbHist = document.getElementById('history-body');
+                tbHist.innerHTML = '';
+                const visible = this.currentProfile === 'TEAM' 
+                    ? this.history 
+                    : this.history.filter(s => s.player === this.currentProfile);
+
+                visible.forEach(s => {
+                    let resHtml = '';
+                    if (s.actual !== null) {
+                        const zName = CONFIG.zones[s.actual] || s.actual;
+                        let zCol = "var(--yellow)";
+                        if (s.actual >= 12) zCol = "var(--purple)";
+                        else if (s.actual >= 8) zCol = "var(--red)";
+                        else if (s.actual >= 4) zCol = "var(--green)";
+                        resHtml = `<span style="color:${zCol}; font-weight:700;">${zName}</span>`;
+                    } else {
+                        let pVal = 0;
+                        if (s.useHH) pVal = this.resolveZone(s.rawHH + this.iceOffset);
+                        else if (s.useBH) pVal = this.resolveZone(s.rawBH + this.iceOffset);
+                        
+                        const pName = CONFIG.zones[pVal] || "?";
+                        resHtml = `<span style="color:#666; font-style:italic;">(${pName})</span>`;
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="player-badge" onclick="app.cyclePlayer(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
+                        <td class="mono ${s.useBH ? 'time-active' : 'time-ignored'}" onclick="app.toggleTime(${s.id}, 'bh')">${s.bh.toFixed(2)}</td>
+                        <td class="mono ${s.useHH ? 'time-active' : 'time-ignored'}" onclick="app.toggleTime(${s.id}, 'hh')">${s.hh.toFixed(2)}</td>
+                        <td onclick="app.openModal(${s.id})">${resHtml}</td>
+                    `;
+                    tbHist.appendChild(tr);
+                });
+            },
+
+            vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
+            saveStorage() { localStorage.setItem('cp_v7', JSON.stringify(this.history)); },
+            loadData() { 
+                const d = localStorage.getItem('cp_v7'); 
+                if(d) this.history = JSON.parse(d); 
+            }
+        };
+
+        app.init();
+    </script>
 </body>
 </html>
