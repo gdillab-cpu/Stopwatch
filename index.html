@@ -9,9 +9,9 @@
     <title>Clock-Dilla (beta)</title>
     <style>
         :root {
-            /* Palette */
+            /* Clock-Dilla Palette */
             --blue: #0A84FF;
-            --green: #30D158; /* ONLY for Tee Line */
+            --green: #30D158; /* TEE LINE ONLY */
             --red: #FF453A;
             --grey: #98989D;
             --dim: #3A3A3C;
@@ -46,7 +46,7 @@
             border-bottom: 1px solid var(--border);
             z-index: 20;
         }
-        h1 { margin: 0; font-size: 17px; font-weight: 700; opacity: 0.9; }
+        h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; opacity: 1; }
         
         .profile-select {
             background: #2C2C2E;
@@ -100,6 +100,7 @@
 
         .pred-lbl { font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
         
+        /* Primary: THE TIME */
         .pred-primary { 
             font-size: 34px; 
             font-weight: 300; 
@@ -109,8 +110,10 @@
             line-height: 1.1; 
             white-space: nowrap; 
             min-height: 38px;
+            color: var(--text);
         }
         
+        /* Secondary: THE PREDICTION */
         .pred-secondary { 
             font-size: 19px; 
             font-weight: 800;
@@ -142,12 +145,13 @@
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
         .data-table th, .data-table td { padding: 10px 4px; border-bottom: 1px solid var(--border); text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .data-table th { color: var(--grey); font-weight: 500; font-size: 10px; }
-        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 12px; width: 12%; }
-        /* Columns */
+        
+        /* Column Widths - 5 Col Layout */
+        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 12px; width: 14%; } /* Ply */
         .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 18%; } /* B-H */
         .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 18%; } /* H-H */
-        .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 26%; } /* Est */
-        .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 26%; } /* Act */
+        .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 25%; } /* Est */
+        .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 25%; } /* Res */
         
         .mono { font-family: monospace; font-size: 14px; letter-spacing: -0.5px; }
 
@@ -294,9 +298,19 @@
 
     <script>
         const CONFIG = {
-            // Physics Constants
-            bhSlope: -8.33, bhIntercept: 38.65,
-            hhSlope: -7.14, hhIntercept: 110.5,
+            // --- PHYSICS ENGINE (LINEAR MODEL) ---
+            // While physics suggests an inverse square relationship (d ~ 1/t^2),
+            // a Linear Regression model is robust for the narrow "Draw Window" (Zone 1-11).
+            // It provides self-correcting stability for the "Ice Offset" calibration feature.
+            
+            // Back-to-Hog: 3.8s(Tee) -> 4.4s(Guard)
+            bhSlope: -8.33, 
+            bhIntercept: 38.65,
+
+            // Hog-to-Hog: 14.5s(Tee) -> 15.4s(Guard)
+            // Adjusted gap to 0.9s for more standard club ice feel vs pro ice.
+            hhSlope: -5.55, 
+            hhIntercept: 87.5,
 
             // Validity Thresholds
             minBH: 2.0, maxBH: 6.0,
@@ -543,6 +557,7 @@
                 let count = 0;
 
                 shots.forEach(s => {
+                    // Only calibrate on Draw/Guard shots
                     if (s.actual !== null && s.actual <= 11.5) {
                         if (s.useBH) { errSum += (s.actual - s.rawBH); count++; }
                         if (s.useHH) { errSum += (s.actual - s.rawHH); count++; }
@@ -627,7 +642,7 @@
                     : this.history.filter(s => s.player === this.currentProfile);
 
                 visible.forEach(s => {
-                    // 1. Calculate Est Column
+                    // 1. Calculate Est Column (Based on Current Ice)
                     let estHtml = '<span style="color:#444">-</span>';
                     let pVal = 0;
                     let hasPred = false;
@@ -664,9 +679,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v7_final', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v8_final', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v7_final'); 
+                const d = localStorage.getItem('cp_v8_final'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
