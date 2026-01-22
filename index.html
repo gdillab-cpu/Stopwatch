@@ -6,15 +6,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <title>Curling Pro v7.0</title>
+    <title>Curling Pro Final</title>
     <style>
         :root {
             /* Palette */
             --blue: #0A84FF;
-            --green: #30D158;
+            --green: #30D158; /* ONLY for Tee Line */
             --red: #FF453A;
-            --yellow: #FFD60A;
-            --purple: #BF5AF2;
             --grey: #98989D;
             --dim: #3A3A3C;
             --bg: #000000;
@@ -102,11 +100,10 @@
 
         .pred-lbl { font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
         
-        /* The Big Slot: Holds TIME now */
         .pred-primary { 
             font-size: 34px; 
             font-weight: 300; 
-            font-family: monospace; /* Tabular numbers for timer */
+            font-family: monospace; 
             font-variant-numeric: tabular-nums;
             letter-spacing: -1px;
             line-height: 1.1; 
@@ -114,7 +111,6 @@
             min-height: 38px;
         }
         
-        /* The Sub Slot: Holds PREDICTION now */
         .pred-secondary { 
             font-size: 19px; 
             font-weight: 800;
@@ -143,19 +139,24 @@
             z-index: 10;
         }
 
-        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .data-table th, .data-table td { padding: 12px 8px; border-bottom: 1px solid var(--border); text-align: center; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+        .data-table th, .data-table td { padding: 10px 4px; border-bottom: 1px solid var(--border); text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .data-table th { color: var(--grey); font-weight: 500; font-size: 10px; }
-        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 16px; }
+        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 12px; width: 12%; }
+        /* Columns */
+        .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 18%; } /* B-H */
+        .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 18%; } /* H-H */
+        .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 26%; } /* Est */
+        .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 26%; } /* Act */
         
-        .mono { font-family: monospace; font-size: 15px; letter-spacing: -0.5px; }
+        .mono { font-family: monospace; font-size: 14px; letter-spacing: -0.5px; }
 
         /* --- State Colors for Time Toggles --- */
         .time-active { color: #FFFFFF; font-weight: 700; cursor: pointer; }
         .time-ignored { color: #444; font-weight: 400; cursor: pointer; text-decoration: none; }
         
         .player-badge {
-            font-size: 10px; padding: 3px 6px; border-radius: 4px;
+            font-size: 10px; padding: 3px 4px; border-radius: 4px;
             background: #333; color: #ccc; font-weight: 700; letter-spacing: 0.5px;
         }
 
@@ -204,13 +205,9 @@
             padding: 14px 0; background: #2C2C2E; color: white;
             border-radius: 10px; font-weight: 600; font-size: 13px;
         }
-
-        /* --- Zone Colors --- */
-        .z-guard { color: var(--yellow); }
-        .z-house { color: var(--green); }
-        .z-thru { color: var(--red); }
-        .z-heavy { color: var(--purple); }
-
+        /* Only Tee Line gets color in grid */
+        .z-tee { color: var(--green) !important; }
+        
     </style>
 </head>
 <body>
@@ -268,9 +265,10 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Player</th>
+                    <th>Ply</th>
                     <th>B-H</th>
                     <th>H-H</th>
+                    <th>Est</th>
                     <th>Result</th>
                 </tr>
             </thead>
@@ -369,10 +367,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'zone-btn';
                     btn.innerText = CONFIG.zones[z] || z;
-                    if(z >= 12) btn.classList.add('z-heavy');
-                    else if(z >= 8) btn.classList.add('z-thru');
-                    else if(z >= 4) btn.classList.add('z-house');
-                    else btn.classList.add('z-guard');
+                    if(z === 7) btn.classList.add('z-tee'); // Only Tee Line gets color
                     btn.onclick = () => this.calibrate(z);
                     container.appendChild(btn);
                 });
@@ -409,7 +404,7 @@
                     this.elCardBH.classList.remove('running');
                     this.elCardBH.classList.add('active');
                     this.elTimeBH.innerText = this.split.toFixed(2);
-                    this.predictBH(this.split); // Updates Prediction Slot
+                    this.predictBH(this.split); 
                     
                     // Visuals: Start H-H
                     this.elCardHH.classList.add('running');
@@ -428,7 +423,7 @@
                     this.elCardHH.classList.remove('running');
                     this.elCardHH.classList.add('active');
                     this.elTimeHH.innerText = this.interval.toFixed(2);
-                    this.predictHH(this.interval); // Updates Prediction Slot
+                    this.predictHH(this.interval); 
                     
                     this.updateBtn("NEXT SHOT", "st-ready");
                     this.saveShot();
@@ -443,13 +438,10 @@
                 if (this.timerInterval) clearInterval(this.timerInterval);
                 this.timerInterval = setInterval(() => {
                     const now = Date.now();
-                    
                     if (this.state === 'RUNNING') {
-                        // Updating B-H Time Slot
                         const t = (now - this.t0) / 1000;
                         this.elTimeBH.innerText = t.toFixed(2);
                     } else if (this.state === 'INTERVAL') {
-                        // Updating H-H Time Slot
                         const t = (now - this.t1) / 1000;
                         this.elTimeHH.innerText = t.toFixed(2);
                     }
@@ -511,14 +503,12 @@
                 const txt = CONFIG.zones[zVal] || CONFIG.zones[r] || "UNKNOWN";
                 el.innerText = txt;
                 
-                if (zVal >= 12) el.style.color = "var(--purple)";
-                else if (zVal >= 8) el.style.color = "var(--red)";
-                else if (zVal >= 4) el.style.color = "var(--green)";
-                else el.style.color = "var(--yellow)";
+                // Color Logic: ONLY TEE LINE (7) is Green.
+                if (r === 7) el.style.color = "var(--green)";
+                else el.style.color = "var(--text)";
             },
 
             saveShot() {
-                // Bounds Checking
                 const isValidBH = this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH;
                 const isValidHH = this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH;
 
@@ -553,7 +543,6 @@
                 let count = 0;
 
                 shots.forEach(s => {
-                    // Only calibrate on Draw/Guard shots
                     if (s.actual !== null && s.actual <= 11.5) {
                         if (s.useBH) { errSum += (s.actual - s.rawBH); count++; }
                         if (s.useHH) { errSum += (s.actual - s.rawHH); count++; }
@@ -603,7 +592,6 @@
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
                     s.actual = val;
-                    // Auto-enable if within bounds
                     if (s.bh >= CONFIG.minBH && s.bh <= CONFIG.maxBH) s.useBH = true;
                     if (s.hh >= CONFIG.minHH && s.hh <= CONFIG.maxHH) s.useHH = true;
                     this.saveStorage();
@@ -621,10 +609,8 @@
                     const bh = (r.z - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
                     const hh = (r.z - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
                     
-                    let color = "var(--yellow)";
-                    if (r.z >= 12) color = "var(--purple)";
-                    else if (r.z >= 8) color = "var(--red)";
-                    else if (r.z >= 4) color = "var(--green)";
+                    let color = "var(--text)";
+                    if (r.z === 7) color = "var(--green)";
 
                     tbRef.innerHTML += `<tr>
                         <td style="font-weight:700; color:${color}">${r.n}</td>
@@ -641,21 +627,28 @@
                     : this.history.filter(s => s.player === this.currentProfile);
 
                 visible.forEach(s => {
-                    let resHtml = '';
+                    // 1. Calculate Est Column
+                    let estHtml = '<span style="color:#444">-</span>';
+                    let pVal = 0;
+                    let hasPred = false;
+                    
+                    if (s.useHH) { pVal = this.resolveZone(s.rawHH + this.iceOffset); hasPred = true; }
+                    else if (s.useBH) { pVal = this.resolveZone(s.rawBH + this.iceOffset); hasPred = true; }
+
+                    if (hasPred) {
+                        const pName = CONFIG.zones[pVal] || "?";
+                        let pCol = "var(--text)";
+                        if (Math.round(pVal) === 7) pCol = "var(--green)"; // Green for Tee
+                        estHtml = `<span style="color:${pCol}; font-weight:700;">${pName}</span>`;
+                    }
+
+                    // 2. Calculate Result Column
+                    let resHtml = '<span style="color:#444; font-size:16px;">-</span>';
                     if (s.actual !== null) {
                         const zName = CONFIG.zones[s.actual] || s.actual;
-                        let zCol = "var(--yellow)";
-                        if (s.actual >= 12) zCol = "var(--purple)";
-                        else if (s.actual >= 8) zCol = "var(--red)";
-                        else if (s.actual >= 4) zCol = "var(--green)";
+                        let zCol = "var(--text)";
+                        if (Math.round(s.actual) === 7) zCol = "var(--green)"; // Green for Tee
                         resHtml = `<span style="color:${zCol}; font-weight:700;">${zName}</span>`;
-                    } else {
-                        let pVal = 0;
-                        if (s.useHH) pVal = this.resolveZone(s.rawHH + this.iceOffset);
-                        else if (s.useBH) pVal = this.resolveZone(s.rawBH + this.iceOffset);
-                        
-                        const pName = CONFIG.zones[pVal] || "?";
-                        resHtml = `<span style="color:#666; font-style:italic;">(${pName})</span>`;
                     }
 
                     const tr = document.createElement('tr');
@@ -663,6 +656,7 @@
                         <td><span class="player-badge" onclick="app.cyclePlayer(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
                         <td class="mono ${s.useBH ? 'time-active' : 'time-ignored'}" onclick="app.toggleTime(${s.id}, 'bh')">${s.bh.toFixed(2)}</td>
                         <td class="mono ${s.useHH ? 'time-active' : 'time-ignored'}" onclick="app.toggleTime(${s.id}, 'hh')">${s.hh.toFixed(2)}</td>
+                        <td>${estHtml}</td>
                         <td onclick="app.openModal(${s.id})">${resHtml}</td>
                     `;
                     tbHist.appendChild(tr);
@@ -670,9 +664,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v7', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v7_final', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v7'); 
+                const d = localStorage.getItem('cp_v7_final'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
