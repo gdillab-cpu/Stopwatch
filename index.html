@@ -1,328 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Curling Pro v7.5</title>
-    <style>
-        :root { --primary: #0056b3; --success: #28a745; --warning: #ffc107; --danger: #dc3545; --bg: #f0f2f5; --card: #ffffff; }
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            background: var(--bg); margin: 0; padding: 10px; color: #333;
-            touch-action: manipulation; user-select: none;
-        }
-        .container { max-width: 600px; margin: 0 auto; padding-bottom: 40px; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 12px; }
-        
-        #js-status { font-size: 0.6rem; padding: 2px 6px; border-radius: 4px; background: #28a745; color: white; float: right; }
-
-        /* Timer Displays */
-        .timer-container { display: flex; justify-content: space-around; align-items: center; margin: 10px 0; }
-        .timer-sub { text-align: center; flex: 1; }
-        .timer-label { font-size: 0.7rem; font-weight: bold; color: #666; text-transform: uppercase; }
-        .timer-val { font-size: 2.5rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
-        .timer-main { font-size: 5rem; line-height: 1; margin: 10px 0; }
-
-        .pred-box { text-align: center; background: #e7f3ff; border: 2px solid var(--primary); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
-        .pred-val { font-size: 2rem; font-weight: bold; color: var(--primary); display: block; }
-
-        /* Multi-Stage Button */
-        .btn-main { 
-            background: var(--success); color: white; border: none; 
-            padding: 30px; border-radius: 16px; font-size: 1.6rem; 
-            font-weight: 900; width: 100%; margin: 10px 0; 
-            cursor: pointer; display: block; box-shadow: 0 6px 0 #1e7e34;
-        }
-        .btn-main:active { transform: translateY(4px); box-shadow: 0 2px 0 #1e7e34; }
-        .btn-stage2 { background: var(--warning); color: black; box-shadow: 0 6px 0 #d39e00; }
-        .btn-stop { background: var(--danger); box-shadow: 0 6px 0 #bd2130; }
-        
-        .btn-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .btn-sub { flex: 1; padding: 18px; border-radius: 12px; border: none; background: #6c757d; color: white; font-weight: bold; font-size: 1.1rem; }
-
-        /* Compact History Table */
-        .history-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
-        .history-table th { text-align: left; padding: 8px; border-bottom: 2px solid #eee; color: #666; }
-        .history-table td { padding: 10px 6px; border-bottom: 1px solid #eee; vertical-align: middle; }
-        .use-toggle { width: 20px; height: 20px; vertical-align: middle; }
-        .toggle-label { font-size: 0.6rem; color: #999; display: block; margin-top: 2px; }
-
-        .speed-table { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
-        .speed-table td, .speed-table th { border: 1px solid #eee; padding: 8px; text-align: center; }
-        .highlight { font-weight: 800; color: var(--primary); }
-
-        #calib-modal { 
-            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.9); z-index: 999; align-items: center; justify-content: center; 
-        }
-        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; }
-        select { width: 100%; padding: 18px; font-size: 1.2rem; border-radius: 12px; margin: 15px 0; border: 2px solid #ddd; background: #fff; }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Curling Stopwatch — Fixed</title>
+<style>
+:root{--primary:#0b61b1;--accent:#28a745;--warn:#f0ad4e;--danger:#d9534f;--bg:#f6f8fa;--card:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:#222;padding-bottom:140px}
+.container{max-width:560px;margin:8px auto;padding:10px}
+.card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.timer{font-size:3.8rem;font-weight:800;text-align:center;letter-spacing:0.5px}
+.sub{display:flex;justify-content:space-between;color:#666;font-weight:600;margin-top:8px}
+.pred{background:#e9f3ff;border:2px solid var(--primary);padding:10px;border-radius:10px;text-align:center}
+.pred .val{font-size:1.6rem;font-weight:800;color:var(--primary);display:block;margin-top:6px}
+.table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.92rem}
+.table th,.table td{padding:8px;border-bottom:1px solid #eee;text-align:center}
+.thumbbar{position:fixed;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(to top,#fff 75%,rgba(255,255,255,0))}
+.btn{width:100%;padding:22px;border-radius:14px;border:none;font-weight:900;font-size:1.5rem;background:var(--accent);color:#fff;box-shadow:0 6px 0 #1f7a36}
+.btn.split{background:var(--warn);color:#000;box-shadow:0 6px 0 #c78711}
+.btn.stop{background:var(--danger);box-shadow:0 6px 0 #a02521}
+.small{font-size:0.86rem;color:#666}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);z-index:50}
+.modal .card{max-width:420px;width:92%}
+input[type="checkbox"]{width:18px;height:18px}
+select{padding:10px;border-radius:8px;border:1px solid #ddd;width:100%;font-size:1rem}
+.row-click{cursor:pointer}
+.label-abbrev{font-weight:700}
+</style>
 </head>
 <body>
-
 <div class="container">
-    <div class="card" style="padding: 10px;">
-        <span id="js-status">JS: ACTIVE</span>
-        <select id="player-select" style="width: 60%; border:none; font-weight: 800; font-size: 1.1rem; background: transparent;">
-            <option value="Team">🏆 Team Profile</option>
-            <option value="Skip">Skip</option><option value="Vice">Vice</option>
-            <option value="Second">Second</option><option value="Lead">Lead</option>
-        </select>
-    </div>
+  <div class="card">
+    <select id="playerSelect" aria-label="Player profile">
+      <option>Team</option>
+      <option>Skip</option>
+      <option>Vice</option>
+      <option>Second</option>
+      <option>Lead</option>
+    </select>
+  </div>
 
-    <div class="card">
-        <div class="timer-container">
-            <div class="timer-sub">
-                <div class="timer-label">Back-Hog (Split)</div>
-                <div id="b2h-val" class="timer-val">0.00</div>
-            </div>
-            <div class="timer-sub">
-                <div class="timer-label">Hog-Hog (Ice)</div>
-                <div id="h2h-val" class="timer-val">0.00</div>
-            </div>
-        </div>
-    </div>
+  <div class="card">
+    <div class="timer" id="mainTime">0.00</div>
+    <div class="sub"><div>B–H: <span id="b2h">0.00</span></div><div>H–H: <span id="h2h">0.00</span></div></div>
+  </div>
 
-    <div class="pred-box">
-        <span id="pred-label" style="font-size: 0.8rem; text-transform: uppercase; color: #666; font-weight: 700;">Prediction (Split-Based)</span>
-        <span class="pred-val" id="pred-text">--</span>
-    </div>
+  <div class="card pred">
+    Prediction
+    <span class="val" id="prediction">—</span>
+  </div>
 
-    <button id="btn-action" class="btn-main">START</button>
+  <div class="card">
+    <strong>Live Split Estimates</strong>
+    <table class="table" id="liveTable"><thead><tr><th>Target</th><th>Split (B–H)</th></tr></thead><tbody></tbody></table>
+    <div class="small">Estimates update as you calibrate shots (use toggles to ignore outliers).</div>
+  </div>
 
-    <div class="btn-row">
-        <button id="btn-reset" class="btn-sub">Reset</button>
-        <button id="btn-cal-last" class="btn-sub" style="background:#ffc107; color:black;">Calibrate</button>
-    </div>
-
-    <div class="card">
-        <div style="font-weight: bold; margin-bottom: 8px; display:flex; justify-content: space-between;">
-            <span>SHOT HISTORY</span>
-            <span style="font-size: 0.7rem; color: var(--primary);">Tap row to adjust</span>
-        </div>
-        <table class="history-table">
-            <thead>
-                <tr>
-                    <th>Split (B-H)</th>
-                    <th>Hog-Hog</th>
-                    <th>Actual</th>
-                </tr>
-            </thead>
-            <tbody id="history-body"></tbody>
-        </table>
-        <div id="empty-msg" style="padding: 20px; text-align: center; color: #999; font-style: italic;">No shots recorded</div>
-    </div>
-
-    <div class="card">
-        <div style="font-weight: bold; margin-bottom: 8px;">LIVE SPEED ESTIMATES (By Profile)</div>
-        <table class="speed-table">
-            <thead>
-                <tr><th>Target</th><th>Split</th><th>Hog-Hog</th></tr>
-            </thead>
-            <tbody id="speed-sheet-body"></tbody>
-        </table>
-    </div>
+  <div class="card">
+    <strong>Shot History — Tap a row to set actual</strong>
+    <table class="table">
+      <thead><tr><th>P</th><th>B–H</th><th>Use</th><th>H–H</th><th>Use</th><th>Actual</th></tr></thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
 </div>
 
-<div id="calib-modal">
-    <div class="modal-content">
-        <h2 style="margin-top:0">Set Actual Result</h2>
-        <p>Player: <b id="m-player"></b></p>
-        <select id="calib-zone">
-            <option value="12">Board Weight</option>
-            <option value="10">Back 12</option>
-            <option value="7">TEE LINE</option>
-            <option value="4">Top 12</option>
-            <option value="1">Hogged</option>
-        </select>
-        <button id="btn-save-cal" class="btn-main" style="padding: 20px;">Save Result</button>
-        <button id="btn-cancel-cal" style="background:none; border:none; color: #dc3545; width:100%; padding: 15px; font-weight: bold;">Cancel</button>
+<div class="thumbbar">
+  <button id="actionBtn" class="btn">START</button>
+</div>
+
+<!-- Calibration modal -->
+<div id="calibModal" class="modal" role="dialog" aria-modal="true">
+  <div class="card">
+    <h3 style="margin-top:0">Set Actual Result</h3>
+    <div style="margin-bottom:8px">Player: <strong id="modalPlayer"></strong></div>
+    <select id="actualSelect" aria-label="Actual shot result"></select>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button id="saveActualBtn" class="btn" style="flex:1">Save</button>
+      <button id="cancelActualBtn" class="btn" style="flex:1;background:#eee;color:#111;box-shadow:none">Cancel</button>
     </div>
+  </div>
 </div>
 
 <script>
-    // --- Physics ---
-    const n = 6.0; 
-    const ZONES = { 12:"BOARD", 10:"Back 12", 7:"TEE LINE", 4:"Top 12", 1:"Hogged" };
-    
-    // --- Application State ---
-    let allShots = [];
-    let state = "READY"; // READY -> B2H -> H2H
-    let timerStart = 0;
-    let b2h_final = 0;
-    let h2h_final = 0;
-    let interval = null;
-    let editingId = null;
+/* ====== Configuration / Constants ====== */
+const n = 6.0;                      // exponent (empirical)
+const ICE_BASELINE = 14.0;          // reference hog-hog baseline (seconds)
+const DEFAULT_B2H = 3.8;            // initial draw split baseline
+const DEFAULT_INDEX = 9;            // default distance index / tuning (mid-tee/back12)
+const DEFAULT_C = DEFAULT_INDEX * Math.pow(DEFAULT_B2H, n); // baseline constant (C)
 
-    const b2hEl = document.getElementById('b2h-val');
-    const h2hEl = document.getElementById('h2h-val');
-    const actionBtn = document.getElementById('btn-action');
+/* Zones: index increases with distance (higher index => farther) */
+const ZONES = [
+  {index:2, label:'High Guard'},
+  {index:4, label:'Top 12'},
+  {index:6, label:'Tee'},
+  {index:8, label:'Back 12'},
+  {index:10, label:'Board'},
+  {index:12, label:'Control'},
+  {index:14, label:'Normal'},
+  {index:16, label:'Peel'}
+];
 
-    function getActivePlayer() { return document.getElementById('player-select').value; }
+/* ====== State ====== */
+let shots = [];          // {id, player, b2h, h2h, actual (index|null), useB, useH}
+let state = 'READY';     // READY -> B2H -> H2H
+let t0 = 0;
+let curB2H = 0;
+let curH2H = 0;
+let timerInt = null;
+let editingIndex = null; // index in shots[] of row being edited
 
-    // --- Dynamic Physics Engine ---
-    function getConstants() {
-        const player = getActivePlayer();
-        const pool = (player === 'Team') ? allShots : allShots.filter(s => s.player === player);
-        
-        // Split Constant (C_b2h)
-        let cb_tw = 0, cb_tc = 0;
-        pool.filter(s => s.b2h_use && s.actualZone).slice(-10).forEach((s, i) => {
-            let w = i + 1; cb_tc += (s.actualZone * Math.pow(s.b2h, n)) * w; cb_tw += w;
-        });
-        const C_b2h = cb_tw > 0 ? cb_tc / cb_tw : 7 * Math.pow(3.75, n);
+/* ====== Cached DOM references (grab these once) ====== */
+const playerSelect = document.getElementById('playerSelect');
+const mainTimeEl   = document.getElementById('mainTime');
+const b2hEl        = document.getElementById('b2h');
+const h2hEl        = document.getElementById('h2h');
+const predictionEl = document.getElementById('prediction');
+const liveTableTbody = document.querySelector('#liveTable tbody');
+const historyBody  = document.getElementById('historyBody');
+const actionBtn    = document.getElementById('actionBtn');
+const calibModal   = document.getElementById('calibModal');
+const actualSelect = document.getElementById('actualSelect');
+const modalPlayer  = document.getElementById('modalPlayer');
+const saveActualBtn = document.getElementById('saveActualBtn');
+const cancelActualBtn = document.getElementById('cancelActualBtn');
 
-        // Ice Constant (C_h2h) for Live Speed Table
-        let ch_tw = 0, ch_tc = 0;
-        pool.filter(s => s.h2h_use && s.h2h > 0).slice(-10).forEach((s, i) => {
-            let w = i + 1; ch_tc += s.h2h * w; ch_tw += w;
-        });
-        const avg_h2h = ch_tw > 0 ? ch_tc / ch_tw : 14.5; // Default H2H baseline
+/* populate actualSelect options */
+(function populateActualOptions(){
+  actualSelect.innerHTML = '';
+  ZONES.forEach(z=>{
+    const o = document.createElement('option');
+    o.value = z.index;
+    o.textContent = z.label;
+    actualSelect.appendChild(o);
+  });
+})();
 
-        return { C_b2h, avg_h2h };
-    }
+/* ====== Utility / Model functions ====== */
 
-    // --- Timer Handling ---
-    function handleTap(e) {
-        if(e) e.preventDefault();
-        
-        if (state === "READY") {
-            timerStart = Date.now();
-            state = "B2H";
-            actionBtn.innerText = "HOG 1 (STOP SPLIT)";
-            actionBtn.className = "btn-main btn-stage2";
-            interval = setInterval(updateTimers, 30);
-        } 
-        else if (state === "B2H") {
-            b2h_final = (Date.now() - timerStart) / 1000;
-            timerStart = Date.now(); // Reset start for H2H
-            state = "H2H";
-            actionBtn.innerText = "HOG 2 (STOP H2H)";
-            actionBtn.className = "btn-main btn-stop";
-            
-            // Prediction based on Split
-            const { C_b2h } = getConstants();
-            const pred = Math.min(12, Math.max(1, Math.round(C_b2h / Math.pow(b2h_final, n))));
-            document.getElementById('pred-text').innerText = ZONES[pred] || "Guard";
-        } 
-        else if (state === "H2H") {
-            clearInterval(interval);
-            h2h_final = (Date.now() - timerStart) / 1000;
-            state = "READY";
-            actionBtn.innerText = "START NEW SHOT";
-            actionBtn.className = "btn-main";
-            
-            saveShot();
-        }
-    }
+/**
+ * Compute model constants from shots that have actual result and are marked 'use'
+ * We compute weighted average:
+ *   C ≈ sum(actual_index * b2h^n * weight) / sum(weight)
+ * and an avg H2H to later use as ice multiplier if required.
+ */
+function getConstants(){
+  // Shots used for learning: must have actual set and both use toggles true (or at least one -- choose to require both used)
+  const learn = shots.filter(s => s.actual != null && s.useB && s.useH);
+  if (!learn.length) {
+    return { C: DEFAULT_C, avgH2H: ICE_BASELINE };
+  }
+  let cSum = 0, wSum = 0, h2hSum = 0;
+  const slice = learn.slice(-12); // recent up to 12 shots
+  slice.forEach((s, i) => {
+    const weight = i + 1; // more recent => higher weight
+    cSum += (s.actual * Math.pow(s.b2h, n)) * weight;
+    h2hSum += s.h2h * weight;
+    wSum += weight;
+  });
+  const avgH2H = (h2hSum / wSum) || ICE_BASELINE;
+  const baseC = (cSum / wSum) || DEFAULT_C;
+  // Scale C by ice factor: if avgH2H > baseline, ice is faster (stones travel farther), so scale up
+  const iceFactor = avgH2H / ICE_BASELINE;
+  const C = baseC * iceFactor;
+  return { C, avgH2H };
+}
 
-    function updateTimers() {
-        const now = Date.now();
-        const diff = (now - timerStart) / 1000;
-        if (state === "B2H") b2hEl.innerText = diff.toFixed(2);
-        if (state === "H2H") h2hEl.innerText = diff.toFixed(2);
-    }
+/** Predict zone object from a measured b2h time */
+function predictZoneFromB2H(b2h){
+  if(!b2h || b2h <= 0) return null;
+  const { C } = getConstants();
+  // idx increases with smaller b2h (faster split => farther)
+  const idx = C / Math.pow(b2h, n);
+  // pick closest zone by index distance
+  let best = ZONES[0];
+  let bestDiff = Math.abs(ZONES[0].index - idx);
+  for (let i = 1; i < ZONES.length; i++){
+    const d = Math.abs(ZONES[i].index - idx);
+    if(d < bestDiff){ best = ZONES[i]; bestDiff = d; }
+  }
+  return { zone: best, idx };
+}
 
-    function saveShot() {
-        const { C_b2h } = getConstants();
-        const pred = Math.min(12, Math.max(1, Math.round(C_b2h / Math.pow(b2h_final, n))));
-        
-        allShots.push({
-            id: Date.now(),
-            player: getActivePlayer(),
-            b2h: b2h_final,
-            h2h: h2h_final,
-            pred: pred,
-            actualZone: null,
-            b2h_use: true,
-            h2h_use: true
-        });
-        renderAll();
-    }
-
-    function renderAll() {
-        const { C_b2h, avg_h2h } = getConstants();
-        const active = getActivePlayer();
-        const filtered = (active === 'Team') ? [...allShots] : allShots.filter(s => s.player === active);
-        
-        // History
-        const body = document.getElementById('history-body');
-        body.innerHTML = "";
-        document.getElementById('empty-msg').style.display = filtered.length ? 'none' : 'block';
-        
-        [...filtered].reverse().slice(0, 6).forEach(s => {
-            const tr = document.createElement('tr');
-            tr.setAttribute('data-id', s.id);
-            tr.innerHTML = `
-                <td style="${!s.b2h_use ? 'opacity:0.3' : ''}">
-                    <input type="checkbox" class="tgl-b" ${s.b2h_use?'checked':''} data-id="${s.id}">
-                    <b>${s.b2h.toFixed(2)}s</b>
-                    <span class="toggle-label">${s.player}</span>
-                </td>
-                <td style="${!s.h2h_use ? 'opacity:0.3' : ''}">
-                    <input type="checkbox" class="tgl-h" ${s.h2h_use?'checked':''} data-id="${s.id}">
-                    <b>${s.h2h > 0 ? s.h2h.toFixed(2)+'s' : '--'}</b>
-                </td>
-                <td>${s.actualZone ? `<b>${ZONES[s.actualZone]}</b>` : `<span style="color:#999">Tap to set</span>`}</td>
-            `;
-            body.appendChild(tr);
-        });
-
-        // Live Estimates
-        const sheet = document.getElementById('speed-sheet-body');
-        sheet.innerHTML = "";
-        [12, 10, 7, 4, 1].forEach(z => {
-            const split = Math.pow(C_b2h / z, 1/n);
-            // Dynamic ratio: use H2H avg relative to Tee Line split
-            const tee_split = Math.pow(C_b2h / 7, 1/n);
-            const ratio = avg_h2h / tee_split;
-            const h2h_est = split * ratio;
-            
-            sheet.innerHTML += `<tr><td>${ZONES[z]}</td><td class="highlight">${split.toFixed(2)}s</td><td>${h2h_est.toFixed(2)}s</td></tr>`;
-        });
-    }
-
-    // --- Listeners ---
-    actionBtn.addEventListener('touchstart', handleTap);
-    actionBtn.addEventListener('mousedown', handleTap);
-
-    document.getElementById('btn-reset').onclick = () => {
-        clearInterval(interval);
-        state = "READY";
-        b2hEl.innerText = "0.00"; h2hEl.innerText = "0.00";
-        actionBtn.innerText = "START"; actionBtn.className = "btn-main";
-    };
-
-    document.getElementById('history-body').onclick = (e) => {
-        const id = parseInt(e.target.closest('tr')?.getAttribute('data-id'));
-        if(!id) return;
-        const s = allShots.find(x => x.id === id);
-        
-        if (e.target.classList.contains('tgl-b')) { s.b2h_use = e.target.checked; renderAll(); }
-        else if (e.target.classList.contains('tgl-h')) { s.h2h_use = e.target.checked; renderAll(); }
-        else { openCalib(id); }
-    };
-
-    function openCalib(id) {
-        editingId = id;
-        const s = allShots.find(x => x.id === id);
-        document.getElementById('m-player').innerText = s.player;
-        document.getElementById('calib-zone').value = s.actualZone || s.pred;
-        document.getElementById('calib-modal').style.display = 'flex';
-    }
-
-    document.getElementById('btn-save-cal').onclick = () => {
-        const s = allShots.find(x => x.id === editingId);
-        if(s) { s.actualZone = parseInt(document.getElementById('calib-zone').value); s.b2h_use = true; }
-        document.getElementById('calib-modal').style.display = 'none';
-        renderAll();
-    };
-    
-    document.getElementById('btn-cancel-cal').onclick = () => document.getElementById('calib-modal').style.display = 'none';
-    document.getElementById('player-select').onchange = renderAll;
-
-</script>
-</body>
-</html>
+/** Update live reference table (High Guard, Top 12, Tee, Back 12, Board) */
+function updateLiveTable(){
+  const { C } = getConstants();
+  cons
