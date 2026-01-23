@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v10.5</title>
+    <title>Clock-Dilla v10.7</title>
     <style>
         :root {
             /* Palette */
@@ -489,31 +489,24 @@
 
             // --- DATA ---
             saveShot() {
-                // Determine Validity based on ENABLED status AND thresholds
-                const bhEnabled = this.enableBH;
-                const hhEnabled = this.enableHH;
+                if (!this.enableBH && !this.enableHH) return;
+                const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
+                const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
                 
-                const bhInBounds = (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
-                const hhInBounds = (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
-
-                // Keep only valid times that were enabled
-                const keepBH = bhEnabled && bhInBounds;
-                const keepHH = hhEnabled && hhInBounds;
-
-                // STRICT FILTER: If neither is valid, DO NOT SAVE row
-                if (!keepBH && !keepHH) return;
+                // FILTER: Only save if at least one time is valid
+                if (!validBH && !validHH) return;
 
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
                 const s = {
                     id: Date.now(), player: p,
-                    // If invalid/not kept, store 0 so it renders as '-'
-                    bh: keepBH ? this.split : 0,
-                    hh: keepHH ? this.interval : 0,
+                    // Store 0 for invalid times to show as dash
+                    bh: validBH ? this.split : 0,
+                    hh: validHH ? this.interval : 0,
                     actual: null,
-                    useBH: keepBH, useHH: keepHH,
-                    rawBH: keepBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
-                    rawHH: keepHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
+                    useBH: validBH, useHH: validHH,
+                    rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
+                    rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
                     fixedOffset: this.iceOffset 
                 };
                 
@@ -530,14 +523,19 @@
 
                 shots.forEach(s => {
                     if (s.actual !== null && s.actual <= 11.5) {
-                        if (s.useBH && s.rawBH > 0) { errSum += (s.actual - s.rawBH); count++; }
-                        if (s.useHH && s.rawHH > 0) { errSum += (s.actual - s.rawHH); count++; }
+                        // FIXED: Check s.bh > 0 instead of s.rawBH > 0 to include short shots
+                        if (s.useBH && s.bh > 0) { errSum += (s.actual - s.rawBH); count++; }
+                        if (s.useHH && s.hh > 0) { errSum += (s.actual - s.rawHH); count++; }
                     }
                 });
 
                 this.iceOffset = count > 0 ? (errSum / count) : 0;
                 const sign = this.iceOffset > 0 ? "+" : "";
-                this.ui['ice-readout'].innerText = count > 0 ? `${this.currentProfile}: ${sign}${this.iceOffset.toFixed(1)}` : "Neutral";
+                const val = Math.abs(this.iceOffset).toFixed(1);
+                this.ui['ice-readout'].innerText = count > 0 ? `Ice: ${sign}${val} (#${count})` : "Neutral";
+                
+                // CRITICAL: Update Ref Table
+                this.renderRef();
             },
 
             // --- UI ACTIONS ---
@@ -551,7 +549,7 @@
             },
             setProfile(p) {
                 this.currentProfile = p; this.ui['profile-display'].innerText = p;
-                this.closeProfile(); this.updateProfile(); this.renderRef(); this.renderHistory();
+                this.closeProfile(); this.updateProfile(); this.renderHistory();
             },
             closeProfile() { this.ui['profile-modal'].style.display = 'none'; },
 
@@ -615,8 +613,6 @@
             },
 
             getEstLabel(time, type, offset) {
-                // Return just the label e.g. "T12"
-                // Check limits first
                 if (type === 'bh' && time <= CONFIG.fastLimitBH) return "-";
                 if (type === 'hh' && time <= CONFIG.fastLimitHH) return "-";
                 if (time === 0) return "-";
@@ -647,12 +643,9 @@
 
                 visible.forEach(s => {
                     const tr = document.createElement('tr');
-                    
-                    // Determine Row State
                     const rowActive = s.useBH || s.useHH;
                     const rowClass = rowActive ? 'row-active' : 'row-inactive';
                     
-                    // Get Estimates
                     const offset = (s.fixedOffset !== undefined) ? s.fixedOffset : this.iceOffset;
                     const estBH = this.getEstLabel(s.bh, 'bh', offset);
                     const estHH = this.getEstLabel(s.hh, 'hh', offset);
@@ -678,9 +671,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v10_5', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v10_7', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v10_5'); 
+                const d = localStorage.getItem('cp_v10_7'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
