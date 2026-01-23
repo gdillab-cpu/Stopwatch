@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v10.4</title>
+    <title>Clock-Dilla v10.5</title>
     <style>
         :root {
             /* Palette */
@@ -489,19 +489,31 @@
 
             // --- DATA ---
             saveShot() {
-                if (!this.enableBH && !this.enableHH) return;
-                const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
-                const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
+                // Determine Validity based on ENABLED status AND thresholds
+                const bhEnabled = this.enableBH;
+                const hhEnabled = this.enableHH;
+                
+                const bhInBounds = (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
+                const hhInBounds = (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
+
+                // Keep only valid times that were enabled
+                const keepBH = bhEnabled && bhInBounds;
+                const keepHH = hhEnabled && hhInBounds;
+
+                // STRICT FILTER: If neither is valid, DO NOT SAVE row
+                if (!keepBH && !keepHH) return;
+
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
                 const s = {
                     id: Date.now(), player: p,
-                    bh: this.enableBH ? this.split : 0,
-                    hh: this.enableHH ? this.interval : 0,
+                    // If invalid/not kept, store 0 so it renders as '-'
+                    bh: keepBH ? this.split : 0,
+                    hh: keepHH ? this.interval : 0,
                     actual: null,
-                    useBH: validBH, useHH: validHH,
-                    rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
-                    rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
+                    useBH: keepBH, useHH: keepHH,
+                    rawBH: keepBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
+                    rawHH: keepHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
                     fixedOffset: this.iceOffset 
                 };
                 
@@ -666,9 +678,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v10_4', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v10_5', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v10_4'); 
+                const d = localStorage.getItem('cp_v10_5'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
