@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v9.4</title>
+    <title>Clock-Dilla v9.5</title>
     <style>
         :root {
             /* Palette */
@@ -41,27 +41,56 @@
             border-bottom: 1px solid #333;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            gap: 10px;
             z-index: 50;
             flex-shrink: 0;
         }
 
         .timer-card {
             background: #222;
-            border-radius: 12px;
-            padding: 8px;
+            border-radius: 14px;
+            padding: 10px 8px;
             text-align: center;
             border: 2px solid transparent;
             transition: 0.2s;
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 125px; /* Taller to fit bigger font */
         }
         .timer-card.active { border-color: var(--blue); background: #2A2A2A; }
         .timer-card.running { border-color: var(--green); background: #2A2A2A; }
         .timer-card.disabled { opacity: 0.3; border-color: #444; }
 
-        .t-label { font-size: 10px; color: var(--grey); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
-        .t-time { font-size: 28px; font-weight: 300; font-family: monospace; font-variant-numeric: tabular-nums; line-height: 1.1; color: #fff; }
-        .t-pred { font-size: 16px; font-weight: 800; text-transform: uppercase; min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .t-label { 
+            font-size: 11px; 
+            color: var(--grey); 
+            text-transform: uppercase; 
+            font-weight: 700; 
+            margin-bottom: 4px; 
+            letter-spacing: 0.5px;
+        }
+        
+        .t-time { 
+            font-size: 48px; /* Bumped up ~30% */
+            font-weight: 300; 
+            font-family: monospace; 
+            font-variant-numeric: tabular-nums; 
+            line-height: 1.0; 
+            color: #fff; 
+            margin: 4px 0;
+        }
+        
+        .t-pred { 
+            font-size: 16px; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            min-height: 20px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+        }
 
         /* --- CONTROL PANEL (Ref + Profile) --- */
         .control-panel {
@@ -116,7 +145,7 @@
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 160px; /* Space for big button */
+            padding-bottom: 190px; /* Increased to clear taller button */
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
@@ -158,9 +187,9 @@
         }
 
         #btn-main {
-            flex: 1; height: 85px; 
-            border-radius: 16px;
-            font-size: 32px; font-weight: 800; color: white;
+            flex: 1; height: 110px; /* Increased 30% from 85px */
+            border-radius: 18px;
+            font-size: 36px; font-weight: 800; color: white;
             background: var(--green);
             border: none;
             box-shadow: 0 4px 20px rgba(48, 209, 88, 0.3);
@@ -170,8 +199,8 @@
         #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
         
         #btn-reset {
-            width: 70px; height: 85px;
-            border-radius: 16px; background: #2C2C2E; color: #fff; border: none; font-weight: 600; font-size: 12px;
+            width: 75px; height: 110px; /* Matched height for symmetry */
+            border-radius: 18px; background: #2C2C2E; color: #fff; border: none; font-weight: 600; font-size: 12px;
         }
 
         /* States */
@@ -312,7 +341,7 @@
                 {v: 2.0, n: "High"}
             ],
 
-            // Quick Ref
+            // Quick Ref (Reordered: B12 -> Tee -> T12 -> Mid)
             refRows: [
                 {v: 10.0, n: "B12"},
                 {v: 7.0, n: "Tee"},
@@ -735,9 +764,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v9_4', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v9_5', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v9_4'); 
+                const d = localStorage.getItem('cp_v9_5'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
