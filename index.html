@@ -5,23 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#000000">
-    <title>Clock-Dilla (beta)</title>
+    <meta name="theme-color" content="#121212">
+    <title>Clock-Dilla v9.4</title>
     <style>
         :root {
             /* Palette */
             --blue: #0A84FF;
-            --green: #30D158; /* ONLY for Tee Line */
+            --green: #30D158; /* Tee Line */
             --red: #FF453A;
             --grey: #98989D;
-            --dim: #3A3A3C;
+            --dark: #1C1C1E;
             --bg: #000000;
-            --surface: #1C1C1E;
-            --border: #2C2C2E;
             --text: #FFFFFF;
+            --disabled: #333333;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Roboto", sans-serif; }
         
         body {
             background-color: var(--bg);
@@ -35,260 +34,290 @@
             user-select: none;
         }
 
-        /* --- Header --- */
-        header {
-            padding: 12px 16px;
-            padding-top: max(12px, env(safe-area-inset-top));
-            background: var(--surface);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            z-index: 20;
-        }
-        h1 { margin: 0; font-size: 17px; font-weight: 700; opacity: 0.9; }
-        
-        .profile-select {
-            background: #2C2C2E;
-            color: var(--blue);
-            border: none;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            outline: none;
-            text-align-last: right;
-            appearance: none;
+        /* --- STATIC TOP BAR (Timers) --- */
+        .top-bar {
+            background: #121212;
+            padding: max(10px, env(safe-area-inset-top)) 10px 10px 10px;
+            border-bottom: 1px solid #333;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            z-index: 50;
+            flex-shrink: 0;
         }
 
-        /* --- Scroll Content --- */
+        .timer-card {
+            background: #222;
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .timer-card.active { border-color: var(--blue); background: #2A2A2A; }
+        .timer-card.running { border-color: var(--green); background: #2A2A2A; }
+        .timer-card.disabled { opacity: 0.3; border-color: #444; }
+
+        .t-label { font-size: 10px; color: var(--grey); text-transform: uppercase; font-weight: 700; margin-bottom: 2px; }
+        .t-time { font-size: 28px; font-weight: 300; font-family: monospace; font-variant-numeric: tabular-nums; line-height: 1.1; color: #fff; }
+        .t-pred { font-size: 16px; font-weight: 800; text-transform: uppercase; min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- CONTROL PANEL (Ref + Profile) --- */
+        .control-panel {
+            display: flex;
+            background: var(--dark);
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        /* Quick Ref (Left Side now) */
+        .ref-container {
+            flex: 1;
+            padding: 8px;
+        }
+        .ref-header { font-size: 10px; color: var(--grey); text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .ref-table td { padding: 4px; text-align: center; border-bottom: 1px solid #333; }
+        .ref-table td:first-child { text-align: left; font-weight: 700; }
+        .mono { font-family: monospace; letter-spacing: -0.5px; }
+
+        /* Vertical Profile Selector (Right Side) */
+        .profile-strip {
+            width: 40px;
+            background: #252525;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid #333; 
+            position: relative;
+        }
+        .profile-btn {
+            transform: rotate(-90deg);
+            white-space: nowrap;
+            color: var(--blue);
+            font-weight: 700;
+            font-size: 14px;
+            background: none;
+            border: none;
+            width: 100px; 
+            height: 40px;
+            text-align: center;
+            cursor: pointer;
+        }
+        #profile-select-hidden {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; appearance: none;
+        }
+
+        /* --- HISTORY SCROLL AREA --- */
         .scroll-area {
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 150px;
-        }
-
-        .readout {
-            padding: 20px 15px;
-            background: linear-gradient(180deg, #1C1C1E 0%, #000000 100%);
-        }
-
-        .dual-pred {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 10px;
+            padding-bottom: 160px; /* Space for big button */
         }
         
-        .pred-card {
-            background: #222;
-            border-radius: 16px;
-            padding: 16px 10px;
+        .history-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+        .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
+        .history-table td { padding: 12px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* Columns: Ply(15), BH(18), HH(18), Est(24), Res(25) */
+        .col-ply { width: 15%; text-align: left; padding-left: 8px; }
+        .col-bh { width: 18%; }
+        .col-hh { width: 18%; }
+        .col-est { width: 24%; }
+        .col-res { width: 25%; }
+
+        .val-used { color: #fff; font-weight: 700; }
+        .val-ignored { color: #444; text-decoration: none; }
+        .cell-dim { opacity: 0.3; }
+
+        .footer-actions {
+            padding: 20px;
             text-align: center;
             display: flex;
-            flex-direction: column;
+            gap: 10px;
             justify-content: center;
-            min-height: 110px;
-            border: 2px solid transparent;
-            transition: 0.2s;
-            position: relative;
         }
-        .pred-card.active { border-color: var(--blue); background: #2A2A2A; }
-        .pred-card.running { border-color: var(--green); background: #2A2A2A; }
-
-        .pred-lbl { font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
-        
-        .pred-primary { 
-            font-size: 34px; 
-            font-weight: 300; 
-            font-family: monospace; 
-            font-variant-numeric: tabular-nums;
-            letter-spacing: -1px;
-            line-height: 1.1; 
-            white-space: nowrap; 
-            min-height: 38px;
-        }
-        
-        .pred-secondary { 
-            font-size: 19px; 
-            font-weight: 800;
-            text-transform: uppercase;
-            margin-top: 6px; 
-            min-height: 24px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .btn-small {
+            background: #333; color: #aaa; border: none;
+            padding: 8px 16px; border-radius: 6px; font-size: 12px;
         }
 
-        /* --- Tables --- */
-        .section-header {
-            background: #121212;
-            color: var(--grey);
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 8px 16px;
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
-        .data-table th, .data-table td { padding: 10px 4px; border-bottom: 1px solid var(--border); text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .data-table th { color: var(--grey); font-weight: 500; font-size: 10px; }
-        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 12px; width: 12%; }
-        
-        /* Columns */
-        .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 18%; } /* B-H */
-        .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 18%; } /* H-H */
-        .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 26%; } /* Est */
-        .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 26%; } /* Act */
-        
-        .mono { font-family: monospace; font-size: 14px; letter-spacing: -0.5px; }
-        .time-active { color: #FFFFFF; font-weight: 700; cursor: pointer; }
-        .time-ignored { color: #444; font-weight: 400; cursor: pointer; text-decoration: none; }
-        
-        .player-badge {
-            font-size: 10px; padding: 3px 4px; border-radius: 4px;
-            background: #333; color: #ccc; font-weight: 700; letter-spacing: 0.5px;
-        }
-
-        /* --- Controls --- */
+        /* --- BOTTOM CONTROLS --- */
         .controls-area {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(28, 28, 30, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 16px;
-            padding-bottom: max(16px, env(safe-area-inset-bottom));
-            border-top: 1px solid var(--border);
-            display: flex; gap: 12px; z-index: 100;
+            backdrop-filter: blur(10px);
+            padding: 12px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            border-top: 1px solid #333;
+            display: flex; gap: 10px; z-index: 100;
         }
-
-        button { border: none; outline: none; cursor: pointer; text-transform: uppercase; -webkit-touch-callout: none; }
 
         #btn-main {
-            flex: 2; height: 72px; border-radius: 18px;
-            font-size: 24px; font-weight: 700; color: white;
+            flex: 1; height: 85px; 
+            border-radius: 16px;
+            font-size: 32px; font-weight: 800; color: white;
             background: var(--green);
-            box-shadow: 0 4px 15px rgba(48, 209, 88, 0.25);
-            transition: transform 0.1s;
+            border: none;
+            box-shadow: 0 4px 20px rgba(48, 209, 88, 0.3);
+            transition: 0.1s;
         }
-        #btn-main:active { transform: scale(0.96); }
+        #btn-main:active { transform: scale(0.97); }
+        #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
         
         #btn-reset {
-            flex: 1; height: 72px; border-radius: 18px;
-            background: #2C2C2E; color: var(--text);
-            font-size: 14px; font-weight: 600;
+            width: 70px; height: 85px;
+            border-radius: 16px; background: #2C2C2E; color: #fff; border: none; font-weight: 600; font-size: 12px;
         }
 
-        .st-ready { background-color: var(--green) !important; }
-        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.25) !important; }
-        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 15px rgba(255, 69, 58, 0.25) !important; }
+        /* States */
+        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 20px rgba(10, 132, 255, 0.3) !important; }
+        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 20px rgba(255, 69, 58, 0.3) !important; }
 
-        /* --- Modal --- */
+        /* --- MODAL (Right Side Stack) --- */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: none;
-            flex-direction: column; justify-content: flex-end; z-index: 200;
+            background: rgba(0,0,0,0.8); display: none;
+            justify-content: flex-end; align-items: center; z-index: 200;
         }
-        .modal-content { background: #1C1C1E; border-radius: 20px 20px 0 0; padding: 24px; border-top: 1px solid #333; }
-        .zone-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
-        .zone-btn {
-            padding: 14px 0; background: #2C2C2E; color: white;
-            border-radius: 10px; font-weight: 600; font-size: 13px;
+        .modal-content {
+            width: 140px; height: 100%;
+            background: #181818;
+            border-left: 1px solid #333;
+            display: flex; flex-direction: column;
+            overflow-y: auto;
+            padding: 10px;
         }
-        .z-tee { color: var(--green) !important; }
+        .modal-header { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; }
         
+        .zone-btn {
+            width: 100%; padding: 12px 0; margin-bottom: 6px;
+            background: #2A2A2A; color: #fff; border: 1px solid #333;
+            border-radius: 6px; font-size: 12px; font-weight: 700;
+            text-align: center;
+        }
+        .z-tee { color: var(--green); border-color: var(--green); }
+
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>Clock-Dilla (beta)</h1>
-        <select id="profile-select" class="profile-select">
-            <option value="TEAM">TEAM (All)</option>
-            <option value="-">-</option>
-            <option value="Lead">Lead</option>
-            <option value="2nd">Second</option>
-            <option value="Vice">Vice</option>
-            <option value="Skip">Skip</option>
-        </select>
-    </header>
+    <!-- STATIC TOP: TIMERS -->
+    <div class="top-bar">
+        <div class="timer-card" id="card-bh" onclick="app.toggleTimer('bh')">
+            <div class="t-label">Back to Hog</div>
+            <div class="t-time" id="time-bh">0.00</div>
+            <div class="t-pred" id="pred-bh">--</div>
+        </div>
+        <div class="timer-card" id="card-hh" onclick="app.toggleTimer('hh')">
+            <div class="t-label">Hog to Hog</div>
+            <div class="t-time" id="time-hh">0.00</div>
+            <div class="t-pred" id="pred-hh">--</div>
+        </div>
+    </div>
 
-    <div class="scroll-area">
-        <div class="readout">
-            <div class="dual-pred">
-                <div class="pred-card" id="card-bh">
-                    <div class="pred-lbl">Back to Hog</div>
-                    <div class="pred-primary" id="time-bh">0.00</div>
-                    <div class="pred-secondary" id="pred-bh">--</div>
-                </div>
-                <div class="pred-card" id="card-hh">
-                    <div class="pred-lbl">Hog to Hog</div>
-                    <div class="pred-primary" id="time-hh">0.00</div>
-                    <div class="pred-secondary" id="pred-hh">--</div>
-                </div>
+    <!-- STATIC CONTROL PANEL (Reordered) -->
+    <div class="control-panel">
+        <div class="ref-container">
+            <div class="ref-header">
+                <span>Quick Ref</span>
+                <span id="ice-readout" style="color:var(--blue)">Neutral</span>
             </div>
+            <table class="ref-table" id="ref-table">
+                <!-- Injected via JS -->
+            </table>
         </div>
+        
+        <!-- Profile Strip Moved to Right -->
+        <div class="profile-strip">
+            <div class="profile-btn" id="profile-display">TEAM</div>
+            <select id="profile-select-hidden">
+                <option value="TEAM">TEAM</option>
+                <option value="-">-</option>
+                <option value="Lead">Lead</option>
+                <option value="2nd">2nd</option>
+                <option value="Vice">Vice</option>
+                <option value="Skip">Skip</option>
+            </select>
+        </div>
+    </div>
 
-        <div class="section-header">
-            <span>Quick Reference</span>
-            <span id="ice-readout" style="color:var(--blue)">Neutral</span>
-        </div>
-        <table class="data-table" id="ref-table">
+    <!-- SCROLLABLE HISTORY -->
+    <div class="scroll-area">
+        <table class="history-table">
             <thead>
-                <tr><th>Target</th><th>B-H</th><th>H-H</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
-        <div class="section-header" style="margin-top: 10px;">
-            <span>Shot History</span>
-            <span style="font-size:10px; font-weight:400; color:#666;">White=Used | Grey=Ignored</span>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr><th>Ply</th><th>B-H</th><th>H-H</th><th>Est</th><th>Result</th></tr>
+                <tr>
+                    <th class="col-ply">Ply</th>
+                    <th class="col-bh">B-H</th>
+                    <th class="col-hh">H-H</th>
+                    <th class="col-est">Est</th>
+                    <th class="col-res">Result</th>
+                </tr>
             </thead>
             <tbody id="history-body"></tbody>
         </table>
+        
+        <div class="footer-actions">
+            <button class="btn-small" onclick="app.exportData()">Export CSV</button>
+            <button class="btn-small" onclick="app.clearHistory()" style="color:#f55;">Clear All</button>
+        </div>
     </div>
 
+    <!-- FOOTER CONTROLS -->
     <div class="controls-area">
         <button id="btn-reset" onclick="app.reset()">RESET</button>
-        <button id="btn-main" class="st-ready">START</button>
+        <button id="btn-main">START</button>
     </div>
 
-    <div class="modal" id="modal">
+    <!-- CALIBRATION MODAL (Right Stack) -->
+    <div class="modal" id="modal" onclick="if(event.target===this) app.closeModal()">
         <div class="modal-content">
-            <h3 style="margin:0; font-size:18px;">Actual Result?</h3>
-            <p style="margin:5px 0 0 0; font-size:13px; color:var(--grey);">Calibrating for <span id="calib-profile">Team</span></p>
-            <div class="zone-grid" id="zone-grid"></div>
-            <button onclick="app.closeModal()" style="padding:15px; width:100%; background:transparent; color:var(--grey); margin-top:10px;">Cancel</button>
+            <div class="modal-header">SET ACTUAL</div>
+            <div id="zone-list"></div>
+            <button class="zone-btn" style="margin-top:auto; color:#666;" onclick="app.closeModal()">CANCEL</button>
         </div>
     </div>
 
     <script>
         const CONFIG = {
+            // --- PHYSICS ENGINE ---
             bhSlope: -8.33, bhIntercept: 38.65,
-            hhSlope: -7.14, hhIntercept: 110.5,
+            hhSlope: -3.125, hhIntercept: 54.5, // 15.2s Tee / 16.8s Guard
+
+            // Validity Thresholds
             minBH: 2.0, maxBH: 6.0,
-            minHH: 7.0, maxHH: 20.0,
-            zones: {
-                13: "NORMAL", 12: "CONTROL", 
-                11.5: "BOARD", 11: "THROUGH", 10: "BACK 12", 9: "BACK 8", 8: "BACK 4",
-                7: "TEE LINE", 6: "TOP 4", 5: "TOP 8", 4: "TOP 12",
-                3: "TOP 12", 2: "GUARD", 1: "HOGGED", 0: "SHORT"
-            },
+            minHH: 7.0, maxHH: 22.0,
+
+            // Board Weight Thresholds
+            fastLimitBH: 3.25,
+            fastLimitHH: 13.75,
+
+            // Zone Definitions
+            zones: [
+                {v: 11.5, n: "Board"},
+                {v: 11.0, n: "Hack"},
+                {v: 10.0, n: "B 12"},
+                {v: 9.0, n: "B 8"},
+                {v: 8.0, n: "B 4"},
+                {v: 7.0, n: "TEE"},
+                {v: 6.0, n: "T 4"},
+                {v: 5.0, n: "T 8"},
+                {v: 4.0, n: "T 12"},
+                {v: 3.0, n: "Tight"},
+                {v: 2.5, n: "Mid"},
+                {v: 2.0, n: "High"}
+            ],
+
+            // Quick Ref
             refRows: [
-                { z: 11.5, n: "BOARD" }, { z: 10, n: "BACK 12" }, 
-                { z: 7, n: "TEE LINE" }, { z: 4, n: "TOP 12" }, { z: 2, n: "GUARD" }
+                {v: 10.0, n: "B12"},
+                {v: 7.0, n: "Tee"},
+                {v: 4.0, n: "T12"},
+                {v: 2.5, n: "Mid"}
             ]
         };
 
@@ -297,190 +326,247 @@
             t0: 0, t1: 0,
             split: 0, interval: 0,
             timerInterval: null,
+            
+            enableBH: true,
+            enableHH: true,
+            
             history: [],
             currentProfile: 'TEAM',
             iceOffset: 0,
             editingId: null,
 
-            elBtn: document.getElementById('btn-main'),
-            elCardBH: document.getElementById('card-bh'),
-            elTimeBH: document.getElementById('time-bh'),
-            elPredBH: document.getElementById('pred-bh'),
-            elCardHH: document.getElementById('card-hh'),
-            elTimeHH: document.getElementById('time-hh'),
-            elPredHH: document.getElementById('pred-hh'),
-            elProfile: document.getElementById('profile-select'),
+            ui: {},
 
             init() {
+                const ids = ['btn-main','btn-reset','time-bh','pred-bh','card-bh','time-hh','pred-hh','card-hh',
+                             'profile-display','profile-select-hidden','ref-table','history-body','ice-readout','modal','zone-list'];
+                ids.forEach(id => this.ui[id] = document.getElementById(id));
+
                 this.loadData();
-                this.setupGrid();
+                this.buildGrid();
                 this.bindEvents();
                 this.updateProfile();
-                this.renderUI();
+                this.renderRef();
+                this.renderHistory();
             },
 
             bindEvents() {
-                this.elBtn.onclick = (e) => {
-                    e.preventDefault();
-                    this.handleAction();
-                };
+                this.ui['btn-main'].addEventListener('touchstart', (e) => { e.preventDefault(); this.handleMain(); }, {passive:false});
+                this.ui['btn-main'].addEventListener('click', (e) => { if(e.detail!==0) { e.preventDefault(); this.handleMain(); }});
                 
-                this.elProfile.addEventListener('change', (e) => {
+                this.ui['profile-select-hidden'].addEventListener('change', (e) => {
                     this.currentProfile = e.target.value;
+                    this.ui['profile-display'].innerText = this.currentProfile;
                     this.updateProfile();
-                    this.renderUI();
+                    this.renderHistory();
+                    this.renderRef();
                 });
             },
 
-            setupGrid() {
-                const container = document.getElementById('zone-grid');
-                const order = [13, 12, 11.5, 10, 8, 7, 6, 4, 2];
-                order.forEach(z => {
-                    const btn = document.createElement('button');
-                    btn.className = 'zone-btn';
-                    btn.innerText = CONFIG.zones[z] || z;
-                    if(z === 7) btn.classList.add('z-tee');
-                    btn.onclick = () => this.calibrate(z);
-                    container.appendChild(btn);
+            buildGrid() {
+                const list = this.ui['zone-list'];
+                CONFIG.zones.forEach(z => {
+                    const b = document.createElement('button');
+                    b.className = 'zone-btn';
+                    b.innerText = z.n;
+                    if(z.v === 7) b.classList.add('z-tee');
+                    b.onclick = () => this.calibrate(z.v);
+                    list.appendChild(b);
                 });
             },
 
-            handleAction() {
+            // --- STATE MACHINE ---
+            handleMain() {
                 const now = Date.now();
-                if (this.state === 'IDLE') {
+                
+                // START (from Idle or Finished)
+                if (this.state === 'IDLE' || this.state === 'FINISHED') {
+                    if (!this.enableBH && !this.enableHH) return;
+
+                    // Clean start - reset visuals only, logic is fresh
+                    this.ui['time-bh'].innerText = "0.00"; this.ui['pred-bh'].innerText = "--";
+                    this.ui['time-hh'].innerText = "0.00"; this.ui['pred-hh'].innerText = "--";
+                    this.ui['pred-bh'].style.color = "#fff";
+                    this.ui['pred-hh'].style.color = "#fff";
+                    
                     this.state = 'RUNNING';
-                    this.t0 = now;
+                    
+                    if (this.enableBH) {
+                        // Start B-H
+                        this.t0 = now;
+                        this.ui['card-bh'].classList.remove('disabled');
+                        this.ui['card-bh'].classList.add('running');
+                        this.ui['pred-bh'].innerText = "TIMING";
+                        this.ui['btn-main'].innerText = "HOG 1";
+                        this.ui['btn-main'].className = 'st-split';
+                    } else {
+                        // Skip B-H, Start H-H
+                        this.t1 = now;
+                        this.state = 'INTERVAL'; 
+                        this.ui['card-bh'].classList.add('disabled');
+                        this.ui['card-hh'].classList.add('running');
+                        this.ui['pred-hh'].innerText = "TIMING";
+                        this.ui['btn-main'].innerText = "HOG 2";
+                        this.ui['btn-main'].className = 'st-int';
+                    }
                     this.startTimer();
-                    this.updateBtn("HOG 1", "st-split");
-                    this.elCardBH.classList.add('running');
-                    this.elPredBH.innerText = "Timing...";
-                    this.elTimeBH.style.color = "var(--text)";
-                    this.elTimeHH.innerText = "0.00"; 
-                    this.elPredHH.innerText = "--";
-                    this.elPredHH.style.color = "var(--grey)";
                     this.vibrate(15);
+
                 } else if (this.state === 'RUNNING') {
+                    // Finishes B-H
                     this.t1 = now;
                     this.split = (this.t1 - this.t0) / 1000;
-                    this.state = 'INTERVAL';
-                    this.elCardBH.classList.remove('running');
-                    this.elCardBH.classList.add('active');
-                    this.elTimeBH.innerText = this.split.toFixed(2);
-                    this.predictBH(this.split); 
-                    this.elCardHH.classList.add('running');
-                    this.elPredHH.innerText = "Timing...";
-                    this.updateBtn("HOG 2", "st-int");
+                    
+                    this.ui['card-bh'].classList.remove('running');
+                    this.ui['card-bh'].classList.add('active');
+                    this.ui['time-bh'].innerText = this.split.toFixed(2);
+                    this.predictBH(this.split);
+
+                    if (this.enableHH) {
+                        // Start H-H
+                        this.state = 'INTERVAL';
+                        this.ui['card-hh'].classList.add('running');
+                        this.ui['pred-hh'].innerText = "TIMING";
+                        this.ui['btn-main'].innerText = "HOG 2";
+                        this.ui['btn-main'].className = 'st-int';
+                    } else {
+                        // End of shot (B-H only)
+                        this.state = 'FINISHED';
+                        this.stopTimer();
+                        this.saveShot(); // Instant Save
+                        this.ui['btn-main'].innerText = "START";
+                        this.ui['btn-main'].className = '';
+                    }
                     this.vibrate(30);
+
                 } else if (this.state === 'INTERVAL') {
+                    // Finishes H-H
                     this.interval = (now - this.t1) / 1000;
                     this.state = 'FINISHED';
                     this.stopTimer();
-                    this.elCardHH.classList.remove('running');
-                    this.elCardHH.classList.add('active');
-                    this.elTimeHH.innerText = this.interval.toFixed(2);
-                    this.predictHH(this.interval); 
-                    this.updateBtn("NEXT SHOT", "st-ready");
-                    this.saveShot();
-                    this.vibrate([10, 30, 10]);
-                } else if (this.state === 'FINISHED') {
-                    this.reset();
+
+                    this.ui['card-hh'].classList.remove('running');
+                    this.ui['card-hh'].classList.add('active');
+                    this.ui['time-hh'].innerText = this.interval.toFixed(2);
+                    this.predictHH(this.interval);
+                    
+                    this.saveShot(); // Instant Save
+
+                    this.ui['btn-main'].innerText = "START";
+                    this.ui['btn-main'].className = '';
+                    this.vibrate([10,30]);
                 }
             },
 
             startTimer() {
-                if (this.timerInterval) clearInterval(this.timerInterval);
+                if(this.timerInterval) clearInterval(this.timerInterval);
                 this.timerInterval = setInterval(() => {
                     const now = Date.now();
-                    if (this.state === 'RUNNING') {
-                        const t = (now - this.t0) / 1000;
-                        this.elTimeBH.innerText = t.toFixed(2);
+                    if(this.state === 'RUNNING') {
+                        this.ui['time-bh'].innerText = ((now - this.t0)/1000).toFixed(2);
                     } else if (this.state === 'INTERVAL') {
-                        const t = (now - this.t1) / 1000;
-                        this.elTimeHH.innerText = t.toFixed(2);
+                        this.ui['time-hh'].innerText = ((now - this.t1)/1000).toFixed(2);
                     }
                 }, 37);
             },
             stopTimer() { clearInterval(this.timerInterval); },
 
+            toggleTimer(type) {
+                // Only allow toggling if Idle or Finished
+                if (this.state !== 'IDLE' && this.state !== 'FINISHED') return;
+                
+                if (type === 'bh') {
+                    this.enableBH = !this.enableBH;
+                    this.ui['card-bh'].classList.toggle('disabled', !this.enableBH);
+                } else {
+                    this.enableHH = !this.enableHH;
+                    this.ui['card-hh'].classList.toggle('disabled', !this.enableHH);
+                }
+                this.ui['btn-main'].disabled = (!this.enableBH && !this.enableHH);
+            },
+
             reset() {
                 this.stopTimer();
                 this.state = 'IDLE';
-                this.elTimeBH.innerText = "0.00"; this.elPredBH.innerText = "--";
-                this.elTimeHH.innerText = "0.00"; this.elPredHH.innerText = "--";
-                this.elCardBH.className = 'pred-card';
-                this.elCardHH.className = 'pred-card';
-                this.elPredBH.style.color = "var(--grey)";
-                this.elPredHH.style.color = "var(--grey)";
-                this.updateBtn("START", "st-ready");
+                this.ui['time-bh'].innerText = "0.00"; this.ui['pred-bh'].innerText = "--";
+                this.ui['time-hh'].innerText = "0.00"; this.ui['pred-hh'].innerText = "--";
+                
+                this.ui['card-bh'].className = 'timer-card' + (this.enableBH ? '' : ' disabled');
+                this.ui['card-hh'].className = 'timer-card' + (this.enableHH ? '' : ' disabled');
+                
+                this.ui['pred-bh'].style.color = "#fff";
+                this.ui['pred-hh'].style.color = "#fff";
+
+                this.ui['btn-main'].innerText = "START";
+                this.ui['btn-main'].className = '';
             },
 
-            updateBtn(text, cls) {
-                this.elBtn.className = '';
-                this.elBtn.classList.add(cls);
-                this.elBtn.innerText = text;
-            },
-
+            // --- PREDICTION ---
             predictBH(time) {
-                if (time < CONFIG.minBH || time > CONFIG.maxBH) {
-                    this.elPredBH.innerText = "-";
-                    this.elPredBH.style.color = "var(--grey)";
+                if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) {
+                    this.ui['pred-bh'].innerText = "-";
+                    this.ui['pred-bh'].style.color = "#444";
                     return null;
                 }
                 const z = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffset;
-                const final = this.resolveZone(z);
-                this.displayPred(this.elPredBH, final);
+                const final = Math.max(0, Math.min(11.5, z));
+                this.displayPred(this.ui['pred-bh'], final);
                 return final;
             },
 
             predictHH(time) {
-                if (time < CONFIG.minHH || time > CONFIG.maxHH) {
-                    this.elPredHH.innerText = "-";
-                    this.elPredHH.style.color = "var(--grey)";
+                if (time < CONFIG.minHH || time > CONFIG.maxHH || time <= CONFIG.fastLimitHH) {
+                    this.ui['pred-hh'].innerText = "-";
+                    this.ui['pred-hh'].style.color = "#444";
                     return null;
                 }
                 const z = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffset;
-                const final = this.resolveZone(z);
-                this.displayPred(this.elPredHH, final);
+                const final = Math.max(0, Math.min(11.5, z));
+                this.displayPred(this.ui['pred-hh'], final);
                 return final;
             },
 
-            resolveZone(z) {
-                if (z > 12.5) return 13; 
-                if (z > 11.8) return 12; 
-                return Math.max(0, Math.min(11.5, z));
-            },
-
             displayPred(el, zVal) {
-                const r = Math.round(zVal);
-                const txt = CONFIG.zones[zVal] || CONFIG.zones[r] || "UNKNOWN";
+                // Find label
+                let txt = "UNKNOWN";
+                let minDiff = 99;
+                CONFIG.zones.forEach(z => {
+                    if (Math.abs(z.v - zVal) < minDiff) {
+                        minDiff = Math.abs(z.v - zVal);
+                        txt = z.n;
+                    }
+                });
                 el.innerText = txt;
-                if (r === 7) el.style.color = "var(--green)";
-                else el.style.color = "var(--text)";
+                el.style.color = (Math.abs(zVal - 7.0) < 0.5) ? "var(--green)" : "#fff";
             },
 
+            // --- DATA ---
             saveShot() {
-                const isValidBH = this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH;
-                const isValidHH = this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH;
+                if (!this.enableBH && !this.enableHH) return;
+
+                const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
+                const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
+
                 let p = this.currentProfile;
                 if(p === 'TEAM') p = '-'; 
 
                 const s = {
                     id: Date.now(),
                     player: p,
-                    bh: this.split,
-                    hh: this.interval,
+                    bh: this.enableBH ? this.split : 0,
+                    hh: this.enableHH ? this.interval : 0,
                     actual: null,
-                    useBH: isValidBH,
-                    useHH: isValidHH,
-                    rawBH: (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept,
-                    rawHH: (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept
+                    useBH: validBH,
+                    useHH: validHH,
+                    rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
+                    rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0
                 };
                 
                 this.history.unshift(s);
-                if (this.history.length > 50) this.history.pop();
+                if(this.history.length > 60) this.history.pop();
                 this.saveStorage();
                 this.updateProfile();
-                this.renderUI();
+                this.renderHistory(); // Updates history immediately
             },
 
             updateProfile() {
@@ -488,28 +574,33 @@
                     ? this.history 
                     : this.history.filter(s => s.player === this.currentProfile);
                 
-                let errSum = 0; let count = 0;
+                let errSum = 0;
+                let count = 0;
+
                 shots.forEach(s => {
+                    // Only calibrate if actual is set and within draw range
                     if (s.actual !== null && s.actual <= 11.5) {
-                        if (s.useBH) { errSum += (s.actual - s.rawBH); count++; }
-                        if (s.useHH) { errSum += (s.actual - s.rawHH); count++; }
+                        if (s.useBH && s.rawBH > 0) { errSum += (s.actual - s.rawBH); count++; }
+                        if (s.useHH && s.rawHH > 0) { errSum += (s.actual - s.rawHH); count++; }
                     }
                 });
+
                 this.iceOffset = count > 0 ? (errSum / count) : 0;
                 const sign = this.iceOffset > 0 ? "+" : "";
-                document.getElementById('ice-readout').innerText = count > 0 
+                this.ui['ice-readout'].innerText = count > 0 
                     ? `${this.currentProfile}: ${sign}${this.iceOffset.toFixed(1)}` 
                     : "Neutral";
             },
 
-            toggleTime(id, type) {
+            // --- UI ACTIONS ---
+            toggleHistoryUse(id, type) {
                 const s = this.history.find(x => x.id === id);
                 if(s) {
-                    if(type === 'bh') s.useBH = !s.useBH;
-                    if(type === 'hh') s.useHH = !s.useHH;
+                    if(type === 'bh' && s.bh > 0) s.useBH = !s.useBH;
+                    if(type === 'hh' && s.hh > 0) s.useHH = !s.useHH;
                     this.saveStorage();
                     this.updateProfile();
-                    this.renderUI();
+                    this.renderHistory();
                 }
             },
 
@@ -518,98 +609,139 @@
                 const s = this.history.find(x => x.id === id);
                 if(s) {
                     const idx = roles.indexOf(s.player);
-                    const currentIdx = idx === -1 ? 0 : idx;
-                    s.player = roles[(currentIdx + 1) % roles.length];
+                    s.player = roles[(idx + 1) % roles.length];
                     this.saveStorage();
-                    this.updateProfile();
-                    this.renderUI();
+                    this.renderHistory();
                 }
             },
 
             openModal(id) {
                 this.editingId = id;
-                const s = this.history.find(x => x.id === id);
-                document.getElementById('calib-profile').innerText = s.player;
-                document.getElementById('modal').style.display = 'flex';
+                this.ui['modal'].style.display = 'flex';
             },
-            closeModal() { document.getElementById('modal').style.display = 'none'; this.editingId = null; },
+            closeModal() { this.ui['modal'].style.display = 'none'; this.editingId = null; },
 
             calibrate(val) {
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
                     s.actual = val;
+                    // Auto-enable if within bounds and data exists
                     if (s.bh >= CONFIG.minBH && s.bh <= CONFIG.maxBH) s.useBH = true;
                     if (s.hh >= CONFIG.minHH && s.hh <= CONFIG.maxHH) s.useHH = true;
                     this.saveStorage();
                     this.updateProfile();
-                    this.renderUI();
+                    this.renderHistory();
                 }
                 this.closeModal();
             },
 
-            renderUI() {
-                const tbRef = document.getElementById('ref-table').querySelector('tbody');
-                tbRef.innerHTML = '';
-                CONFIG.refRows.forEach(r => {
-                    const bh = (r.z - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
-                    const hh = (r.z - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
-                    let color = "var(--text)";
-                    if (r.z === 7) color = "var(--green)";
-                    tbRef.innerHTML += `<tr><td style="font-weight:700; color:${color}">${r.n}</td><td class="mono">${bh.toFixed(2)}</td><td class="mono">${hh.toFixed(2)}</td></tr>`;
-                });
+            clearHistory() {
+                if(confirm("Delete all history?")) {
+                    this.history = [];
+                    this.iceOffset = 0;
+                    this.saveStorage();
+                    this.updateProfile();
+                    this.renderHistory();
+                }
+            },
 
-                const tbHist = document.getElementById('history-body');
-                tbHist.innerHTML = '';
+            exportData() {
+                let csv = "Player,B-H Time,Used,H-H Time,Used,Estimate,Result\n";
+                this.history.forEach(s => {
+                    const est = this.getEstText(s).replace(/<[^>]*>/g, '');
+                    const res = this.getResText(s).replace(/<[^>]*>/g, '').replace('-','');
+                    csv += `${s.player},${s.bh.toFixed(2)},${s.useBH},${s.hh.toFixed(2)},${s.useHH},${est},${res}\n`;
+                });
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `curling_data_${Date.now()}.csv`;
+                a.click();
+            },
+
+            // --- RENDERING ---
+            renderRef() {
+                const tbl = this.ui['ref-table'];
+                tbl.innerHTML = '';
+                CONFIG.refRows.forEach(r => {
+                    // Inverse Logic: t = (z - offset - b) / m
+                    const bh = (r.v - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
+                    const hh = (r.v - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
+                    
+                    let color = "#fff";
+                    if(r.v === 7) color = "var(--green)";
+
+                    // Apply color to the whole row
+                    tbl.innerHTML += `<tr style="color:${color}">
+                        <td>${r.n}</td>
+                        <td class="mono">${bh.toFixed(2)}</td>
+                        <td class="mono">${hh.toFixed(2)}</td>
+                    </tr>`;
+                });
+            },
+
+            getEstText(s) {
+                if (!s.useBH && !s.useHH) return '<span class="cell-dim">-</span>';
+                
+                let val = 0;
+                // Prefer HH if available
+                if (s.useHH) val = (CONFIG.hhSlope * s.hh) + CONFIG.hhIntercept + this.iceOffset;
+                else val = (CONFIG.bhSlope * s.bh) + CONFIG.bhIntercept + this.iceOffset;
+                
+                let label = "?";
+                let minDiff = 99;
+                CONFIG.zones.forEach(z => {
+                    if (Math.abs(z.v - val) < minDiff) { minDiff = Math.abs(z.v - val); label = z.n; }
+                });
+                
+                let col = "#fff";
+                if (Math.abs(val - 7) < 0.5) col = "var(--green)";
+                return `<span style="color:${col}; font-weight:700;">${label}</span>`;
+            },
+
+            getResText(s) {
+                if (!s.useBH && !s.useHH) return '<span class="cell-dim">-</span>';
+                if (s.actual === null) return '<span style="color:#444">-</span>';
+                
+                let label = "?";
+                CONFIG.zones.forEach(z => { if(z.v === s.actual) label = z.n; });
+                
+                let col = "#fff";
+                if (s.actual === 7) col = "var(--green)";
+                return `<span style="color:${col}; font-weight:700;">${label}</span>`;
+            },
+
+            renderHistory() {
+                const tbody = this.ui['history-body'];
+                tbody.innerHTML = '';
+                
                 const visible = this.currentProfile === 'TEAM' 
                     ? this.history 
                     : this.history.filter(s => s.player === this.currentProfile);
 
                 visible.forEach(s => {
-                    // FIX: Strict Est Generation based only on B-H
-                    let estHtml = '<span style="color:#444">-</span>';
-                    
-                    if (s.useBH) {
-                        const pVal = this.resolveZone(s.rawBH + this.iceOffset);
-                        // Lookup with Fallback Rounding
-                        const r = Math.round(pVal);
-                        const pName = CONFIG.zones[pVal] || CONFIG.zones[r] || "UNKNOWN";
-                        
-                        let pCol = "var(--text)";
-                        if (r === 7) pCol = "var(--green)";
-                        estHtml = `<span style="color:${pCol}; font-weight:700;">${pName}</span>`;
-                    }
-
-                    // Result Column Logic
-                    let resHtml = '<span style="color:#444; font-size:16px;">-</span>';
-                    if (s.actual !== null) {
-                        const zName = CONFIG.zones[s.actual] || s.actual;
-                        let zCol = "var(--text)";
-                        if (Math.round(s.actual) === 7) zCol = "var(--green)";
-                        resHtml = `<span style="color:${zCol}; font-weight:700;">${zName}</span>`;
-                    }
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><span class="player-badge" onclick="app.cyclePlayer(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
-                        <td class="mono ${s.useBH ? 'time-active' : 'time-ignored'}" onclick="app.toggleTime(${s.id}, 'bh')">${s.bh.toFixed(2)}</td>
-                        <td class="mono ${s.useHH ? 'time-active' : 'time-ignored'}" onclick="app.toggleTime(${s.id}, 'hh')">${s.hh.toFixed(2)}</td>
-                        <td>${estHtml}</td>
-                        <td onclick="app.openModal(${s.id})">${resHtml}</td>
+                        <td class="col-ply"><span class="player-badge" onclick="app.cyclePlayer(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
+                        <td class="col-bh mono ${s.useBH ? 'val-used' : 'val-ignored'}" onclick="app.toggleHistoryUse(${s.id},'bh')">${s.bh > 0 ? s.bh.toFixed(2) : '-'}</td>
+                        <td class="col-hh mono ${s.useHH ? 'val-used' : 'val-ignored'}" onclick="app.toggleHistoryUse(${s.id},'hh')">${s.hh > 0 ? s.hh.toFixed(2) : '-'}</td>
+                        <td class="col-est">${this.getEstText(s)}</td>
+                        <td class="col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td>
                     `;
-                    tbHist.appendChild(tr);
+                    tbody.appendChild(tr);
                 });
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v7_3', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v9_4', JSON.stringify(this.history)); },
             loadData() { 
-                try {
-                    const d = localStorage.getItem('cp_v7_3'); 
-                    if(d) this.history = JSON.parse(d); 
-                } catch(e) { this.history = []; }
+                const d = localStorage.getItem('cp_v9_4'); 
+                if(d) this.history = JSON.parse(d); 
             }
         };
 
-        window.app = app;
         app.init();
     </script>
 </body>
