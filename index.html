@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v9.5</title>
+    <title>Clock-Dilla v9.6</title>
     <style>
         :root {
             /* Palette */
@@ -73,7 +73,7 @@
         }
         
         .t-time { 
-            font-size: 48px; /* Bumped up ~30% */
+            font-size: 48px; 
             font-weight: 300; 
             font-family: monospace; 
             font-variant-numeric: tabular-nums; 
@@ -187,7 +187,7 @@
         }
 
         #btn-main {
-            flex: 1; height: 110px; /* Increased 30% from 85px */
+            flex: 1; height: 110px; 
             border-radius: 18px;
             font-size: 36px; font-weight: 800; color: white;
             background: var(--green);
@@ -199,7 +199,7 @@
         #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
         
         #btn-reset {
-            width: 75px; height: 110px; /* Matched height for symmetry */
+            width: 75px; height: 110px; 
             border-radius: 18px; background: #2C2C2E; color: #fff; border: none; font-weight: 600; font-size: 12px;
         }
 
@@ -425,7 +425,7 @@
                         this.t0 = now;
                         this.ui['card-bh'].classList.remove('disabled');
                         this.ui['card-bh'].classList.add('running');
-                        this.ui['pred-bh'].innerText = "TIMING";
+                        this.ui['pred-bh'].innerText = ""; // Empty while running
                         this.ui['btn-main'].innerText = "HOG 1";
                         this.ui['btn-main'].className = 'st-split';
                     } else {
@@ -434,7 +434,7 @@
                         this.state = 'INTERVAL'; 
                         this.ui['card-bh'].classList.add('disabled');
                         this.ui['card-hh'].classList.add('running');
-                        this.ui['pred-hh'].innerText = "TIMING";
+                        this.ui['pred-hh'].innerText = ""; // Empty while running
                         this.ui['btn-main'].innerText = "HOG 2";
                         this.ui['btn-main'].className = 'st-int';
                     }
@@ -455,7 +455,7 @@
                         // Start H-H
                         this.state = 'INTERVAL';
                         this.ui['card-hh'].classList.add('running');
-                        this.ui['pred-hh'].innerText = "TIMING";
+                        this.ui['pred-hh'].innerText = ""; // Empty while running
                         this.ui['btn-main'].innerText = "HOG 2";
                         this.ui['btn-main'].className = 'st-int';
                     } else {
@@ -764,9 +764,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v9_5', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v9_6', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v9_5'); 
+                const d = localStorage.getItem('cp_v9_6'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
