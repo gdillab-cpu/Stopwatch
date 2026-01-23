@@ -9,9 +9,9 @@
     <title>Clock-Dilla (beta)</title>
     <style>
         :root {
-            /* Clock-Dilla Palette */
+            /* Palette */
             --blue: #0A84FF;
-            --green: #30D158; /* TEE LINE ONLY */
+            --green: #30D158; /* ONLY for Tee Line */
             --red: #FF453A;
             --grey: #98989D;
             --dim: #3A3A3C;
@@ -46,7 +46,7 @@
             border-bottom: 1px solid var(--border);
             z-index: 20;
         }
-        h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; opacity: 1; }
+        h1 { margin: 0; font-size: 17px; font-weight: 700; opacity: 0.9; }
         
         .profile-select {
             background: #2C2C2E;
@@ -69,7 +69,6 @@
             padding-bottom: 150px;
         }
 
-        /* --- Readout --- */
         .readout {
             padding: 20px 15px;
             background: linear-gradient(180deg, #1C1C1E 0%, #000000 100%);
@@ -100,7 +99,6 @@
 
         .pred-lbl { font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
         
-        /* Primary: THE TIME */
         .pred-primary { 
             font-size: 34px; 
             font-weight: 300; 
@@ -110,10 +108,8 @@
             line-height: 1.1; 
             white-space: nowrap; 
             min-height: 38px;
-            color: var(--text);
         }
         
-        /* Secondary: THE PREDICTION */
         .pred-secondary { 
             font-size: 19px; 
             font-weight: 800;
@@ -145,17 +141,15 @@
         .data-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
         .data-table th, .data-table td { padding: 10px 4px; border-bottom: 1px solid var(--border); text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .data-table th { color: var(--grey); font-weight: 500; font-size: 10px; }
+        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 12px; width: 12%; }
         
-        /* Column Widths - 5 Col Layout */
-        .data-table td:first-child, .data-table th:first-child { text-align: left; padding-left: 12px; width: 14%; } /* Ply */
+        /* Columns */
         .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 18%; } /* B-H */
         .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 18%; } /* H-H */
-        .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 25%; } /* Est */
-        .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 25%; } /* Res */
+        .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 26%; } /* Est */
+        .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 26%; } /* Act */
         
         .mono { font-family: monospace; font-size: 14px; letter-spacing: -0.5px; }
-
-        /* --- State Colors for Time Toggles --- */
         .time-active { color: #FFFFFF; font-weight: 700; cursor: pointer; }
         .time-ignored { color: #444; font-weight: 400; cursor: pointer; text-decoration: none; }
         
@@ -209,7 +203,6 @@
             padding: 14px 0; background: #2C2C2E; color: white;
             border-radius: 10px; font-weight: 600; font-size: 13px;
         }
-        /* Only Tee Line gets color in grid */
         .z-tee { color: var(--green) !important; }
         
     </style>
@@ -229,16 +222,13 @@
     </header>
 
     <div class="scroll-area">
-        
         <div class="readout">
             <div class="dual-pred">
-                <!-- Back to Hog Card -->
                 <div class="pred-card" id="card-bh">
                     <div class="pred-lbl">Back to Hog</div>
                     <div class="pred-primary" id="time-bh">0.00</div>
                     <div class="pred-secondary" id="pred-bh">--</div>
                 </div>
-                <!-- Hog to Hog Card -->
                 <div class="pred-card" id="card-hh">
                     <div class="pred-lbl">Hog to Hog</div>
                     <div class="pred-primary" id="time-hh">0.00</div>
@@ -253,11 +243,7 @@
         </div>
         <table class="data-table" id="ref-table">
             <thead>
-                <tr>
-                    <th>Target</th>
-                    <th>B-H</th>
-                    <th>H-H</th>
-                </tr>
+                <tr><th>Target</th><th>B-H</th><th>H-H</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -268,17 +254,10 @@
         </div>
         <table class="data-table">
             <thead>
-                <tr>
-                    <th>Ply</th>
-                    <th>B-H</th>
-                    <th>H-H</th>
-                    <th>Est</th>
-                    <th>Result</th>
-                </tr>
+                <tr><th>Ply</th><th>B-H</th><th>H-H</th><th>Est</th><th>Result</th></tr>
             </thead>
             <tbody id="history-body"></tbody>
         </table>
-
     </div>
 
     <div class="controls-area">
@@ -286,7 +265,6 @@
         <button id="btn-main" class="st-ready">START</button>
     </div>
 
-    <!-- Calibration Modal -->
     <div class="modal" id="modal">
         <div class="modal-content">
             <h3 style="margin:0; font-size:18px;">Actual Result?</h3>
@@ -298,39 +276,19 @@
 
     <script>
         const CONFIG = {
-            // --- PHYSICS ENGINE (LINEAR MODEL) ---
-            // While physics suggests an inverse square relationship (d ~ 1/t^2),
-            // a Linear Regression model is robust for the narrow "Draw Window" (Zone 1-11).
-            // It provides self-correcting stability for the "Ice Offset" calibration feature.
-            
-            // Back-to-Hog: 3.8s(Tee) -> 4.4s(Guard)
-            bhSlope: -8.33, 
-            bhIntercept: 38.65,
-
-            // Hog-to-Hog: 14.5s(Tee) -> 15.4s(Guard)
-            // Adjusted gap to 0.9s for more standard club ice feel vs pro ice.
-            hhSlope: -5.55, 
-            hhIntercept: 87.5,
-
-            // Validity Thresholds
+            bhSlope: -8.33, bhIntercept: 38.65,
+            hhSlope: -7.14, hhIntercept: 110.5,
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 20.0,
-
-            // Zone Definitions
             zones: {
                 13: "NORMAL", 12: "CONTROL", 
                 11.5: "BOARD", 11: "THROUGH", 10: "BACK 12", 9: "BACK 8", 8: "BACK 4",
                 7: "TEE LINE", 6: "TOP 4", 5: "TOP 8", 4: "TOP 12",
-                3: "HOG 12", 2: "GUARD", 1: "HOGGED", 0: "SHORT"
+                3: "TOP 12", 2: "GUARD", 1: "HOGGED", 0: "SHORT"
             },
-            
-            // Reference Table Targets
             refRows: [
-                { z: 11.5, n: "BOARD" }, 
-                { z: 10, n: "BACK 12" }, 
-                { z: 7, n: "TEE LINE" },
-                { z: 4, n: "TOP 12" }, 
-                { z: 2, n: "GUARD" }
+                { z: 11.5, n: "BOARD" }, { z: 10, n: "BACK 12" }, 
+                { z: 7, n: "TEE LINE" }, { z: 4, n: "TOP 12" }, { z: 2, n: "GUARD" }
             ]
         };
 
@@ -344,7 +302,6 @@
             iceOffset: 0,
             editingId: null,
 
-            // DOM Elements
             elBtn: document.getElementById('btn-main'),
             elCardBH: document.getElementById('card-bh'),
             elTimeBH: document.getElementById('time-bh'),
@@ -363,9 +320,10 @@
             },
 
             bindEvents() {
-                const btn = document.getElementById('btn-main');
-                btn.addEventListener('touchstart', (e) => { e.preventDefault(); this.handleAction(); }, {passive: false});
-                btn.addEventListener('click', (e) => { if(e.detail !== 0) { e.preventDefault(); this.handleAction(); }});
+                this.elBtn.onclick = (e) => {
+                    e.preventDefault();
+                    this.handleAction();
+                };
                 
                 this.elProfile.addEventListener('change', (e) => {
                     this.currentProfile = e.target.value;
@@ -381,7 +339,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'zone-btn';
                     btn.innerText = CONFIG.zones[z] || z;
-                    if(z === 7) btn.classList.add('z-tee'); // Only Tee Line gets color
+                    if(z === 7) btn.classList.add('z-tee');
                     btn.onclick = () => this.calibrate(z);
                     container.appendChild(btn);
                 });
@@ -390,59 +348,40 @@
             handleAction() {
                 const now = Date.now();
                 if (this.state === 'IDLE') {
-                    // START
                     this.state = 'RUNNING';
                     this.t0 = now;
                     this.startTimer();
                     this.updateBtn("HOG 1", "st-split");
-                    
-                    // Visuals
                     this.elCardBH.classList.add('running');
                     this.elPredBH.innerText = "Timing...";
                     this.elTimeBH.style.color = "var(--text)";
-                    
-                    // Reset H-H
                     this.elTimeHH.innerText = "0.00"; 
                     this.elPredHH.innerText = "--";
                     this.elPredHH.style.color = "var(--grey)";
-                    
                     this.vibrate(15);
-
                 } else if (this.state === 'RUNNING') {
-                    // SPLIT (Back to Hog Done)
                     this.t1 = now;
                     this.split = (this.t1 - this.t0) / 1000;
                     this.state = 'INTERVAL';
-                    
-                    // Visuals: Lock B-H
                     this.elCardBH.classList.remove('running');
                     this.elCardBH.classList.add('active');
                     this.elTimeBH.innerText = this.split.toFixed(2);
                     this.predictBH(this.split); 
-                    
-                    // Visuals: Start H-H
                     this.elCardHH.classList.add('running');
                     this.elPredHH.innerText = "Timing...";
-                    
                     this.updateBtn("HOG 2", "st-int");
                     this.vibrate(30);
-
                 } else if (this.state === 'INTERVAL') {
-                    // FINISH (Hog to Hog Done)
                     this.interval = (now - this.t1) / 1000;
                     this.state = 'FINISHED';
                     this.stopTimer();
-                    
-                    // Visuals: Lock H-H
                     this.elCardHH.classList.remove('running');
                     this.elCardHH.classList.add('active');
                     this.elTimeHH.innerText = this.interval.toFixed(2);
                     this.predictHH(this.interval); 
-                    
                     this.updateBtn("NEXT SHOT", "st-ready");
                     this.saveShot();
                     this.vibrate([10, 30, 10]);
-
                 } else if (this.state === 'FINISHED') {
                     this.reset();
                 }
@@ -481,7 +420,6 @@
                 this.elBtn.innerText = text;
             },
 
-            // --- PREDICTION ---
             predictBH(time) {
                 if (time < CONFIG.minBH || time > CONFIG.maxBH) {
                     this.elPredBH.innerText = "-";
@@ -507,8 +445,8 @@
             },
 
             resolveZone(z) {
-                if (z > 12.5) return 13; // Normal
-                if (z > 11.8) return 12; // Control
+                if (z > 12.5) return 13; 
+                if (z > 11.8) return 12; 
                 return Math.max(0, Math.min(11.5, z));
             },
 
@@ -516,8 +454,6 @@
                 const r = Math.round(zVal);
                 const txt = CONFIG.zones[zVal] || CONFIG.zones[r] || "UNKNOWN";
                 el.innerText = txt;
-                
-                // Color Logic: ONLY TEE LINE (7) is Green.
                 if (r === 7) el.style.color = "var(--green)";
                 else el.style.color = "var(--text)";
             },
@@ -525,7 +461,6 @@
             saveShot() {
                 const isValidBH = this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH;
                 const isValidHH = this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH;
-
                 let p = this.currentProfile;
                 if(p === 'TEAM') p = '-'; 
 
@@ -553,17 +488,13 @@
                     ? this.history 
                     : this.history.filter(s => s.player === this.currentProfile);
                 
-                let errSum = 0;
-                let count = 0;
-
+                let errSum = 0; let count = 0;
                 shots.forEach(s => {
-                    // Only calibrate on Draw/Guard shots
                     if (s.actual !== null && s.actual <= 11.5) {
                         if (s.useBH) { errSum += (s.actual - s.rawBH); count++; }
                         if (s.useHH) { errSum += (s.actual - s.rawHH); count++; }
                     }
                 });
-
                 this.iceOffset = count > 0 ? (errSum / count) : 0;
                 const sign = this.iceOffset > 0 ? "+" : "";
                 document.getElementById('ice-readout').innerText = count > 0 
@@ -617,24 +548,16 @@
             },
 
             renderUI() {
-                // --- Ref Table ---
                 const tbRef = document.getElementById('ref-table').querySelector('tbody');
                 tbRef.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
                     const bh = (r.z - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
                     const hh = (r.z - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
-                    
                     let color = "var(--text)";
                     if (r.z === 7) color = "var(--green)";
-
-                    tbRef.innerHTML += `<tr>
-                        <td style="font-weight:700; color:${color}">${r.n}</td>
-                        <td class="mono">${bh.toFixed(2)}</td>
-                        <td class="mono">${hh.toFixed(2)}</td>
-                    </tr>`;
+                    tbRef.innerHTML += `<tr><td style="font-weight:700; color:${color}">${r.n}</td><td class="mono">${bh.toFixed(2)}</td><td class="mono">${hh.toFixed(2)}</td></tr>`;
                 });
 
-                // --- History ---
                 const tbHist = document.getElementById('history-body');
                 tbHist.innerHTML = '';
                 const visible = this.currentProfile === 'TEAM' 
@@ -642,30 +565,28 @@
                     : this.history.filter(s => s.player === this.currentProfile);
 
                 visible.forEach(s => {
-                    // 1. Calculate Est Column (Based on Current Ice)
+                    // FIX: Strict Est Generation based only on B-H
                     let estHtml = '<span style="color:#444">-</span>';
-                    let pVal = 0;
-                    let hasPred = false;
                     
-                    if (s.useHH) { pVal = this.resolveZone(s.rawHH + this.iceOffset); hasPred = true; }
-                    else if (s.useBH) { pVal = this.resolveZone(s.rawBH + this.iceOffset); hasPred = true; }
-
-                    if (hasPred) {
-                        const pName = CONFIG.zones[pVal] || "?";
+                    if (s.useBH) {
+                        const pVal = this.resolveZone(s.rawBH + this.iceOffset);
+                        // Lookup with Fallback Rounding
+                        const r = Math.round(pVal);
+                        const pName = CONFIG.zones[pVal] || CONFIG.zones[r] || "UNKNOWN";
+                        
                         let pCol = "var(--text)";
-                        if (Math.round(pVal) === 7) pCol = "var(--green)"; // Green for Tee
+                        if (r === 7) pCol = "var(--green)";
                         estHtml = `<span style="color:${pCol}; font-weight:700;">${pName}</span>`;
                     }
 
-                    // 2. Calculate Result Column
+                    // Result Column Logic
                     let resHtml = '<span style="color:#444; font-size:16px;">-</span>';
                     if (s.actual !== null) {
                         const zName = CONFIG.zones[s.actual] || s.actual;
                         let zCol = "var(--text)";
-                        if (Math.round(s.actual) === 7) zCol = "var(--green)"; // Green for Tee
+                        if (Math.round(s.actual) === 7) zCol = "var(--green)";
                         resHtml = `<span style="color:${zCol}; font-weight:700;">${zName}</span>`;
                     }
-
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><span class="player-badge" onclick="app.cyclePlayer(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
@@ -679,13 +600,16 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v8_final', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v7_3', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v8_final'); 
-                if(d) this.history = JSON.parse(d); 
+                try {
+                    const d = localStorage.getItem('cp_v7_3'); 
+                    if(d) this.history = JSON.parse(d); 
+                } catch(e) { this.history = []; }
             }
         };
 
+        window.app = app;
         app.init();
     </script>
 </body>
