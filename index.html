@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v9.6</title>
+    <title>Clock-Dilla v9.7</title>
     <style>
         :root {
             /* Palette */
@@ -57,7 +57,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            min-height: 125px; /* Taller to fit bigger font */
+            min-height: 125px;
         }
         .timer-card.active { border-color: var(--blue); background: #2A2A2A; }
         .timer-card.running { border-color: var(--green); background: #2A2A2A; }
@@ -100,7 +100,7 @@
             flex-shrink: 0;
         }
 
-        /* Quick Ref (Left Side now) */
+        /* Quick Ref (Left Side) */
         .ref-container {
             flex: 1;
             padding: 8px;
@@ -145,7 +145,7 @@
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 190px; /* Increased to clear taller button */
+            padding-bottom: 190px;
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
@@ -249,19 +249,17 @@
         </div>
     </div>
 
-    <!-- STATIC CONTROL PANEL (Reordered) -->
+    <!-- STATIC CONTROL PANEL -->
     <div class="control-panel">
         <div class="ref-container">
             <div class="ref-header">
                 <span>Quick Ref</span>
                 <span id="ice-readout" style="color:var(--blue)">Neutral</span>
             </div>
-            <table class="ref-table" id="ref-table">
-                <!-- Injected via JS -->
-            </table>
+            <table class="ref-table" id="ref-table"></table>
         </div>
         
-        <!-- Profile Strip Moved to Right -->
+        <!-- Profile Strip -->
         <div class="profile-strip">
             <div class="profile-btn" id="profile-display">TEAM</div>
             <select id="profile-select-hidden">
@@ -302,7 +300,7 @@
         <button id="btn-main">START</button>
     </div>
 
-    <!-- CALIBRATION MODAL (Right Stack) -->
+    <!-- CALIBRATION MODAL -->
     <div class="modal" id="modal" onclick="if(event.target===this) app.closeModal()">
         <div class="modal-content">
             <div class="modal-header">SET ACTUAL</div>
@@ -341,7 +339,7 @@
                 {v: 2.0, n: "High"}
             ],
 
-            // Quick Ref (Reordered: B12 -> Tee -> T12 -> Mid)
+            // Quick Ref
             refRows: [
                 {v: 10.0, n: "B12"},
                 {v: 7.0, n: "Tee"},
@@ -588,14 +586,16 @@
                     useBH: validBH,
                     useHH: validHH,
                     rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
-                    rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0
+                    rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
+                    // STATIC OFFSET CAPTURE: Freeze the calibration state at the moment of the shot
+                    fixedOffset: this.iceOffset 
                 };
                 
                 this.history.unshift(s);
                 if(this.history.length > 60) this.history.pop();
                 this.saveStorage();
                 this.updateProfile();
-                this.renderHistory(); // Updates history immediately
+                this.renderHistory(); 
             },
 
             updateProfile() {
@@ -607,7 +607,6 @@
                 let count = 0;
 
                 shots.forEach(s => {
-                    // Only calibrate if actual is set and within draw range
                     if (s.actual !== null && s.actual <= 11.5) {
                         if (s.useBH && s.rawBH > 0) { errSum += (s.actual - s.rawBH); count++; }
                         if (s.useHH && s.rawHH > 0) { errSum += (s.actual - s.rawHH); count++; }
@@ -654,7 +653,6 @@
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
                     s.actual = val;
-                    // Auto-enable if within bounds and data exists
                     if (s.bh >= CONFIG.minBH && s.bh <= CONFIG.maxBH) s.useBH = true;
                     if (s.hh >= CONFIG.minHH && s.hh <= CONFIG.maxHH) s.useHH = true;
                     this.saveStorage();
@@ -695,14 +693,12 @@
                 const tbl = this.ui['ref-table'];
                 tbl.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
-                    // Inverse Logic: t = (z - offset - b) / m
                     const bh = (r.v - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
                     const hh = (r.v - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
                     
                     let color = "#fff";
                     if(r.v === 7) color = "var(--green)";
 
-                    // Apply color to the whole row
                     tbl.innerHTML += `<tr style="color:${color}">
                         <td>${r.n}</td>
                         <td class="mono">${bh.toFixed(2)}</td>
@@ -714,10 +710,12 @@
             getEstText(s) {
                 if (!s.useBH && !s.useHH) return '<span class="cell-dim">-</span>';
                 
+                // Use the static offset snapshot (or fallback to current for legacy)
+                const offset = (s.fixedOffset !== undefined) ? s.fixedOffset : this.iceOffset;
+
                 let val = 0;
-                // Prefer HH if available
-                if (s.useHH) val = (CONFIG.hhSlope * s.hh) + CONFIG.hhIntercept + this.iceOffset;
-                else val = (CONFIG.bhSlope * s.bh) + CONFIG.bhIntercept + this.iceOffset;
+                if (s.useHH) val = (CONFIG.hhSlope * s.hh) + CONFIG.hhIntercept + offset;
+                else val = (CONFIG.bhSlope * s.bh) + CONFIG.bhIntercept + offset;
                 
                 let label = "?";
                 let minDiff = 99;
@@ -764,9 +762,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v9_6', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v9_7', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v9_6'); 
+                const d = localStorage.getItem('cp_v9_7'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
