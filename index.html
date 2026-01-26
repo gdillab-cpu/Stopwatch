@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v11.4</title>
+    <title>Clock-Dilla v11.5</title>
     <style>
         :root {
             /* Palette */
@@ -193,11 +193,13 @@
             width: 55px;
             background: #252525;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             border-left: 1px solid #333; 
             cursor: pointer;
-            position: relative; /* For absolute ice text */
+            padding: 5px 0;
+            position: relative;
         }
         .profile-text {
             writing-mode: vertical-rl;
@@ -209,8 +211,6 @@
             font-size: 14px;
             letter-spacing: 1px;
         }
-        
-        /* New Ice Indicator Style */
         .ice-text {
             position: absolute;
             top: 6px;
@@ -221,13 +221,12 @@
             color: #888;
             text-align: right;
         }
-        
         #profile-select-hidden {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; appearance: none;
         }
 
-        /* --- MODALS --- */
+        /* --- MODALS (Right Stack Style) --- */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); display: none;
@@ -243,16 +242,6 @@
             padding: 10px;
         }
 
-        .profile-content {
-            width: 100%; max-width: 300px;
-            background: #1C1C1E;
-            border-radius: 20px;
-            padding: 20px;
-            display: flex; flex-direction: column;
-            gap: 8px;
-            margin-bottom: 100px;
-        }
-
         .modal-header { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
         
         .zone-btn {
@@ -261,18 +250,7 @@
             border-radius: 8px; font-size: 14px; font-weight: 700;
             text-align: center;
         }
-        .z-tee { color: var(--green); border-color: var(--green); }
-
-        .menu-btn {
-            width: 100%; padding: 15px;
-            background: #2C2C2E; color: var(--blue);
-            border: none; border-radius: 12px;
-            font-size: 18px; font-weight: 600;
-            text-align: center;
-        }
-        .menu-btn.active { background: var(--blue); color: white; }
-        .menu-action { color: var(--red); margin-top: 10px; border: 1px solid #333; }
-        .menu-export { color: #fff; border: 1px solid #333; }
+        /* No z-tee class here, Tee is white in menus */
 
     </style>
 </head>
@@ -347,20 +325,20 @@
         </div>
     </div>
 
-    <!-- PROFILE MENU (Centered) -->
-    <div class="modal" id="profile-modal" style="justify-content: center;" onclick="if(event.target===this) app.closeProfile()">
-        <div class="profile-content">
-            <div class="modal-header">SELECT PROFILE</div>
-            <button class="menu-btn" onclick="app.setProfile('TEAM')">TEAM</button>
-            <button class="menu-btn" onclick="app.setProfile('-')">-</button>
-            <button class="menu-btn" onclick="app.setProfile('Lead')">Lead</button>
-            <button class="menu-btn" onclick="app.setProfile('2nd')">2nd</button>
-            <button class="menu-btn" onclick="app.setProfile('3rd')">3rd</button>
-            <button class="menu-btn" onclick="app.setProfile('Skip')">Skip</button>
-            <div style="height:10px; border-bottom:1px solid #333; margin-bottom:10px;"></div>
-            <button class="menu-btn menu-export" onclick="app.exportData()">Export CSV</button>
-            <button class="menu-btn menu-action" onclick="app.clearHistory()">Clear All History</button>
-            <button class="menu-btn" style="background:transparent; color:#666; margin-top:5px;" onclick="app.closeProfile()">Cancel</button>
+    <!-- PROFILE MENU (Right Stack - New Style) -->
+    <div class="modal" id="profile-modal" onclick="if(event.target===this) app.closeProfile()">
+        <div class="side-stack-content">
+            <div class="modal-header">PROFILE</div>
+            <button class="zone-btn" onclick="app.setProfile('TEAM')">TEAM</button>
+            <button class="zone-btn" onclick="app.setProfile('-')">-</button>
+            <button class="zone-btn" onclick="app.setProfile('Lead')">Lead</button>
+            <button class="zone-btn" onclick="app.setProfile('2nd')">2nd</button>
+            <button class="zone-btn" onclick="app.setProfile('3rd')">3rd</button>
+            <button class="zone-btn" onclick="app.setProfile('Skip')">Skip</button>
+            
+            <button class="zone-btn" style="margin-top:auto; color:var(--blue); border-color:var(--blue);" onclick="app.exportData()">Export CSV</button>
+            <button class="zone-btn" style="color:var(--red); border-color:var(--red);" onclick="app.clearHistory()">Clear All</button>
+            <button class="zone-btn" style="color:#666;" onclick="app.closeProfile()">Cancel</button>
         </div>
     </div>
 
@@ -419,7 +397,7 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    if(z.v === 7) b.classList.add('z-tee');
+                    // No Z-Tee class here, white buttons
                     b.onclick = () => this.calibrate(z.v);
                     list.appendChild(b);
                 });
@@ -521,7 +499,6 @@
                     if (Math.abs(z.v - zVal) < minDiff) { minDiff = Math.abs(z.v - zVal); txt = z.n; }
                 });
                 el.innerText = txt;
-                // Standard White
                 el.style.color = "#fff"; 
             },
 
@@ -565,14 +542,11 @@
                 });
 
                 this.iceOffset = count > 0 ? (errSum / count) : 0;
+                const sign = this.iceOffset > 0 ? "+" : "";
+                const val = Math.abs(this.iceOffset).toFixed(1);
                 
-                // Format Ice Text
                 let txt = "0";
-                if (count > 0) {
-                    const val = Math.abs(this.iceOffset).toFixed(1);
-                    const sign = this.iceOffset > 0 ? "+" : (this.iceOffset < 0 ? "-" : "");
-                    if(this.iceOffset !== 0) txt = `${sign}${val}`;
-                }
+                if (count > 0 && this.iceOffset !== 0) txt = `${sign}${val}`;
                 this.ui['ice-readout'].innerText = txt;
                 
                 this.renderRef();
@@ -581,11 +555,6 @@
             // --- UI ACTIONS ---
             openProfileMenu() {
                 this.ui['profile-modal'].style.display = 'flex';
-                const btns = document.querySelectorAll('.menu-btn');
-                btns.forEach(b => {
-                    if (b.innerText === this.currentProfile) b.classList.add('active');
-                    else b.classList.remove('active');
-                });
             },
             setProfile(p) {
                 this.currentProfile = p; this.ui['profile-display'].innerText = p;
@@ -711,9 +680,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v11_4', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v11_5', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v11_4'); 
+                const d = localStorage.getItem('cp_v11_5'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
