@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v10.7</title>
+    <title>Clock-Dilla v11.4</title>
     <style>
         :root {
             /* Palette */
@@ -92,93 +92,68 @@
             text-overflow: ellipsis; 
         }
 
-        /* --- CONTROL PANEL --- */
-        .control-panel {
-            display: flex;
-            background: var(--dark);
-            border-bottom: 1px solid #333;
-            flex-shrink: 0;
-        }
-
-        /* Quick Ref */
-        .ref-container {
-            flex: 1;
-            padding: 8px;
-        }
-        .ref-header { font-size: 10px; color: var(--grey); text-transform: uppercase; margin-bottom: 4px; display: flex; justify-content: space-between; }
-        
-        .ref-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .ref-table td { padding: 4px; text-align: center; border-bottom: 1px solid #333; }
-        .ref-table td:first-child { text-align: left; font-weight: 700; }
-        .mono { font-family: monospace; letter-spacing: -0.5px; }
-
-        /* Profile Button */
-        .profile-strip {
-            width: 50px;
-            background: #252525;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-left: 1px solid #333; 
-            cursor: pointer;
-        }
-        .profile-text {
-            transform: rotate(-90deg);
-            white-space: nowrap;
-            color: var(--blue);
-            font-weight: 800;
-            font-size: 15px;
-            letter-spacing: 0.5px;
-        }
-
         /* --- HISTORY SCROLL AREA --- */
         .scroll-area {
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 160px;
+            padding-bottom: 280px; /* Large padding to clear the bottom stack */
         }
         
-        .history-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
-        .history-table td { padding: 12px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+        .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
-        /* 4 Columns Layout */
-        .col-pos { width: 16%; text-align: left; padding-left: 8px; font-weight: 700; font-size: 11px; }
+        /* 4 Columns: B-H | H-H | Result | Pos */
         .col-bh { width: 28%; }
         .col-hh { width: 28%; }
         .col-res { width: 28%; }
+        .col-pos { width: 16%; text-align: right; padding-right: 12px; color: #666; font-weight: 700; font-size: 10px; }
 
-        .time-txt { font-family: monospace; font-size: 15px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
-        .est-txt { font-size: 10px; color: #666; font-weight: 600; margin-left: 4px; text-transform: uppercase; }
+        .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
+        .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
         
         /* State Classes */
-        .row-active .val-used { color: #fff; }
-        .row-active .val-ignored { color: #444; }
-        .row-inactive .col-pos, .row-inactive .val-ignored { color: #333; }
-        .row-inactive .est-txt { color: #333; }
+        .val-used { color: #fff; }
+        .val-ignored { color: #444; }
+        
+        .row-inactive .val-ignored, .row-inactive .col-pos, .row-inactive .est-txt { color: #333; }
+        .row-inactive .col-res { color: #333 !important; }
+        .row-inactive .res-box { border-color: #333; }
 
-        /* --- BOTTOM CONTROLS --- */
-        .controls-area {
+        .res-box {
+            display: inline-block;
+            width: 100%; height: 20px;
+            border: 1px solid #444; border-radius: 4px;
+            vertical-align: middle;
+        }
+
+        /* --- BOTTOM DOCK (Fixed) --- */
+        .bottom-dock {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(28, 28, 30, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 12px;
-            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            background: rgba(28, 28, 30, 0.98);
+            backdrop-filter: blur(15px);
             border-top: 1px solid #333;
-            display: flex; 
             z-index: 100;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: max(0px, env(safe-area-inset-bottom));
+        }
+
+        .controls-area {
+            padding: 12px;
+            display: flex;
         }
 
         #btn-main {
             width: 100%; height: 110px; 
-            border-radius: 20px;
+            border-radius: 22px;
             font-size: 36px; 
             font-weight: 800; 
             color: white;
             background: var(--green);
             border: none;
-            box-shadow: 0 4px 20px rgba(48, 209, 88, 0.3);
+            box-shadow: 0 4px 25px rgba(48, 209, 88, 0.3);
             transition: 0.1s;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -186,8 +161,71 @@
         #btn-main:active { transform: scale(0.98); }
         #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
         
-        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 20px rgba(10, 132, 255, 0.3) !important; }
-        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 20px rgba(255, 69, 58, 0.3) !important; }
+        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 25px rgba(10, 132, 255, 0.3) !important; }
+        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 25px rgba(255, 69, 58, 0.3) !important; }
+
+        /* Bottom Info Row (Ref + Profile) */
+        .bottom-info-row {
+            display: flex;
+            background: var(--dark);
+            border-top: 1px solid #333;
+            height: 90px;
+        }
+
+        .ref-container {
+            flex: 1;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+        .ref-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #333; }
+        .ref-table td:last-child { text-align: right; font-weight: 700; padding-right: 12px; }
+        /* Alignment */
+        .ref-table td:nth-child(1) { text-align: center; width: 30%; } /* BH */
+        .ref-table td:nth-child(2) { text-align: center; width: 30%; } /* HH */
+        .ref-table td:nth-child(3) { text-align: right; width: 40%; } /* Name */
+        .ref-table tr:last-child td { border-bottom: none; }
+
+        /* Vertical Profile Selector (Bottom Right) */
+        .profile-strip {
+            width: 55px;
+            background: #252525;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid #333; 
+            cursor: pointer;
+            position: relative; /* For absolute ice text */
+        }
+        .profile-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            color: var(--blue);
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        
+        /* New Ice Indicator Style */
+        .ice-text {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: #888;
+            text-align: right;
+        }
+        
+        #profile-select-hidden {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; appearance: none;
+        }
 
         /* --- MODALS --- */
         .modal {
@@ -254,41 +292,40 @@
         </div>
     </div>
 
-    <!-- CONTROL PANEL -->
-    <div class="control-panel">
-        <div class="ref-container">
-            <div class="ref-header">
-                <span>Quick Ref</span>
-                <span id="ice-readout" style="color:var(--blue)">Neutral</span>
-            </div>
-            <table class="ref-table" id="ref-table"></table>
-        </div>
-        <div class="profile-strip" onclick="app.openProfileMenu()">
-            <div class="profile-text" id="profile-display">TEAM</div>
-        </div>
-    </div>
-
     <!-- HISTORY -->
     <div class="scroll-area">
         <table class="history-table">
             <thead>
                 <tr>
-                    <th class="col-pos">Pos</th>
                     <th class="col-bh">B-H</th>
                     <th class="col-hh">H-H</th>
-                    <th class="col-res">Res</th>
+                    <th class="col-res">Result</th>
+                    <th class="col-pos">Pos</th>
                 </tr>
             </thead>
             <tbody id="history-body"></tbody>
         </table>
     </div>
 
-    <!-- FOOTER -->
-    <div class="controls-area">
-        <button id="btn-main">START</button>
+    <!-- BOTTOM DOCK -->
+    <div class="bottom-dock">
+        <div class="controls-area">
+            <button id="btn-main">START</button>
+        </div>
+        
+        <div class="bottom-info-row">
+            <div class="ref-container">
+                <table class="ref-table" id="ref-table"></table>
+            </div>
+            <!-- Profile Trigger (Vertical) -->
+            <div class="profile-strip" onclick="app.openProfileMenu()">
+                <div class="ice-text" id="ice-readout">0</div>
+                <div class="profile-text" id="profile-display">TEAM</div>
+            </div>
+        </div>
     </div>
 
-    <!-- CALIB MODAL -->
+    <!-- CALIB MODAL (Right Stack) -->
     <div class="modal" id="calib-modal" onclick="if(event.target===this) app.closeCalib()">
         <div class="side-stack-content">
             <div class="modal-header">SET ACTUAL</div>
@@ -297,7 +334,7 @@
         </div>
     </div>
 
-    <!-- PLAYER MODAL -->
+    <!-- PLAYER EDIT MODAL (Right Stack) -->
     <div class="modal" id="player-edit-modal" onclick="if(event.target===this) app.closePlayerEdit()">
         <div class="side-stack-content">
             <div class="modal-header">SET PLAYER</div>
@@ -310,7 +347,7 @@
         </div>
     </div>
 
-    <!-- PROFILE MENU -->
+    <!-- PROFILE MENU (Centered) -->
     <div class="modal" id="profile-modal" style="justify-content: center;" onclick="if(event.target===this) app.closeProfile()">
         <div class="profile-content">
             <div class="modal-header">SELECT PROFILE</div>
@@ -484,7 +521,8 @@
                     if (Math.abs(z.v - zVal) < minDiff) { minDiff = Math.abs(z.v - zVal); txt = z.n; }
                 });
                 el.innerText = txt;
-                el.style.color = (Math.abs(zVal - 7.0) < 0.5) ? "var(--green)" : "#fff";
+                // Standard White
+                el.style.color = "#fff"; 
             },
 
             // --- DATA ---
@@ -493,14 +531,12 @@
                 const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
                 const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
                 
-                // FILTER: Only save if at least one time is valid
                 if (!validBH && !validHH) return;
 
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
                 const s = {
                     id: Date.now(), player: p,
-                    // Store 0 for invalid times to show as dash
                     bh: validBH ? this.split : 0,
                     hh: validHH ? this.interval : 0,
                     actual: null,
@@ -523,18 +559,22 @@
 
                 shots.forEach(s => {
                     if (s.actual !== null && s.actual <= 11.5) {
-                        // FIXED: Check s.bh > 0 instead of s.rawBH > 0 to include short shots
                         if (s.useBH && s.bh > 0) { errSum += (s.actual - s.rawBH); count++; }
                         if (s.useHH && s.hh > 0) { errSum += (s.actual - s.rawHH); count++; }
                     }
                 });
 
                 this.iceOffset = count > 0 ? (errSum / count) : 0;
-                const sign = this.iceOffset > 0 ? "+" : "";
-                const val = Math.abs(this.iceOffset).toFixed(1);
-                this.ui['ice-readout'].innerText = count > 0 ? `Ice: ${sign}${val} (#${count})` : "Neutral";
                 
-                // CRITICAL: Update Ref Table
+                // Format Ice Text
+                let txt = "0";
+                if (count > 0) {
+                    const val = Math.abs(this.iceOffset).toFixed(1);
+                    const sign = this.iceOffset > 0 ? "+" : (this.iceOffset < 0 ? "-" : "");
+                    if(this.iceOffset !== 0) txt = `${sign}${val}`;
+                }
+                this.ui['ice-readout'].innerText = txt;
+                
                 this.renderRef();
             },
 
@@ -608,7 +648,7 @@
                     const bh = (r.v - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
                     const hh = (r.v - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.v === 7) color = "var(--green)";
-                    tbl.innerHTML += `<tr style="color:${color}"><td>${r.n}</td><td class="mono">${bh.toFixed(2)}</td><td class="mono">${hh.toFixed(2)}</td></tr>`;
+                    tbl.innerHTML += `<tr style="color:${color}"><td class="mono">${bh.toFixed(2)}</td><td class="mono">${hh.toFixed(2)}</td><td>${r.n}</td></tr>`;
                 });
             },
 
@@ -629,10 +669,11 @@
             },
 
             getResText(s) {
-                if (s.actual === null) return '<span style="color:#444">-</span>';
+                if (s.actual === null) return `<div class="res-box"></div>`;
                 let label = "?";
                 CONFIG.zones.forEach(z => { if(z.v === s.actual) label = z.n; });
-                let col = "#fff"; if (s.actual === 7) col = "var(--green)";
+                let col = "#fff"; 
+                if (!s.useBH && !s.useHH) col = "#333";
                 return `<span style="color:${col}; font-weight:700;">${label}</span>`;
             },
 
@@ -652,8 +693,6 @@
 
                     tr.className = rowClass;
                     tr.innerHTML = `
-                        <td class="col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
-                        
                         <td class="col-bh" onclick="app.toggleHistoryUse(${s.id},'bh')">
                             <span class="time-txt mono ${s.useBH ? 'val-used' : 'val-ignored'}">${s.bh > 0 ? s.bh.toFixed(2) : '-'}</span>
                             <span class="est-txt">${s.bh > 0 ? estBH : ''}</span>
@@ -665,15 +704,16 @@
                         </td>
                         
                         <td class="col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td>
+                        <td class="col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
                     `;
                     tbody.appendChild(tr);
                 });
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v10_7', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v11_4', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v10_7'); 
+                const d = localStorage.getItem('cp_v11_4'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
