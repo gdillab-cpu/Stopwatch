@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v11.5</title>
+    <title>Clock-Dilla v11.7</title>
     <style>
         :root {
             /* Palette */
@@ -92,12 +92,93 @@
             text-overflow: ellipsis; 
         }
 
+        /* --- CONTROL PANEL --- */
+        .control-panel {
+            display: flex;
+            background: var(--dark);
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+            /* Allow height to grow slightly if needed */
+            min-height: 90px;
+        }
+
+        /* Quick Ref Container */
+        .ref-container {
+            flex: 1;
+            padding: 6px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Header Row in Control Panel */
+        .ref-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px; 
+            color: var(--grey); 
+            text-transform: uppercase; 
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+        
+        /* Table Fixes */
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+        .ref-table td { 
+            padding: 4px 4px; /* Reduced vertical padding slightly, increased line-height */
+            text-align: center; 
+            border-bottom: 1px solid #333;
+            line-height: 1.3; /* Fix for cutoff text */
+        }
+        .ref-table td:last-child { text-align: right; font-weight: 700; padding-right: 4px; }
+        
+        /* Alignment */
+        .ref-table td:nth-child(1) { text-align: center; width: 30%; } /* BH */
+        .ref-table td:nth-child(2) { text-align: center; width: 30%; } /* HH */
+        .ref-table td:nth-child(3) { text-align: right; width: 40%; } /* Name */
+        .ref-table tr:last-child td { border-bottom: none; }
+        
+        .mono { font-family: monospace; letter-spacing: -0.5px; }
+
+        /* Vertical Profile Selector (Right Side) */
+        .profile-strip {
+            width: 50px;
+            background: #252525;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid #333; 
+            cursor: pointer;
+            padding: 5px 0;
+            position: relative;
+        }
+        .profile-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            color: var(--blue);
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        
+        #profile-select-hidden {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; appearance: none;
+        }
+
         /* --- HISTORY SCROLL AREA --- */
         .scroll-area {
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 280px; /* Large padding to clear the bottom stack */
+            padding-bottom: 180px;
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
@@ -128,21 +209,17 @@
             vertical-align: middle;
         }
 
-        /* --- BOTTOM DOCK (Fixed) --- */
-        .bottom-dock {
+        /* --- BOTTOM DOCK (Button Only) --- */
+        .controls-area {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(28, 28, 30, 0.98);
             backdrop-filter: blur(15px);
-            border-top: 1px solid #333;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: max(0px, env(safe-area-inset-bottom));
-        }
-
-        .controls-area {
             padding: 12px;
-            display: flex;
+            /* Extra Padding to Lift Button */
+            padding-bottom: max(35px, env(safe-area-inset-bottom)); 
+            border-top: 1px solid #333;
+            display: flex; 
+            z-index: 100;
         }
 
         #btn-main {
@@ -164,69 +241,7 @@
         .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 25px rgba(10, 132, 255, 0.3) !important; }
         .st-int { background-color: var(--red) !important; box-shadow: 0 4px 25px rgba(255, 69, 58, 0.3) !important; }
 
-        /* Bottom Info Row (Ref + Profile) */
-        .bottom-info-row {
-            display: flex;
-            background: var(--dark);
-            border-top: 1px solid #333;
-            height: 90px;
-        }
-
-        .ref-container {
-            flex: 1;
-            padding: 4px 8px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .ref-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-        .ref-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #333; }
-        .ref-table td:last-child { text-align: right; font-weight: 700; padding-right: 12px; }
-        /* Alignment */
-        .ref-table td:nth-child(1) { text-align: center; width: 30%; } /* BH */
-        .ref-table td:nth-child(2) { text-align: center; width: 30%; } /* HH */
-        .ref-table td:nth-child(3) { text-align: right; width: 40%; } /* Name */
-        .ref-table tr:last-child td { border-bottom: none; }
-
-        /* Vertical Profile Selector (Bottom Right) */
-        .profile-strip {
-            width: 55px;
-            background: #252525;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-left: 1px solid #333; 
-            cursor: pointer;
-            padding: 5px 0;
-            position: relative;
-        }
-        .profile-text {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
-            white-space: nowrap;
-            color: var(--blue);
-            font-weight: 800;
-            font-size: 14px;
-            letter-spacing: 1px;
-        }
-        .ice-text {
-            position: absolute;
-            top: 6px;
-            right: 6px;
-            font-family: monospace;
-            font-size: 12px;
-            font-weight: 700;
-            color: #888;
-            text-align: right;
-        }
-        #profile-select-hidden {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            opacity: 0; appearance: none;
-        }
-
-        /* --- MODALS (Right Stack Style) --- */
+        /* --- MODALS --- */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); display: none;
@@ -242,6 +257,16 @@
             padding: 10px;
         }
 
+        .profile-content {
+            width: 100%; max-width: 300px;
+            background: #1C1C1E;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex; flex-direction: column;
+            gap: 8px;
+            margin-bottom: 100px;
+        }
+
         .modal-header { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
         
         .zone-btn {
@@ -250,7 +275,18 @@
             border-radius: 8px; font-size: 14px; font-weight: 700;
             text-align: center;
         }
-        /* No z-tee class here, Tee is white in menus */
+        .z-tee { color: var(--green); border-color: var(--green); }
+
+        .menu-btn {
+            width: 100%; padding: 15px;
+            background: #2C2C2E; color: var(--blue);
+            border: none; border-radius: 12px;
+            font-size: 18px; font-weight: 600;
+            text-align: center;
+        }
+        .menu-btn.active { background: var(--blue); color: white; }
+        .menu-action { color: var(--red); margin-top: 10px; border: 1px solid #333; }
+        .menu-export { color: #fff; border: 1px solid #333; }
 
     </style>
 </head>
@@ -270,6 +306,22 @@
         </div>
     </div>
 
+    <!-- CONTROL PANEL -->
+    <div class="control-panel">
+        <div class="ref-container">
+            <div class="ref-header">
+                <span>Quick Ref</span>
+                <span id="ice-readout" style="color:var(--blue)">0</span>
+            </div>
+            <table class="ref-table" id="ref-table"></table>
+        </div>
+        
+        <!-- Profile Menu Trigger -->
+        <div class="profile-strip" onclick="app.openProfileMenu()">
+            <div class="profile-text" id="profile-display">TEAM</div>
+        </div>
+    </div>
+
     <!-- HISTORY -->
     <div class="scroll-area">
         <table class="history-table">
@@ -285,22 +337,9 @@
         </table>
     </div>
 
-    <!-- BOTTOM DOCK -->
-    <div class="bottom-dock">
-        <div class="controls-area">
-            <button id="btn-main">START</button>
-        </div>
-        
-        <div class="bottom-info-row">
-            <div class="ref-container">
-                <table class="ref-table" id="ref-table"></table>
-            </div>
-            <!-- Profile Trigger (Vertical) -->
-            <div class="profile-strip" onclick="app.openProfileMenu()">
-                <div class="ice-text" id="ice-readout">0</div>
-                <div class="profile-text" id="profile-display">TEAM</div>
-            </div>
-        </div>
+    <!-- FOOTER -->
+    <div class="controls-area">
+        <button id="btn-main">START</button>
     </div>
 
     <!-- CALIB MODAL (Right Stack) -->
@@ -325,7 +364,7 @@
         </div>
     </div>
 
-    <!-- PROFILE MENU (Right Stack - New Style) -->
+    <!-- PROFILE MENU (Right Stack) -->
     <div class="modal" id="profile-modal" onclick="if(event.target===this) app.closeProfile()">
         <div class="side-stack-content">
             <div class="modal-header">PROFILE</div>
@@ -336,8 +375,8 @@
             <button class="zone-btn" onclick="app.setProfile('3rd')">3rd</button>
             <button class="zone-btn" onclick="app.setProfile('Skip')">Skip</button>
             
-            <button class="zone-btn" style="margin-top:auto; color:var(--blue); border-color:var(--blue);" onclick="app.exportData()">Export CSV</button>
-            <button class="zone-btn" style="color:var(--red); border-color:var(--red);" onclick="app.clearHistory()">Clear All</button>
+            <button class="zone-btn menu-export" onclick="app.exportData()">Export CSV</button>
+            <button class="zone-btn menu-clear" onclick="app.clearHistory()">Clear All</button>
             <button class="zone-btn" style="color:#666;" onclick="app.closeProfile()">Cancel</button>
         </div>
     </div>
@@ -397,7 +436,7 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    // No Z-Tee class here, white buttons
+                    // White Tee in Menus
                     b.onclick = () => this.calibrate(z.v);
                     list.appendChild(b);
                 });
@@ -542,11 +581,13 @@
                 });
 
                 this.iceOffset = count > 0 ? (errSum / count) : 0;
-                const sign = this.iceOffset > 0 ? "+" : "";
-                const val = Math.abs(this.iceOffset).toFixed(1);
                 
                 let txt = "0";
-                if (count > 0 && this.iceOffset !== 0) txt = `${sign}${val}`;
+                if (count > 0 && this.iceOffset !== 0) {
+                    const val = Math.abs(this.iceOffset).toFixed(1);
+                    const sign = this.iceOffset > 0 ? "+" : (this.iceOffset < 0 ? "-" : "");
+                    txt = `${sign}${val}`;
+                }
                 this.ui['ice-readout'].innerText = txt;
                 
                 this.renderRef();
@@ -680,9 +721,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v11_5', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v11_7', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v11_5'); 
+                const d = localStorage.getItem('cp_v11_7'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
