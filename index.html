@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v12.7</title>
+    <title>Clock-Dilla v12.9</title>
     <style>
         :root {
             /* Palette */
@@ -44,6 +44,7 @@
             gap: 10px;
             z-index: 50;
             flex-shrink: 0;
+            position: relative; /* For absolute Clear button */
         }
 
         .timer-card {
@@ -91,6 +92,25 @@
             overflow: hidden; 
             text-overflow: ellipsis; 
         }
+
+        /* Discreet Clear Button (Adjusted Position) */
+        .clear-btn {
+            position: absolute;
+            bottom: -10px; /* Moved down slightly */
+            left: 50%;
+            transform: translateX(-50%);
+            color: #444;
+            font-size: 32px;
+            font-weight: 200;
+            width: 50px;
+            height: 40px;
+            text-align: center;
+            line-height: 40px;
+            cursor: pointer;
+            z-index: 60;
+            user-select: none;
+        }
+        .clear-btn:active { color: #888; }
 
         /* --- CONTROL PANEL --- */
         .control-panel {
@@ -284,9 +304,17 @@
         }
         .z-tee { color: var(--green); border-color: var(--green); }
 
-        /* Colored Action Buttons */
-        .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; }
-        .menu-clear { color: var(--red) !important; border-color: var(--red) !important; }
+        .menu-btn {
+            width: 100%; padding: 15px;
+            background: #2C2C2E; color: var(--blue);
+            border: none; border-radius: 12px;
+            font-size: 18px; font-weight: 600;
+            text-align: center;
+        }
+        .menu-btn.active { background: var(--blue); color: white; }
+        .menu-action { color: var(--red); margin-top: 10px; border: 1px solid #333; }
+        .menu-export { color: var(--blue); border: 1px solid #333; margin-top: auto; border-color: var(--blue); }
+        .menu-clear { color: var(--red); border: 1px solid #333; border-color: var(--red); }
 
     </style>
 </head>
@@ -304,6 +332,8 @@
             <div class="t-time" id="time-hh">0.00</div>
             <div class="t-pred" id="pred-hh">--</div>
         </div>
+        <!-- Discreet Clear Button -->
+        <div class="clear-btn" onclick="app.reset()">×</div>
     </div>
 
     <!-- CONTROL PANEL -->
@@ -345,7 +375,7 @@
         <button id="btn-main">START</button>
     </div>
 
-    <!-- CALIB MODAL (Right Stack) -->
+    <!-- CALIB MODAL -->
     <div class="modal" id="calib-modal" onclick="if(event.target===this) app.closeCalib()">
         <div class="side-stack-content">
             <div class="modal-header">SET ACTUAL</div>
@@ -354,7 +384,7 @@
         </div>
     </div>
 
-    <!-- PLAYER EDIT MODAL (Right Stack) -->
+    <!-- PLAYER MODAL -->
     <div class="modal" id="player-edit-modal" onclick="if(event.target===this) app.closePlayerEdit()">
         <div class="side-stack-content">
             <div class="modal-header">SET PLAYER</div>
@@ -367,32 +397,32 @@
         </div>
     </div>
 
-    <!-- PROFILE MENU (Right Stack - Restored) -->
-    <div class="modal" id="profile-modal" onclick="if(event.target===this) app.closeProfile()">
-        <div class="side-stack-content">
-            <div class="modal-header">PROFILE</div>
-            <button class="zone-btn" onclick="app.setProfile('TEAM')">TEAM</button>
-            <button class="zone-btn" onclick="app.setProfile('-')">-</button>
-            <button class="zone-btn" onclick="app.setProfile('Lead')">Lead</button>
-            <button class="zone-btn" onclick="app.setProfile('2nd')">2nd</button>
-            <button class="zone-btn" onclick="app.setProfile('3rd')">3rd</button>
-            <button class="zone-btn" onclick="app.setProfile('Skip')">Skip</button>
-            
-            <button class="zone-btn menu-export" onclick="app.exportData()">Export CSV</button>
-            <button class="zone-btn menu-clear" onclick="app.clearHistory()">Clear All</button>
-            <button class="zone-btn" style="color:#666;" onclick="app.closeProfile()">Cancel</button>
+    <!-- PROFILE MENU -->
+    <div class="modal" id="profile-modal" style="justify-content: center;" onclick="if(event.target===this) app.closeProfile()">
+        <div class="profile-content">
+            <div class="modal-header">SELECT PROFILE</div>
+            <button class="menu-btn" onclick="app.setProfile('TEAM')">TEAM</button>
+            <button class="menu-btn" onclick="app.setProfile('-')">-</button>
+            <button class="menu-btn" onclick="app.setProfile('Lead')">Lead</button>
+            <button class="menu-btn" onclick="app.setProfile('2nd')">2nd</button>
+            <button class="menu-btn" onclick="app.setProfile('3rd')">3rd</button>
+            <button class="menu-btn" onclick="app.setProfile('Skip')">Skip</button>
+            <div style="height:10px; border-bottom:1px solid #333; margin-bottom:10px;"></div>
+            <button class="menu-btn menu-export" onclick="app.exportData()">Export CSV</button>
+            <button class="menu-btn menu-action" onclick="app.clearHistory()">Clear All History</button>
+            <button class="menu-btn" style="background:transparent; color:#666; margin-top:5px;" onclick="app.closeProfile()">Cancel</button>
         </div>
     </div>
 
     <script>
         const CONFIG = {
-            // Physics Engine v12.0
-            bhSlope: -25.0, bhIntercept: 102.0,
-            hhSlope: -2.5, hhIntercept: 43.25,
+            // Physics (Zone Offset Model)
+            bhSlope: -8.33, bhIntercept: 38.65,
+            hhSlope: -3.125, hhIntercept: 54.5, 
 
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 22.0,
-            fastLimitBH: 3.60, fastLimitHH: 12.70,
+            fastLimitBH: 3.25, fastLimitHH: 13.75,
 
             zones: [
                 {v: 11.5, n: "Board"}, {v: 11.0, n: "Hack"},
@@ -439,7 +469,7 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    // No Z-Tee class here, white buttons
+                    // White Tee in Menus
                     b.onclick = () => this.calibrate(z.v);
                     list.appendChild(b);
                 });
@@ -451,10 +481,8 @@
                 
                 if (this.state === 'IDLE' || this.state === 'FINISHED') {
                     if (!this.enableBH && !this.enableHH) return;
-                    this.ui['time-bh'].innerText = "0.00"; this.ui['pred-bh'].innerText = "--";
-                    this.ui['time-hh'].innerText = "0.00"; this.ui['pred-hh'].innerText = "--";
-                    this.ui['pred-bh'].style.color = "#fff"; this.ui['pred-hh'].style.color = "#fff";
-                    
+                    this.reset(true); // Soft reset UI
+
                     this.state = 'RUNNING';
                     if (this.enableBH) {
                         this.t0 = now;
@@ -516,6 +544,24 @@
                 this.ui['btn-main'].disabled = (!this.enableBH && !this.enableHH);
             },
 
+            reset(soft=false) {
+                this.stopTimer();
+                this.state = 'IDLE';
+                this.ui['time-bh'].innerText = "0.00"; this.ui['pred-bh'].innerText = "--";
+                this.ui['time-hh'].innerText = "0.00"; this.ui['pred-hh'].innerText = "--";
+                
+                this.ui['card-bh'].className = 'timer-card' + (this.enableBH ? '' : ' disabled');
+                this.ui['card-hh'].className = 'timer-card' + (this.enableHH ? '' : ' disabled');
+                
+                this.ui['pred-bh'].style.color = "#fff";
+                this.ui['pred-hh'].style.color = "#fff";
+
+                if(!soft) {
+                    this.ui['btn-main'].innerText = "START";
+                    this.ui['btn-main'].className = '';
+                }
+            },
+
             // --- PREDICTION ---
             predictBH(time) {
                 if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) {
@@ -541,7 +587,6 @@
                     if (Math.abs(z.v - zVal) < minDiff) { minDiff = Math.abs(z.v - zVal); txt = z.n; }
                 });
                 el.innerText = txt;
-                // Standard White
                 el.style.color = "#fff"; 
             },
 
@@ -553,7 +598,7 @@
                 
                 if (!validBH && !validHH) return;
 
-                // Smart defaults: If shot is too fast, mark as unused (grey) by default
+                // Smart defaults
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
 
@@ -584,7 +629,6 @@
 
                 shots.forEach(s => {
                     if (s.actual !== null && s.actual <= 11.5) {
-                        // Check s.bh > 0 instead of s.rawBH > 0 to include short shots
                         if (s.useBH && s.bh > 0) { errSum += (s.actual - s.rawBH); count++; }
                         if (s.useHH && s.hh > 0) { errSum += (s.actual - s.rawHH); count++; }
                     }
@@ -617,7 +661,6 @@
             toggleHistoryUse(id, type) {
                 const s = this.history.find(x => x.id === id);
                 if(s) {
-                    // Prevent toggling invalid times (0)
                     if(type === 'bh' && s.bh > 0) s.useBH = !s.useBH;
                     if(type === 'hh' && s.hh > 0) s.useHH = !s.useHH;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -638,7 +681,6 @@
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
                     s.actual = val;
-                    // Auto-enable if within bounds (ignore fast shots)
                     if (s.bh > CONFIG.fastLimitBH && s.bh <= CONFIG.maxBH) s.useBH = true;
                     if (s.hh > CONFIG.fastLimitHH && s.hh <= CONFIG.maxHH) s.useHH = true;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -671,7 +713,6 @@
                     const bh = (r.v - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
                     const hh = (r.v - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.v === 7) color = "var(--green)";
-                    // 5-Col Grid: Target | BH | HH | empty | empty
                     tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
@@ -734,9 +775,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v12_7', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v12_8', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v12_7'); 
+                const d = localStorage.getItem('cp_v12_8'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
