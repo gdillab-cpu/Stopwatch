@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v12.5</title>
+    <title>Clock-Dilla v12.7</title>
     <style>
         :root {
             /* Palette */
@@ -104,7 +104,7 @@
         /* Quick Ref */
         .ref-container {
             flex: 1;
-            padding: 6px 12px;
+            padding: 6px 4px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -123,20 +123,22 @@
             letter-spacing: 0.5px;
             border-bottom: 1px solid #333;
             padding-bottom: 4px;
+            padding-left: 8px; padding-right: 8px;
         }
         
+        /* Unified 5-Column Grid System */
+        .col-1 { width: 15%; text-align: left; padding-left: 6px; font-weight: 700; color: #ccc; } /* Target / Spacer */
+        .col-2 { width: 22%; text-align: center; } /* B-H */
+        .col-3 { width: 22%; text-align: center; } /* H-H */
+        .col-4 { width: 25%; text-align: center; } /* Spacer / Result */
+        .col-5 { width: 16%; text-align: right; padding-right: 8px; } /* Spacer / Pos */
+
         .ref-table { width: 100%; border-collapse: collapse; font-size: 15px; }
         .ref-table td { 
             padding: 4px 0; 
             border-bottom: 1px solid #333;
             line-height: 1.3;
         }
-        .ref-table td:last-child { text-align: right; font-weight: 700; padding-right: 4px; }
-        
-        /* Alignment */
-        .ref-table td:nth-child(1) { text-align: center; width: 30%; } /* BH */
-        .ref-table td:nth-child(2) { text-align: center; width: 30%; } /* HH */
-        .ref-table td:nth-child(3) { text-align: right; width: 40%; } /* Name */
         .ref-table tr:last-child td { border-bottom: none; }
         
         .mono { font-family: monospace; letter-spacing: -0.5px; }
@@ -282,17 +284,9 @@
         }
         .z-tee { color: var(--green); border-color: var(--green); }
 
-        .menu-btn {
-            width: 100%; padding: 15px;
-            background: #2C2C2E; color: var(--blue);
-            border: none; border-radius: 12px;
-            font-size: 18px; font-weight: 600;
-            text-align: center;
-        }
-        .menu-btn.active { background: var(--blue); color: white; }
-        .menu-action { color: var(--red); margin-top: 10px; border: 1px solid #333; }
-        .menu-export { color: var(--blue); border: 1px solid #333; margin-top: auto; border-color: var(--blue); }
-        .menu-clear { color: var(--red); border: 1px solid #333; border-color: var(--red); }
+        /* Colored Action Buttons */
+        .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; }
+        .menu-clear { color: var(--red) !important; border-color: var(--red) !important; }
 
     </style>
 </head>
@@ -319,8 +313,11 @@
                 <span>Quick Ref</span>
                 <span id="ice-readout" style="color:var(--blue)">0</span>
             </div>
+            <!-- Grid Aligned Table -->
             <table class="ref-table" id="ref-table"></table>
         </div>
+        
+        <!-- Profile Menu Trigger -->
         <div class="profile-strip" onclick="app.openProfileMenu()">
             <div class="ice-text" id="ice-indicator-btn">0</div>
             <div class="profile-text" id="profile-display">TEAM</div>
@@ -332,10 +329,11 @@
         <table class="history-table">
             <thead>
                 <tr>
-                    <th class="col-bh">B-H</th>
-                    <th class="col-hh">H-H</th>
-                    <th class="col-res">Result</th>
-                    <th class="col-pos">Pos</th>
+                    <th class="col-1"></th> 
+                    <th class="col-2">B-H</th>
+                    <th class="col-3">H-H</th>
+                    <th class="col-4">Res</th>
+                    <th class="col-5">Pos</th>
                 </tr>
             </thead>
             <tbody id="history-body"></tbody>
@@ -347,7 +345,7 @@
         <button id="btn-main">START</button>
     </div>
 
-    <!-- CALIB MODAL -->
+    <!-- CALIB MODAL (Right Stack) -->
     <div class="modal" id="calib-modal" onclick="if(event.target===this) app.closeCalib()">
         <div class="side-stack-content">
             <div class="modal-header">SET ACTUAL</div>
@@ -356,7 +354,7 @@
         </div>
     </div>
 
-    <!-- PLAYER MODAL -->
+    <!-- PLAYER EDIT MODAL (Right Stack) -->
     <div class="modal" id="player-edit-modal" onclick="if(event.target===this) app.closePlayerEdit()">
         <div class="side-stack-content">
             <div class="modal-header">SET PLAYER</div>
@@ -369,26 +367,26 @@
         </div>
     </div>
 
-    <!-- PROFILE MENU -->
-    <div class="modal" id="profile-modal" style="justify-content: center;" onclick="if(event.target===this) app.closeProfile()">
-        <div class="profile-content">
-            <div class="modal-header">SELECT PROFILE</div>
-            <button class="menu-btn" onclick="app.setProfile('TEAM')">TEAM</button>
-            <button class="menu-btn" onclick="app.setProfile('-')">-</button>
-            <button class="menu-btn" onclick="app.setProfile('Lead')">Lead</button>
-            <button class="menu-btn" onclick="app.setProfile('2nd')">2nd</button>
-            <button class="menu-btn" onclick="app.setProfile('3rd')">3rd</button>
-            <button class="menu-btn" onclick="app.setProfile('Skip')">Skip</button>
-            <div style="height:10px; border-bottom:1px solid #333; margin-bottom:10px;"></div>
-            <button class="menu-btn menu-export" onclick="app.exportData()">Export CSV</button>
-            <button class="menu-btn menu-clear" onclick="app.clearHistory()">Clear All History</button>
-            <button class="menu-btn" style="background:transparent; color:#666; margin-top:5px;" onclick="app.closeProfile()">Cancel</button>
+    <!-- PROFILE MENU (Right Stack - Restored) -->
+    <div class="modal" id="profile-modal" onclick="if(event.target===this) app.closeProfile()">
+        <div class="side-stack-content">
+            <div class="modal-header">PROFILE</div>
+            <button class="zone-btn" onclick="app.setProfile('TEAM')">TEAM</button>
+            <button class="zone-btn" onclick="app.setProfile('-')">-</button>
+            <button class="zone-btn" onclick="app.setProfile('Lead')">Lead</button>
+            <button class="zone-btn" onclick="app.setProfile('2nd')">2nd</button>
+            <button class="zone-btn" onclick="app.setProfile('3rd')">3rd</button>
+            <button class="zone-btn" onclick="app.setProfile('Skip')">Skip</button>
+            
+            <button class="zone-btn menu-export" onclick="app.exportData()">Export CSV</button>
+            <button class="zone-btn menu-clear" onclick="app.clearHistory()">Clear All</button>
+            <button class="zone-btn" style="color:#666;" onclick="app.closeProfile()">Cancel</button>
         </div>
     </div>
 
     <script>
         const CONFIG = {
-            // Physics (Zone Offset Model)
+            // Physics Engine v12.0
             bhSlope: -25.0, bhIntercept: 102.0,
             hhSlope: -2.5, hhIntercept: 43.25,
 
@@ -441,7 +439,7 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    // White Tee
+                    // No Z-Tee class here, white buttons
                     b.onclick = () => this.calibrate(z.v);
                     list.appendChild(b);
                 });
@@ -543,6 +541,7 @@
                     if (Math.abs(z.v - zVal) < minDiff) { minDiff = Math.abs(z.v - zVal); txt = z.n; }
                 });
                 el.innerText = txt;
+                // Standard White
                 el.style.color = "#fff"; 
             },
 
@@ -585,7 +584,7 @@
 
                 shots.forEach(s => {
                     if (s.actual !== null && s.actual <= 11.5) {
-                        // FIXED: Check s.bh > 0 instead of s.rawBH > 0
+                        // Check s.bh > 0 instead of s.rawBH > 0 to include short shots
                         if (s.useBH && s.bh > 0) { errSum += (s.actual - s.rawBH); count++; }
                         if (s.useHH && s.hh > 0) { errSum += (s.actual - s.rawHH); count++; }
                     }
@@ -672,7 +671,8 @@
                     const bh = (r.v - this.iceOffset - CONFIG.bhIntercept) / CONFIG.bhSlope;
                     const hh = (r.v - this.iceOffset - CONFIG.hhIntercept) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.v === 7) color = "var(--green)";
-                    tbl.innerHTML += `<tr style="color:${color}"><td class="mono">${bh.toFixed(2)}</td><td class="mono">${hh.toFixed(2)}</td><td>${r.n}</td></tr>`;
+                    // 5-Col Grid: Target | BH | HH | empty | empty
+                    tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
 
@@ -717,27 +717,26 @@
 
                     tr.className = rowClass;
                     tr.innerHTML = `
-                        <td class="col-bh" onclick="app.toggleHistoryUse(${s.id},'bh')">
+                        <td class="col-1"></td>
+                        <td class="col-2" onclick="app.toggleHistoryUse(${s.id},'bh')">
                             <span class="time-txt mono ${s.useBH ? 'val-used' : 'val-ignored'}">${s.bh > 0 ? s.bh.toFixed(2) : '-'}</span>
                             <span class="est-txt">${s.bh > 0 ? estBH : ''}</span>
                         </td>
-                        
-                        <td class="col-hh" onclick="app.toggleHistoryUse(${s.id},'hh')">
+                        <td class="col-3" onclick="app.toggleHistoryUse(${s.id},'hh')">
                             <span class="time-txt mono ${s.useHH ? 'val-used' : 'val-ignored'}">${s.hh > 0 ? s.hh.toFixed(2) : '-'}</span>
                             <span class="est-txt">${s.hh > 0 ? estHH : ''}</span>
                         </td>
-                        
-                        <td class="col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td>
-                        <td class="col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
+                        <td class="col-4 col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td>
+                        <td class="col-5 col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
                     `;
                     tbody.appendChild(tr);
                 });
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v12_5', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v12_7', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v12_5'); 
+                const d = localStorage.getItem('cp_v12_7'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
