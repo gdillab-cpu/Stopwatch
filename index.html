@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v14.0</title>
+    <title>Clock-Dilla v14.3</title>
     <style>
         :root {
             /* Palette */
@@ -121,7 +121,7 @@
             min-height: 90px;
         }
 
-        /* Live Ice Speeds */
+        /* Quick Ref */
         .ref-container {
             flex: 1;
             padding: 6px 4px;
@@ -151,7 +151,7 @@
         .col-2 { width: 22%; text-align: center; } /* B-H */
         .col-3 { width: 22%; text-align: center; } /* H-H */
         .col-4 { width: 25%; text-align: center; } /* Spacer / Result */
-        .col-5 { width: 16%; text-align: right; padding-right: 8px; } /* Spacer / Pos */
+        .col-5 { width: 16%; text-align: center; padding-right: 0; } /* Spacer / Pos */
 
         .ref-table { width: 100%; border-collapse: collapse; font-size: 15px; }
         .ref-table td { 
@@ -186,7 +186,7 @@
             font-size: 14px;
             letter-spacing: 1px;
         }
-        /* Ice Text removed per user preference */
+        /* Ice text removed */
         #profile-select-hidden {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; appearance: none;
@@ -204,11 +204,7 @@
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
         .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
-        /* 4 Columns: B-H | H-H | Result | Pos */
-        .col-bh { width: 28%; }
-        .col-hh { width: 28%; }
-        .col-res { width: 28%; }
-        .col-pos { width: 16%; text-align: right; padding-right: 12px; color: #666; font-weight: 700; font-size: 10px; }
+        .col-pos-text { color: #666; font-weight: 700; font-size: 10px; }
 
         .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
         .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
@@ -275,6 +271,16 @@
             padding: 10px;
         }
 
+        .profile-content {
+            width: 100%; max-width: 300px;
+            background: #1C1C1E;
+            border-radius: 20px;
+            padding: 20px;
+            display: flex; flex-direction: column;
+            gap: 8px;
+            margin-bottom: 100px;
+        }
+
         .modal-header { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
         
         .zone-btn {
@@ -314,6 +320,7 @@
         <div class="ref-container">
             <div class="ref-header">
                 <span>Live Ice Speeds</span>
+                <span id="ice-readout" style="color:var(--blue)">0</span>
             </div>
             <!-- Grid Aligned Table -->
             <table class="ref-table" id="ref-table"></table>
@@ -321,6 +328,7 @@
         
         <!-- Profile Menu Trigger -->
         <div class="profile-strip" onclick="app.openProfileMenu()">
+            <div class="ice-text" id="ice-indicator-btn">0</div>
             <div class="profile-text" id="profile-display">TEAM</div>
         </div>
     </div>
@@ -387,18 +395,23 @@
 
     <script>
         const CONFIG = {
-            // --- PHYSICS ENGINE v14.0 (Distance-Based) ---
+            // --- PHYSICS ENGINE (DISTANCE-BASED) ---
             // Distance (ft) from Hog Line (0) to Back Line (27)
+            // Tee = 21ft. Mid Guard = 7.5ft.
             
-            // B-H: 3.8s=Tee(21ft), 4.0s=Mid(7.5ft) -> m=-67.5, b=277.5
+            // B-H: 3.8s=Tee(21ft), 4.0s=Mid(7.5ft)
+            // m = (7.5-21)/(4.0-3.8) = -13.5/0.2 = -67.5 ft/s
+            // b = 21 - (-67.5*3.8) = 21 + 256.5 = 277.5
             bhSlope: -67.5, bhIntercept: 277.5,
             
-            // H-H: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft) -> m=-6.75, b=115.5
+            // H-H: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft)
+            // m = (7.5-21)/(16.0-14.0) = -13.5/2.0 = -6.75 ft/s
+            // b = 21 - (-6.75*14.0) = 21 + 94.5 = 115.5
             hhSlope: -6.75, hhIntercept: 115.5,
 
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 22.0,
-            fastLimitBH: 3.60, fastLimitHH: 12.50,
+            fastLimitBH: 3.60, fastLimitHH: 12.20,
 
             // Zones mapped to Center Distance (ft)
             zones: [
@@ -439,7 +452,7 @@
 
             init() {
                 const ids = ['btn-main','time-bh','pred-bh','card-bh','time-hh','pred-hh','card-hh',
-                             'profile-display','ref-table','history-body',
+                             'profile-display','ref-table','history-body','ice-readout','ice-indicator-btn',
                              'calib-modal','profile-modal','player-edit-modal','zone-list'];
                 ids.forEach(id => this.ui[id] = document.getElementById(id));
 
@@ -462,7 +475,7 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    b.onclick = () => this.calibrate(z.d); // Store Distance!
+                    b.onclick = () => this.calibrate(z.d); // Store Distance
                     list.appendChild(b);
                 });
             },
@@ -618,7 +631,6 @@
             updateProfile() {
                 // BH: Player Specific
                 const bhShots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
-                
                 // HH: Universal (All shots)
                 const hhShots = this.history;
 
@@ -626,6 +638,7 @@
                 let errSumHH = 0; let countHH = 0;
 
                 bhShots.forEach(s => {
+                    // Check if time > 0 (valid) and used
                     if (s.actual !== null && s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
                 });
                 
@@ -636,6 +649,15 @@
                 this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
                 this.iceOffsetHH = countHH > 0 ? (errSumHH / countHH) : 0;
                 
+                let txt = "0";
+                if (countHH > 0 && this.iceOffsetHH !== 0) {
+                    const val = Math.abs(this.iceOffsetHH).toFixed(1);
+                    const sign = this.iceOffsetHH > 0 ? "+" : "-";
+                    txt = `${sign}${val}ft`; // Showing feet offset
+                }
+                this.ui['ice-readout'].innerText = txt;
+                this.ui['ice-indicator-btn'].innerText = txt;
+
                 this.renderRef();
             },
 
@@ -650,6 +672,7 @@
             toggleHistoryUse(id, type) {
                 const s = this.history.find(x => x.id === id);
                 if(s) {
+                    // Prevent toggling invalid times (0)
                     if(type === 'bh' && s.bh > 0) s.useBH = !s.useBH;
                     if(type === 'hh' && s.hh > 0) s.useHH = !s.useHH;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -670,8 +693,7 @@
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
                     s.actual = val; // Distance
-                    // Logic update: Do not auto-re-enable if it was manually disabled
-                    // (Matches user request: "I want a deactivated time to stay deactivated")
+                    // Do not auto-re-enable
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
                 }
                 this.closeCalib();
@@ -713,6 +735,7 @@
                     const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
                     const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
+                    // 5-Col Grid: Target | BH | HH | empty | empty
                     tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
@@ -773,9 +796,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v13_4', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v14_3', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v13_4'); 
+                const d = localStorage.getItem('cp_v14_3'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
