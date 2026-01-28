@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v14.6</title>
+    <title>Clock-Dilla v15.0</title>
     <style>
         :root {
             /* Palette */
@@ -133,7 +133,7 @@
         /* Header Row */
         .ref-header {
             display: flex;
-            justify-content: center; /* Centered Title */
+            justify-content: center;
             align-items: center;
             font-size: 11px; 
             color: var(--grey); 
@@ -185,7 +185,6 @@
             font-size: 14px;
             letter-spacing: 1px;
         }
-        /* Ice Text removed */
         #profile-select-hidden {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; appearance: none;
@@ -390,33 +389,43 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v14.6 (Distance-Based)
-            // BH: 3.8s=Tee(21ft), 3.9s=T12(16ft), 3.7s=B12(26ft)
-            // Slope = (26-21)/(3.7-3.8) = -50.0 ft/s
-            bhSlope: -50.0, bhIntercept: 211.0,
+            // Physics Engine v15.0 (New Map + Recalc)
+            // B-H: 3.8s=Tee(21ft), 3.9s=T12(15.5ft) -> m=-55, b=230
+            bhSlope: -55.0, bhIntercept: 230.0,
             
-            // HH: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft) -> m=-6.75, b=115.5
+            // H-H: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft) -> m=-6.75, b=115.5
             hhSlope: -6.75, hhIntercept: 115.5,
 
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 22.0,
-            fastLimitBH: 3.60, fastLimitHH: 12.20,
+            
+            // Fast limits calculated from Board Distance (37ft)
+            // BH: (37-230)/-55 = 3.51s
+            fastLimitBH: 3.50, 
+            // HH: (37-115.5)/-6.75 = 11.63s
+            fastLimitHH: 11.60,
 
-            // Zones mapped to Center Distance (ft)
+            // New "True Distance" Zones
             zones: [
-                {v: 11.5, n: "Board", d: 27.5}, {v: 11.0, n: "Hack", d: 28},
-                {v: 10.0, n: "B 12", d: 26}, {v: 9.0, n: "B 8", d: 24}, {v: 8.0, n: "B 4", d: 22},
-                {v: 7.0, n: "TEE", d: 21},
-                {v: 6.0, n: "T 4", d: 20}, {v: 5.0, n: "T 8", d: 18}, {v: 4.0, n: "T 12", d: 16},
-                {v: 3.0, n: "Tight", d: 12.5}, {v: 2.0, n: "Mid", d: 7.5}, {v: 1.0, n: "High", d: 2.5}
+                {v: 12, n: "Board", d: 37.0}, 
+                {v: 11, n: "Hack", d: 33.0},
+                {v: 10, n: "B 12", d: 26.5}, 
+                {v: 9, n: "B 8", d: 24.5}, 
+                {v: 8, n: "B 4", d: 22.5},
+                {v: 7, n: "TEE", d: 21.0},
+                {v: 6, n: "T 4", d: 19.5}, 
+                {v: 5, n: "T 8", d: 17.5}, 
+                {v: 4, n: "T 12", d: 15.5},
+                {v: 3, n: "Tight", d: 12.5}, 
+                {v: 2, n: "Mid", d: 7.5}, 
+                {v: 1, n: "High", d: 2.5}
             ],
 
-            // FIX: Added 'd' property for physics calcs
             refRows: [
-                {v: 10.0, n: "B12", d: 26.0}, 
-                {v: 7.0, n: "Tee", d: 21.0},
-                {v: 4.0, n: "T12", d: 16.0}, 
-                {v: 2.0, n: "Mid", d: 7.5}
+                {v: 10, n: "B12", d: 26.5}, 
+                {v: 7, n: "Tee", d: 21.0},
+                {v: 4, n: "T12", d: 15.5}, 
+                {v: 2, n: "Mid", d: 7.5}
             ]
         };
 
@@ -426,7 +435,6 @@
             enableBH: true, enableHH: true,
             history: [], currentProfile: 'TEAM', 
             
-            // DECOUPLED OFFSETS (Distance)
             iceOffsetBH: 0, 
             iceOffsetHH: 0, 
             
@@ -457,7 +465,8 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    b.onclick = () => this.calibrate(z.d); // Store Distance
+                    // White Tee
+                    b.onclick = () => this.calibrate(z.d); // Store DISTANCE
                     list.appendChild(b);
                 });
             },
@@ -583,6 +592,7 @@
                 
                 if (!validBH && !validHH) return;
 
+                // Smart defaults: Gray out fast shots
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
 
@@ -610,9 +620,7 @@
             },
 
             updateProfile() {
-                // BH: Player Specific
                 const bhShots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
-                // HH: Universal (All shots)
                 const hhShots = this.history;
 
                 let errSumBH = 0; let countBH = 0;
@@ -701,10 +709,11 @@
                 const tbl = this.ui['ref-table'];
                 tbl.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
-                    // Calculate time t = (d - b - offset) / m
+                    // d = m*t + b + offset => t = (d - b - offset) / m
                     const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
                     const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
+                    // 5-Col Grid: Target | BH | HH | empty | empty
                     tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
@@ -765,9 +774,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v14_6', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v15_0', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v14_6'); 
+                const d = localStorage.getItem('cp_v15_0'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
