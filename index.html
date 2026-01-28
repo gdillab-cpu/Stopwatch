@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v13.3</title>
+    <title>Clock-Dilla v14.0</title>
     <style>
         :root {
             /* Palette */
@@ -44,7 +44,7 @@
             gap: 10px;
             z-index: 50;
             flex-shrink: 0;
-            position: relative;
+            position: relative; /* For absolute Clear button */
         }
 
         .timer-card {
@@ -186,6 +186,7 @@
             font-size: 14px;
             letter-spacing: 1px;
         }
+        /* Ice Text removed per user preference */
         #profile-select-hidden {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; appearance: none;
@@ -258,7 +259,7 @@
         .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 20px rgba(10, 132, 255, 0.3) !important; }
         .st-int { background-color: var(--red) !important; box-shadow: 0 4px 20px rgba(255, 69, 58, 0.3) !important; }
 
-        /* --- MODALS --- */
+        /* --- MODALS (Right Stack Style) --- */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); display: none;
@@ -284,19 +285,8 @@
         }
         .z-tee { color: var(--green); border-color: var(--green); }
 
-        /* Menu Buttons */
-        .menu-btn {
-            width: 100%; padding: 15px;
-            background: #2C2C2E; color: var(--blue);
-            border: none; border-radius: 12px;
-            font-size: 18px; font-weight: 600;
-            text-align: center;
-        }
-        .menu-btn.active { background: var(--blue); color: white; }
-        
-        /* Action Button Styles */
-        .menu-import { color: var(--green) !important; border-color: var(--green) !important; margin-top: auto; border: 1px solid #333; }
-        .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; border: 1px solid #333; }
+        /* Colored Action Buttons */
+        .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; border: 1px solid #333; }
         .menu-clear { color: var(--red) !important; border-color: var(--red) !important; border: 1px solid #333; }
 
     </style>
@@ -389,37 +379,49 @@
             <button class="zone-btn" onclick="app.setProfile('3rd')">3rd</button>
             <button class="zone-btn" onclick="app.setProfile('Skip')">Skip</button>
             
-            <button class="zone-btn menu-import" onclick="document.getElementById('import-file').click()">Import CSV</button>
             <button class="zone-btn menu-export" onclick="app.exportData()">Export CSV</button>
             <button class="zone-btn menu-clear" onclick="app.clearHistory()">Clear All</button>
             <button class="zone-btn" style="color:#666;" onclick="app.closeProfile()">Cancel</button>
-            
-            <!-- Hidden File Input -->
-            <input type="file" id="import-file" style="display:none;" accept=".csv" onchange="app.importData(this)">
         </div>
     </div>
 
     <script>
         const CONFIG = {
-            // Physics Engine v13.0 (Decoupled Baseline)
-            bhSlope: -25.0, bhIntercept: 102.0,
-            hhSlope: -2.5, hhIntercept: 42.0, // 14.0s Tee Baseline
+            // --- PHYSICS ENGINE v14.0 (Distance-Based) ---
+            // Distance (ft) from Hog Line (0) to Back Line (27)
+            
+            // B-H: 3.8s=Tee(21ft), 4.0s=Mid(7.5ft) -> m=-67.5, b=277.5
+            bhSlope: -67.5, bhIntercept: 277.5,
+            
+            // H-H: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft) -> m=-6.75, b=115.5
+            hhSlope: -6.75, hhIntercept: 115.5,
 
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 22.0,
-            fastLimitBH: 3.60, fastLimitHH: 12.20,
+            fastLimitBH: 3.60, fastLimitHH: 12.50,
 
+            // Zones mapped to Center Distance (ft)
             zones: [
-                {v: 11.5, n: "Board"}, {v: 11.0, n: "Hack"},
-                {v: 10.0, n: "B 12"}, {v: 9.0, n: "B 8"}, {v: 8.0, n: "B 4"},
-                {v: 7.0, n: "TEE"},
-                {v: 6.0, n: "T 4"}, {v: 5.0, n: "T 8"}, {v: 4.0, n: "T 12"},
-                {v: 3.0, n: "Tight"}, {v: 2.0, n: "Mid"}, {v: 1.0, n: "High"}
+                {v: 11.5, n: "Board", d: 27.5}, 
+                {v: 11.0, n: "Hack", d: 28},
+                {v: 10.0, n: "B 12", d: 26}, 
+                {v: 9.0, n: "B 8", d: 24},   
+                {v: 8.0, n: "B 4", d: 22},   
+                {v: 7.0, n: "TEE", d: 21},   
+                {v: 6.0, n: "T 4", d: 20},   
+                {v: 5.0, n: "T 8", d: 18},   
+                {v: 4.0, n: "T 12", d: 16},  
+                {v: 3.0, n: "Tight", d: 12.5}, 
+                {v: 2.0, n: "Mid", d: 7.5},    
+                {v: 1.0, n: "High", d: 2.5}    
             ],
-
+            
+            // Reference Distances for Table
             refRows: [
-                {v: 10.0, n: "B12"}, {v: 7.0, n: "Tee"},
-                {v: 4.0, n: "T12"}, {v: 2.0, n: "Mid"}
+                {d: 26, n: "B12"}, 
+                {d: 21, n: "Tee"},
+                {d: 16, n: "T12"}, 
+                {d: 7.5, n: "Mid"}
             ]
         };
 
@@ -429,6 +431,7 @@
             enableBH: true, enableHH: true,
             history: [], currentProfile: 'TEAM', 
             
+            // Offsets in FEET
             iceOffsetBH: 0, 
             iceOffsetHH: 0, 
             
@@ -459,8 +462,7 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    if(z.v === 7) b.classList.add('z-tee'); // White Tee
-                    b.onclick = () => this.calibrate(z.v);
+                    b.onclick = () => this.calibrate(z.d); // Store Distance!
                     list.appendChild(b);
                 });
             },
@@ -552,35 +554,33 @@
                 }
             },
 
-            // --- DECOUPLED PREDICTION ---
+            // --- PREDICTION (DISTANCE) ---
             predictBH(time) {
                 if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) {
                     this.ui['pred-bh'].innerText = "-"; this.ui['pred-bh'].style.color = "#444"; return null;
                 }
-                const z = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffsetBH;
-                const final = Math.max(0, Math.min(11.5, z));
-                this.displayPred(this.ui['pred-bh'], final);
+                const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffsetBH;
+                this.displayPred(this.ui['pred-bh'], dist);
             }
 
             ,predictHH(time) {
                 if (time < CONFIG.minHH || time > CONFIG.maxHH || time <= CONFIG.fastLimitHH) {
                     this.ui['pred-hh'].innerText = "-"; this.ui['pred-hh'].style.color = "#444"; return null;
                 }
-                const z = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffsetHH;
-                const final = Math.max(0, Math.min(11.5, z));
-                this.displayPred(this.ui['pred-hh'], final);
+                const dist = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffsetHH;
+                this.displayPred(this.ui['pred-hh'], dist);
             },
 
-            displayPred(el, zVal) {
+            displayPred(el, dist) {
                 let txt = "UNKNOWN"; let minDiff = 99;
                 CONFIG.zones.forEach(z => {
-                    if (Math.abs(z.v - zVal) < minDiff) { minDiff = Math.abs(z.v - zVal); txt = z.n; }
+                    if (Math.abs(z.d - dist) < minDiff) { minDiff = Math.abs(z.d - dist); txt = z.n; }
                 });
                 el.innerText = txt;
                 el.style.color = "#fff"; 
             },
 
-            // --- DATA & CALIBRATION ---
+            // --- DATA ---
             saveShot() {
                 if (!this.enableBH && !this.enableHH) return;
                 const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
@@ -588,7 +588,7 @@
                 
                 if (!validBH && !validHH) return;
 
-                // Smart defaults
+                // Smart defaults: Gray out fast shots
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
 
@@ -598,15 +598,14 @@
                     id: Date.now(), player: p,
                     bh: validBH ? this.split : 0,
                     hh: validHH ? this.interval : 0,
-                    actual: null,
+                    actual: null, // Stored as DISTANCE
                     useBH: defaultUseBH, 
                     useHH: defaultUseHH,
-                    // Store BOTH raw calcs
+                    // Store raw Distances
                     rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
                     rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
-                    // Store BOTH Snapshots
-                    snapBH: this.iceOffsetBH,
-                    snapHH: this.iceOffsetHH
+                    fixedOffsetBH: this.iceOffsetBH,
+                    fixedOffsetHH: this.iceOffsetHH
                 };
                 
                 this.history.unshift(s);
@@ -617,17 +616,21 @@
             },
 
             updateProfile() {
-                const shots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
+                // BH: Player Specific
+                const bhShots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
                 
+                // HH: Universal (All shots)
+                const hhShots = this.history;
+
                 let errSumBH = 0; let countBH = 0;
                 let errSumHH = 0; let countHH = 0;
 
-                shots.forEach(s => {
-                    if (s.actual !== null && s.actual <= 11.5) {
-                        // Independent Calibration
-                        if (s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
-                        if (s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
-                    }
+                bhShots.forEach(s => {
+                    if (s.actual !== null && s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
+                });
+                
+                hhShots.forEach(s => {
+                     if (s.actual !== null && s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
                 });
 
                 this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
@@ -637,12 +640,10 @@
             },
 
             // --- UI ACTIONS ---
-            openProfileMenu() {
-                this.ui['profile-modal'].style.display = 'flex';
-            },
+            openProfileMenu() { this.ui['profile-modal'].style.display = 'flex'; },
             setProfile(p) {
                 this.currentProfile = p; this.ui['profile-display'].innerText = p;
-                this.closeProfile(); this.updateProfile(); this.renderRef(); this.renderHistory();
+                this.closeProfile(); this.updateProfile(); this.renderHistory();
             },
             closeProfile() { this.ui['profile-modal'].style.display = 'none'; },
 
@@ -668,9 +669,9 @@
             calibrate(val) {
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
-                    s.actual = val;
-                    if (s.bh > CONFIG.fastLimitBH && s.bh <= CONFIG.maxBH) s.useBH = true;
-                    if (s.hh > CONFIG.fastLimitHH && s.hh <= CONFIG.maxHH) s.useHH = true;
+                    s.actual = val; // Distance
+                    // Logic update: Do not auto-re-enable if it was manually disabled
+                    // (Matches user request: "I want a deactivated time to stay deactivated")
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
                 }
                 this.closeCalib();
@@ -684,92 +685,34 @@
             },
 
             exportData() {
-                const name = prompt("Filename:", "curling_data") || "curling_data";
-                // Enhanced CSV Format with Snapshots
-                let csv = "Timestamp,Player,BH_Time,BH_Used,HH_Time,HH_Used,Actual_Result,Snap_BH,Snap_HH\n";
+                let csv = "Pos,B-H,Used,H-H,Used,Result\n";
                 this.history.forEach(s => {
-                    csv += `${s.id},${s.player},${s.bh.toFixed(2)},${s.useBH},${s.hh.toFixed(2)},${s.useHH},${s.actual},${s.snapBH},${s.snapHH}\n`;
+                    const label = this.getLabelFromDist(s.actual);
+                    csv += `${s.player},${s.bh.toFixed(2)},${s.useBH},${s.hh.toFixed(2)},${s.useHH},${label}\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = `${name}_${Date.now()}.csv`; a.click();
+                const a = document.createElement('a'); a.href = url; a.download = `curling_data_${Date.now()}.csv`; a.click();
                 this.closeProfile();
             },
 
-            importData(input) {
-                const file = input.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const text = e.target.result;
-                    const lines = text.split('\n');
-                    const newHistory = [];
-                    
-                    // Skip header (row 0), start at row 1
-                    for (let i = 1; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (line) {
-                            const cols = line.split(',');
-                            // Parse Enhanced Format: Timestamp(0), Player(1), BH(2), UseBH(3), HH(4), UseHH(5), Act(6), SnapBH(7), SnapHH(8)
-                            // Legacy Support: Pos(0), BH(1), UseBH(2), HH(3), UseHH(4), Res(5)
-                            
-                            let s = {};
-                            if (cols.length >= 8) { // Enhanced
-                                s = {
-                                    id: parseInt(cols[0]),
-                                    player: cols[1],
-                                    bh: parseFloat(cols[2]),
-                                    useBH: cols[3] === 'true',
-                                    hh: parseFloat(cols[4]),
-                                    useHH: cols[5] === 'true',
-                                    actual: cols[6] === 'null' ? null : parseFloat(cols[6]),
-                                    snapBH: parseFloat(cols[7]),
-                                    snapHH: parseFloat(cols[8]),
-                                    rawBH: 0, rawHH: 0 // Will recalc
-                                };
-                            } else { // Legacy Fallback
-                                s = {
-                                    id: Date.now() - i,
-                                    player: cols[0],
-                                    bh: parseFloat(cols[1]),
-                                    useBH: cols[2] === 'true',
-                                    hh: parseFloat(cols[3]),
-                                    useHH: cols[4] === 'true',
-                                    actual: cols[5] === 'null' ? null : parseFloat(cols[5]),
-                                    snapBH: 0, snapHH: 0,
-                                    rawBH: 0, rawHH: 0
-                                };
-                            }
-                            
-                            // Rehydrate Raw Calcs
-                            if (s.useBH) s.rawBH = (CONFIG.bhSlope * s.bh) + CONFIG.bhIntercept;
-                            if (s.useHH) s.rawHH = (CONFIG.hhSlope * s.hh) + CONFIG.hhIntercept;
-                            
-                            newHistory.push(s);
-                        }
-                    }
-                    
-                    app.history = newHistory;
-                    app.saveStorage();
-                    app.updateProfile(); // Recalc live ice offsets from loaded history
-                    app.renderHistory();
-                    app.closeProfile();
-                    alert("Import successful! Ice calibration updated.");
-                };
-                reader.readAsText(file);
-                input.value = ''; // Reset input
+            getLabelFromDist(dist) {
+                if (dist === null) return "-";
+                let label = "?"; let minDiff = 99;
+                CONFIG.zones.forEach(z => {
+                    if (Math.abs(z.d - dist) < minDiff) { minDiff = Math.abs(z.d - dist); label = z.n; }
+                });
+                return label;
             },
 
             renderRef() {
                 const tbl = this.ui['ref-table'];
                 tbl.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
-                    // Use DECOUPLED Offsets
-                    const bh = (r.v - this.iceOffsetBH - CONFIG.bhIntercept) / CONFIG.bhSlope;
-                    const hh = (r.v - this.iceOffsetHH - CONFIG.hhIntercept) / CONFIG.hhSlope;
-                    let color = "#fff"; if(r.v === 7) color = "var(--green)";
-                    // 5-Col Grid: Target | BH | HH | empty | empty
+                    // d = m*t + b + offset => t = (d - b - offset) / m
+                    const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
+                    const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
+                    let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
                     tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
@@ -782,25 +725,17 @@
                 const slope = type === 'bh' ? CONFIG.bhSlope : CONFIG.hhSlope;
                 const intercept = type === 'bh' ? CONFIG.bhIntercept : CONFIG.hhIntercept;
                 
-                // Use Snapshot if available, else fallback to current decoupled offset
                 let offset = snapOffset;
-                if (offset === undefined || isNaN(offset)) {
-                     offset = type === 'bh' ? this.iceOffsetBH : this.iceOffsetHH;
-                }
+                if (offset === undefined) offset = type === 'bh' ? this.iceOffsetBH : this.iceOffsetHH;
 
-                const val = (slope * time) + intercept + offset;
+                const dist = (slope * time) + intercept + offset;
                 
-                let label = "?"; let minDiff = 99;
-                CONFIG.zones.forEach(z => {
-                    if (Math.abs(z.v - val) < minDiff) { minDiff = Math.abs(z.v - val); label = z.n; }
-                });
-                return label;
+                return this.getLabelFromDist(dist);
             },
 
             getResText(s) {
                 if (s.actual === null) return `<div class="res-box"></div>`;
-                let label = "?";
-                CONFIG.zones.forEach(z => { if(z.v === s.actual) label = z.n; });
+                let label = this.getLabelFromDist(s.actual);
                 let col = "#fff"; 
                 if (!s.useBH && !s.useHH) col = "#333";
                 return `<span style="color:${col}; font-weight:700;">${label}</span>`;
@@ -816,9 +751,8 @@
                     const rowActive = s.useBH || s.useHH;
                     const rowClass = rowActive ? 'row-active' : 'row-inactive';
                     
-                    // Pass specific snapshots
-                    const estBH = this.getEstLabel(s.bh, 'bh', s.snapBH);
-                    const estHH = this.getEstLabel(s.hh, 'hh', s.snapHH);
+                    const estBH = this.getEstLabel(s.bh, 'bh', s.fixedOffsetBH);
+                    const estHH = this.getEstLabel(s.hh, 'hh', s.fixedOffsetHH);
 
                     tr.className = rowClass;
                     tr.innerHTML = `
@@ -839,9 +773,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v13_3', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v13_4', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v13_3'); 
+                const d = localStorage.getItem('cp_v13_4'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
