@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v14.3</title>
+    <title>Clock-Dilla v14.6</title>
     <style>
         :root {
             /* Palette */
@@ -133,7 +133,7 @@
         /* Header Row */
         .ref-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center; /* Centered Title */
             align-items: center;
             font-size: 11px; 
             color: var(--grey); 
@@ -143,7 +143,6 @@
             letter-spacing: 0.5px;
             border-bottom: 1px solid #333;
             padding-bottom: 4px;
-            padding-left: 8px; padding-right: 8px;
         }
         
         /* Unified 5-Column Grid System */
@@ -186,7 +185,7 @@
             font-size: 14px;
             letter-spacing: 1px;
         }
-        /* Ice text removed */
+        /* Ice Text removed */
         #profile-select-hidden {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; appearance: none;
@@ -197,15 +196,13 @@
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 240px;
+            padding-bottom: 160px;
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
         .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
-        .col-pos-text { color: #666; font-weight: 700; font-size: 10px; }
-
         .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
         .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
         
@@ -320,7 +317,6 @@
         <div class="ref-container">
             <div class="ref-header">
                 <span>Live Ice Speeds</span>
-                <span id="ice-readout" style="color:var(--blue)">0</span>
             </div>
             <!-- Grid Aligned Table -->
             <table class="ref-table" id="ref-table"></table>
@@ -328,7 +324,6 @@
         
         <!-- Profile Menu Trigger -->
         <div class="profile-strip" onclick="app.openProfileMenu()">
-            <div class="ice-text" id="ice-indicator-btn">0</div>
             <div class="profile-text" id="profile-display">TEAM</div>
         </div>
     </div>
@@ -395,18 +390,12 @@
 
     <script>
         const CONFIG = {
-            // --- PHYSICS ENGINE (DISTANCE-BASED) ---
-            // Distance (ft) from Hog Line (0) to Back Line (27)
-            // Tee = 21ft. Mid Guard = 7.5ft.
+            // Physics Engine v14.6 (Distance-Based)
+            // BH: 3.8s=Tee(21ft), 3.9s=T12(16ft), 3.7s=B12(26ft)
+            // Slope = (26-21)/(3.7-3.8) = -50.0 ft/s
+            bhSlope: -50.0, bhIntercept: 211.0,
             
-            // B-H: 3.8s=Tee(21ft), 4.0s=Mid(7.5ft)
-            // m = (7.5-21)/(4.0-3.8) = -13.5/0.2 = -67.5 ft/s
-            // b = 21 - (-67.5*3.8) = 21 + 256.5 = 277.5
-            bhSlope: -67.5, bhIntercept: 277.5,
-            
-            // H-H: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft)
-            // m = (7.5-21)/(16.0-14.0) = -13.5/2.0 = -6.75 ft/s
-            // b = 21 - (-6.75*14.0) = 21 + 94.5 = 115.5
+            // HH: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft) -> m=-6.75, b=115.5
             hhSlope: -6.75, hhIntercept: 115.5,
 
             minBH: 2.0, maxBH: 6.0,
@@ -415,26 +404,19 @@
 
             // Zones mapped to Center Distance (ft)
             zones: [
-                {v: 11.5, n: "Board", d: 27.5}, 
-                {v: 11.0, n: "Hack", d: 28},
-                {v: 10.0, n: "B 12", d: 26}, 
-                {v: 9.0, n: "B 8", d: 24},   
-                {v: 8.0, n: "B 4", d: 22},   
-                {v: 7.0, n: "TEE", d: 21},   
-                {v: 6.0, n: "T 4", d: 20},   
-                {v: 5.0, n: "T 8", d: 18},   
-                {v: 4.0, n: "T 12", d: 16},  
-                {v: 3.0, n: "Tight", d: 12.5}, 
-                {v: 2.0, n: "Mid", d: 7.5},    
-                {v: 1.0, n: "High", d: 2.5}    
+                {v: 11.5, n: "Board", d: 27.5}, {v: 11.0, n: "Hack", d: 28},
+                {v: 10.0, n: "B 12", d: 26}, {v: 9.0, n: "B 8", d: 24}, {v: 8.0, n: "B 4", d: 22},
+                {v: 7.0, n: "TEE", d: 21},
+                {v: 6.0, n: "T 4", d: 20}, {v: 5.0, n: "T 8", d: 18}, {v: 4.0, n: "T 12", d: 16},
+                {v: 3.0, n: "Tight", d: 12.5}, {v: 2.0, n: "Mid", d: 7.5}, {v: 1.0, n: "High", d: 2.5}
             ],
-            
-            // Reference Distances for Table
+
+            // FIX: Added 'd' property for physics calcs
             refRows: [
-                {d: 26, n: "B12"}, 
-                {d: 21, n: "Tee"},
-                {d: 16, n: "T12"}, 
-                {d: 7.5, n: "Mid"}
+                {v: 10.0, n: "B12", d: 26.0}, 
+                {v: 7.0, n: "Tee", d: 21.0},
+                {v: 4.0, n: "T12", d: 16.0}, 
+                {v: 2.0, n: "Mid", d: 7.5}
             ]
         };
 
@@ -444,7 +426,7 @@
             enableBH: true, enableHH: true,
             history: [], currentProfile: 'TEAM', 
             
-            // Offsets in FEET
+            // DECOUPLED OFFSETS (Distance)
             iceOffsetBH: 0, 
             iceOffsetHH: 0, 
             
@@ -452,7 +434,7 @@
 
             init() {
                 const ids = ['btn-main','time-bh','pred-bh','card-bh','time-hh','pred-hh','card-hh',
-                             'profile-display','ref-table','history-body','ice-readout','ice-indicator-btn',
+                             'profile-display','ref-table','history-body',
                              'calib-modal','profile-modal','player-edit-modal','zone-list'];
                 ids.forEach(id => this.ui[id] = document.getElementById(id));
 
@@ -601,7 +583,6 @@
                 
                 if (!validBH && !validHH) return;
 
-                // Smart defaults: Gray out fast shots
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
 
@@ -638,7 +619,6 @@
                 let errSumHH = 0; let countHH = 0;
 
                 bhShots.forEach(s => {
-                    // Check if time > 0 (valid) and used
                     if (s.actual !== null && s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
                 });
                 
@@ -649,15 +629,6 @@
                 this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
                 this.iceOffsetHH = countHH > 0 ? (errSumHH / countHH) : 0;
                 
-                let txt = "0";
-                if (countHH > 0 && this.iceOffsetHH !== 0) {
-                    const val = Math.abs(this.iceOffsetHH).toFixed(1);
-                    const sign = this.iceOffsetHH > 0 ? "+" : "-";
-                    txt = `${sign}${val}ft`; // Showing feet offset
-                }
-                this.ui['ice-readout'].innerText = txt;
-                this.ui['ice-indicator-btn'].innerText = txt;
-
                 this.renderRef();
             },
 
@@ -665,14 +636,13 @@
             openProfileMenu() { this.ui['profile-modal'].style.display = 'flex'; },
             setProfile(p) {
                 this.currentProfile = p; this.ui['profile-display'].innerText = p;
-                this.closeProfile(); this.updateProfile(); this.renderHistory();
+                this.closeProfile(); this.updateProfile(); this.renderRef(); this.renderHistory();
             },
             closeProfile() { this.ui['profile-modal'].style.display = 'none'; },
 
             toggleHistoryUse(id, type) {
                 const s = this.history.find(x => x.id === id);
                 if(s) {
-                    // Prevent toggling invalid times (0)
                     if(type === 'bh' && s.bh > 0) s.useBH = !s.useBH;
                     if(type === 'hh' && s.hh > 0) s.useHH = !s.useHH;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -731,11 +701,10 @@
                 const tbl = this.ui['ref-table'];
                 tbl.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
-                    // d = m*t + b + offset => t = (d - b - offset) / m
+                    // Calculate time t = (d - b - offset) / m
                     const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
                     const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
-                    // 5-Col Grid: Target | BH | HH | empty | empty
                     tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
@@ -796,9 +765,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v14_3', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v14_6', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v14_3'); 
+                const d = localStorage.getItem('cp_v14_6'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
