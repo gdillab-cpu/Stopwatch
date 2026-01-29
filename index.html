@@ -112,7 +112,7 @@
         }
         .clear-btn:active { color: #888; }
 
-        /* --- CONTROL PANEL (Split Layout) --- */
+        /* --- CONTROL PANEL --- */
         .control-panel {
             display: flex;
             background: var(--dark);
@@ -121,14 +121,9 @@
             min-height: 115px; 
         }
 
-        /* Container for Ref + Profiles */
-        .cp-split {
-            flex: 1;
-            display: flex;
-            padding: 6px 0;
-        }
+        .cp-split { flex: 1; display: flex; padding: 6px 0; }
 
-        /* Left: Live Ice Speeds (60%) */
+        /* Ref Section */
         .ref-section {
             width: 60%;
             display: flex;
@@ -153,13 +148,11 @@
         .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .ref-table td { padding: 3px 0; border-bottom: 1px solid #333; line-height: 1.2; }
         .ref-table tr:last-child td { border-bottom: none; }
-        
-        /* 3-Col Ref Table (Target | BH | HH) */
         .ref-table td:nth-child(1) { text-align: left; width: 25%; font-weight:700; color:#ccc; } 
         .ref-table td:nth-child(2) { text-align: center; width: 37%; } 
         .ref-table td:nth-child(3) { text-align: center; width: 38%; } 
 
-        /* Right: Profile Grid (40%) */
+        /* Profile Section */
         .profile-section {
             width: 40%;
             padding: 4px 8px;
@@ -186,16 +179,11 @@
             justify-content: center;
             transition: 0.1s;
         }
-        .p-btn.active {
-            background: #333;
-            color: var(--blue);
-            border-color: var(--blue);
-        }
+        .p-btn.active { background: #333; color: var(--blue); border-color: var(--blue); }
         .p-btn.team.active { color: var(--green); border-color: var(--green); } 
         .p-btn:active { transform: scale(0.96); }
 
-
-        /* Far Right: Menu Strip */
+        /* Menu Strip */
         .menu-strip {
             width: 50px;
             background: #252525;
@@ -222,23 +210,21 @@
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 280px; /* Large padding to clear the bottom stack */
+            padding-bottom: 250px; /* Increased to clear lifted button */
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
         .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
-        /* 4 Columns: B-H | H-H | Result | Pos */
         .col-bh { width: 28%; }
         .col-hh { width: 28%; }
         .col-res { width: 28%; }
-        .col-pos { width: 16%; text-align: right; padding-right: 12px; color: #666; font-weight: 700; font-size: 10px; }
+        .col-pos { width: 16%; text-align: center; padding-right: 0; color: #666; font-weight: 700; font-size: 10px; }
 
         .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
         .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
         
-        /* State Classes */
         .val-used { color: #fff; }
         .val-ignored { color: #444; }
         
@@ -253,32 +239,28 @@
             vertical-align: middle;
         }
 
-        /* --- BOTTOM DOCK (Fixed) --- */
-        .bottom-dock {
+        /* --- BOTTOM DOCK (Lifted) --- */
+        .controls-area {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(28, 28, 30, 0.98);
             backdrop-filter: blur(15px);
-            border-top: 1px solid #333;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: max(0px, env(safe-area-inset-bottom));
-        }
-
-        .controls-area {
             padding: 12px;
-            display: flex;
+            /* LIFTED: Safe Area + 80px visual lift */
+            padding-bottom: calc(80px + env(safe-area-inset-bottom)); 
+            border-top: 1px solid #333;
+            display: flex; 
+            z-index: 100;
         }
 
         #btn-main {
-            width: 100%; height: 135px; 
-            border-radius: 22px;
-            font-size: 36px; 
-            font-weight: 800; 
+            width: 100%; height: 150px; 
+            border-radius: 24px;
+            font-size: 44px; 
+            font-weight: 900; 
             color: white;
             background: var(--green);
             border: none;
-            box-shadow: 0 4px 25px rgba(48, 209, 88, 0.3);
+            box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
             transition: 0.1s;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -286,8 +268,8 @@
         #btn-main:active { transform: scale(0.98); }
         #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
         
-        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 25px rgba(10, 132, 255, 0.3) !important; }
-        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 25px rgba(255, 69, 58, 0.3) !important; }
+        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3) !important; }
+        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 30px rgba(255, 69, 58, 0.3) !important; }
 
         /* --- MODALS --- */
         .modal {
@@ -315,14 +297,6 @@
         }
         .z-tee { color: var(--green); border-color: var(--green); }
 
-        .menu-btn {
-            width: 100%; padding: 15px;
-            background: #2C2C2E; color: var(--blue);
-            border: none; border-radius: 12px;
-            font-size: 18px; font-weight: 600;
-            text-align: center;
-        }
-        .menu-btn.active { background: var(--blue); color: white; }
         .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; border: 1px solid #333; }
         .menu-clear { color: var(--red) !important; border-color: var(--red) !important; border: 1px solid #333; }
 
@@ -346,15 +320,13 @@
         <div class="clear-btn" onclick="app.reset()">×</div>
     </div>
 
-    <!-- CONTROL PANEL (Integrated) -->
+    <!-- CONTROL PANEL -->
     <div class="control-panel">
         <div class="cp-split">
-            <!-- Left: Live Ice Speeds (60%) -->
             <div class="ref-section">
                 <div class="ref-header">Live Ice Speeds</div>
                 <table class="ref-table" id="ref-table"></table>
             </div>
-            <!-- Right: Profile Switcher (40%) -->
             <div class="profile-section">
                 <button class="p-btn team active" id="p-team" onclick="app.setProfile('TEAM')">TEAM</button>
                 <div class="p-row">
@@ -367,8 +339,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Menu Button -->
         <div class="menu-strip" onclick="app.openMenu()">
             <div class="menu-text">MENU</div>
         </div>
@@ -379,6 +349,7 @@
         <table class="history-table">
             <thead>
                 <tr>
+                    <th class="col-1"></th> 
                     <th class="col-bh">B-H</th>
                     <th class="col-hh">H-H</th>
                     <th class="col-res">Result</th>
@@ -394,7 +365,7 @@
         <button id="btn-main">START</button>
     </div>
 
-    <!-- CALIB MODAL (Right Stack) -->
+    <!-- CALIB MODAL -->
     <div class="modal" id="calib-modal" onclick="if(event.target===this) app.closeCalib()">
         <div class="side-stack-content">
             <div class="modal-header">SET ACTUAL</div>
@@ -403,7 +374,7 @@
         </div>
     </div>
 
-    <!-- PLAYER EDIT MODAL (Right Stack) -->
+    <!-- PLAYER MODAL -->
     <div class="modal" id="player-edit-modal" onclick="if(event.target===this) app.closePlayerEdit()">
         <div class="side-stack-content">
             <div class="modal-header">SET PLAYER</div>
@@ -416,7 +387,7 @@
         </div>
     </div>
 
-    <!-- MENU MODAL (Right Stack - Only System Actions) -->
+    <!-- MENU MODAL -->
     <div class="modal" id="menu-modal" onclick="if(event.target===this) app.closeMenu()">
         <div class="side-stack-content">
             <div class="modal-header">MENU</div>
@@ -428,7 +399,7 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v15.5
+            // Physics Engine v15.2
             bhSlope: -55.0, bhIntercept: 230.0,
             hhSlope: -5.1, hhIntercept: 95.0,
 
@@ -446,9 +417,9 @@
 
             refRows: [
                 {v: 11.0, n: "Hack", d: 33.0},
-                {v: 10.0, n: "B12", d: 26.5}, 
+                {v: 10.0, n: "B 12", d: 26.5}, 
                 {v: 7.0, n: "Tee", d: 21.0},
-                {v: 4.0, n: "T12", d: 15.5}, 
+                {v: 4.0, n: "T 12", d: 15.5}, 
                 {v: 2.0, n: "Mid", d: 7.5}
             ]
         };
@@ -487,7 +458,6 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    // White Tee in Menus
                     b.onclick = () => this.calibrate(z.d); 
                     list.appendChild(b);
                 });
@@ -588,7 +558,6 @@
                 const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffsetBH;
                 this.displayPred(this.ui['pred-bh'], dist);
             },
-
             predictHH(time) {
                 if (time < CONFIG.minHH || time > CONFIG.maxHH || time <= CONFIG.fastLimitHH) {
                     this.ui['pred-hh'].innerText = "-"; this.ui['pred-hh'].style.color = "#444"; return null;
@@ -596,14 +565,12 @@
                 const dist = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffsetHH;
                 this.displayPred(this.ui['pred-hh'], dist);
             },
-
             displayPred(el, dist) {
                 let txt = "UNKNOWN"; let minDiff = 99;
                 CONFIG.zones.forEach(z => {
                     if (Math.abs(z.d - dist) < minDiff) { minDiff = Math.abs(z.d - dist); txt = z.n; }
                 });
-                el.innerText = txt;
-                el.style.color = "#fff"; 
+                el.innerText = txt; el.style.color = "#fff"; 
             },
 
             // --- DATA ---
@@ -611,42 +578,33 @@
                 if (!this.enableBH && !this.enableHH) return;
                 const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
                 const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
-                
                 if (!validBH && !validHH) return;
 
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
-
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
                 const s = {
                     id: Date.now(), player: p,
-                    bh: validBH ? this.split : 0,
-                    hh: validHH ? this.interval : 0,
-                    actual: null, 
-                    useBH: defaultUseBH, 
-                    useHH: defaultUseHH,
+                    bh: validBH ? this.split : 0, hh: validHH ? this.interval : 0,
+                    actual: null, useBH: defaultUseBH, useHH: defaultUseHH,
                     rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
                     rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
-                    fixedOffsetBH: this.iceOffsetBH,
-                    fixedOffsetHH: this.iceOffsetHH
+                    fixedOffsetBH: this.iceOffsetBH, fixedOffsetHH: this.iceOffsetHH
                 };
                 
                 this.history.unshift(s);
                 if(this.history.length > 60) this.history.pop();
-                this.saveStorage();
-                this.updateProfile();
-                this.renderHistory(); 
+                this.saveStorage(); this.updateProfile(); this.renderHistory(); 
             },
 
             updateProfile() {
                 const shots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
-                
                 let errSumBH = 0; let countBH = 0;
                 let errSumHH = 0; let countHH = 0;
 
                 shots.forEach(s => {
-                    if (s.actual !== null && s.actual <= 26.5) { // Only calibrate if <= B12
+                    if (s.actual !== null && s.actual <= 26.5) { // Only calibrate draws
                         if (s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
                         if (s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
                     }
@@ -742,7 +700,6 @@
                 const tbl = this.ui['ref-table'];
                 tbl.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
-                    // d = m*t + b + offset => t = (d - b - offset) / m
                     const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
                     const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
@@ -788,16 +745,17 @@
 
                     tr.className = rowClass;
                     tr.innerHTML = `
-                        <td class="col-bh" onclick="app.toggleHistoryUse(${s.id},'bh')">
+                        <td class="col-1"></td>
+                        <td class="col-2" onclick="app.toggleHistoryUse(${s.id},'bh')">
                             <span class="time-txt mono ${s.useBH ? 'val-used' : 'val-ignored'}">${s.bh > 0 ? s.bh.toFixed(2) : '-'}</span>
                             <span class="est-txt">${s.bh > 0 ? estBH : ''}</span>
                         </td>
-                        <td class="col-hh" onclick="app.toggleHistoryUse(${s.id},'hh')">
+                        <td class="col-3" onclick="app.toggleHistoryUse(${s.id},'hh')">
                             <span class="time-txt mono ${s.useHH ? 'val-used' : 'val-ignored'}">${s.hh > 0 ? s.hh.toFixed(2) : '-'}</span>
                             <span class="est-txt">${s.hh > 0 ? estHH : ''}</span>
                         </td>
-                        <td class="col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td>
-                        <td class="col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
+                        <td class="col-4 col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td>
+                        <td class="col-5 col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${s.player.substring(0,4).toUpperCase()}</span></td>
                     `;
                     tbody.appendChild(tr);
                 });
