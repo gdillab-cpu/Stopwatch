@@ -133,7 +133,7 @@
         /* Header Row */
         .ref-header {
             display: flex;
-            justify-content: center;
+            justify-content: center; /* Centered Title */
             align-items: center;
             font-size: 11px; 
             color: var(--grey); 
@@ -185,6 +185,7 @@
             font-size: 14px;
             letter-spacing: 1px;
         }
+        /* Ice Text removed */
         #profile-select-hidden {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; appearance: none;
@@ -389,43 +390,30 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v15.0 (New Map + Recalc)
+            // Physics Engine v15.0
             // B-H: 3.8s=Tee(21ft), 3.9s=T12(15.5ft) -> m=-55, b=230
             bhSlope: -55.0, bhIntercept: 230.0,
             
-            // H-H: 14.0s=Tee(21ft), 16.0s=Mid(7.5ft) -> m=-6.75, b=115.5
-            hhSlope: -6.75, hhIntercept: 115.5,
+            // H-H: 14.51s=Tee(21ft), 15.59s=T12(15.5ft) -> m=-5.1, b=95.0
+            hhSlope: -5.1, hhIntercept: 95.0,
 
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 22.0,
-            
-            // Fast limits calculated from Board Distance (37ft)
-            // BH: (37-230)/-55 = 3.51s
-            fastLimitBH: 3.50, 
-            // HH: (37-115.5)/-6.75 = 11.63s
-            fastLimitHH: 11.60,
+            fastLimitBH: 3.60, fastLimitHH: 12.50,
 
-            // New "True Distance" Zones
             zones: [
-                {v: 12, n: "Board", d: 37.0}, 
-                {v: 11, n: "Hack", d: 33.0},
-                {v: 10, n: "B 12", d: 26.5}, 
-                {v: 9, n: "B 8", d: 24.5}, 
-                {v: 8, n: "B 4", d: 22.5},
-                {v: 7, n: "TEE", d: 21.0},
-                {v: 6, n: "T 4", d: 19.5}, 
-                {v: 5, n: "T 8", d: 17.5}, 
-                {v: 4, n: "T 12", d: 15.5},
-                {v: 3, n: "Tight", d: 12.5}, 
-                {v: 2, n: "Mid", d: 7.5}, 
-                {v: 1, n: "High", d: 2.5}
+                {v: 11.5, n: "Board", d: 27.5}, {v: 11.0, n: "Hack", d: 28},
+                {v: 10.0, n: "B 12", d: 26.5}, {v: 9.0, n: "B 8", d: 24.5}, {v: 8.0, n: "B 4", d: 22.5},
+                {v: 7.0, n: "TEE", d: 21.0},
+                {v: 6.0, n: "T 4", d: 19.5}, {v: 5.0, n: "T 8", d: 17.5}, {v: 4.0, n: "T 12", d: 15.5},
+                {v: 3.0, n: "Tight", d: 12.5}, {v: 2.0, n: "Mid", d: 7.5}, {v: 1.0, n: "High", d: 2.5}
             ],
 
             refRows: [
-                {v: 10, n: "B12", d: 26.5}, 
-                {v: 7, n: "Tee", d: 21.0},
-                {v: 4, n: "T12", d: 15.5}, 
-                {v: 2, n: "Mid", d: 7.5}
+                {v: 10.0, n: "B12", d: 26.5}, 
+                {v: 7.0, n: "Tee", d: 21.0},
+                {v: 4.0, n: "T12", d: 15.5}, 
+                {v: 2.0, n: "Mid", d: 7.5}
             ]
         };
 
@@ -435,6 +423,7 @@
             enableBH: true, enableHH: true,
             history: [], currentProfile: 'TEAM', 
             
+            // DECOUPLED OFFSETS (Distance)
             iceOffsetBH: 0, 
             iceOffsetHH: 0, 
             
@@ -465,8 +454,8 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    // White Tee
-                    b.onclick = () => this.calibrate(z.d); // Store DISTANCE
+                    // White Tee in Menus
+                    b.onclick = () => this.calibrate(z.d); // Store Distance
                     list.appendChild(b);
                 });
             },
@@ -620,7 +609,9 @@
             },
 
             updateProfile() {
+                // BH: Player Specific
                 const bhShots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
+                // HH: Universal (All shots)
                 const hhShots = this.history;
 
                 let errSumBH = 0; let countBH = 0;
@@ -651,6 +642,7 @@
             toggleHistoryUse(id, type) {
                 const s = this.history.find(x => x.id === id);
                 if(s) {
+                    // Prevent toggling invalid times (0)
                     if(type === 'bh' && s.bh > 0) s.useBH = !s.useBH;
                     if(type === 'hh' && s.hh > 0) s.useHH = !s.useHH;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -752,6 +744,7 @@
                     const rowActive = s.useBH || s.useHH;
                     const rowClass = rowActive ? 'row-active' : 'row-inactive';
                     
+                    const offset = (s.fixedOffset !== undefined) ? s.fixedOffset : this.iceOffset;
                     const estBH = this.getEstLabel(s.bh, 'bh', s.fixedOffsetBH);
                     const estHH = this.getEstLabel(s.hh, 'hh', s.fixedOffsetHH);
 
