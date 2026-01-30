@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v15.5</title>
+    <title>Clock-Dilla v15.4</title>
     <style>
         :root {
             /* Palette */
@@ -112,7 +112,7 @@
         }
         .clear-btn:active { color: #888; }
 
-        /* --- CONTROL PANEL --- */
+        /* --- CONTROL PANEL (Split Layout) --- */
         .control-panel {
             display: flex;
             background: var(--dark);
@@ -121,9 +121,14 @@
             min-height: 115px; 
         }
 
-        .cp-split { flex: 1; display: flex; padding: 6px 0; }
+        /* Container for Ref + Profiles */
+        .cp-split {
+            flex: 1;
+            display: flex;
+            padding: 6px 0;
+        }
 
-        /* Ref Section */
+        /* Left: Live Ice Speeds (60%) */
         .ref-section {
             width: 60%;
             display: flex;
@@ -148,11 +153,13 @@
         .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .ref-table td { padding: 3px 0; border-bottom: 1px solid #333; line-height: 1.2; }
         .ref-table tr:last-child td { border-bottom: none; }
+        
+        /* 3-Col Ref Table (Target | BH | HH) */
         .ref-table td:nth-child(1) { text-align: left; width: 25%; font-weight:700; color:#ccc; } 
         .ref-table td:nth-child(2) { text-align: center; width: 37%; } 
         .ref-table td:nth-child(3) { text-align: center; width: 38%; } 
 
-        /* Profile Section */
+        /* Right: Profile Grid (40%) */
         .profile-section {
             width: 40%;
             padding: 4px 8px;
@@ -179,11 +186,15 @@
             justify-content: center;
             transition: 0.1s;
         }
-        .p-btn.active { background: #333; color: var(--blue); border-color: var(--blue); }
+        .p-btn.active {
+            background: #333;
+            color: var(--blue);
+            border-color: var(--blue);
+        }
         .p-btn.team.active { color: var(--green); border-color: var(--green); } 
         .p-btn:active { transform: scale(0.96); }
 
-        /* Menu Strip */
+        /* Far Right: Menu Strip */
         .menu-strip {
             width: 50px;
             background: #252525;
@@ -210,22 +221,24 @@
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 250px; /* Increased to clear lifted button */
+            padding-bottom: 280px; /* Large padding to clear the bottom stack */
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
         .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
+        /* 4 Columns: B-H | H-H | Result | Pos */
         .col-bh { width: 28%; }
         .col-hh { width: 28%; }
         .col-res { width: 28%; }
-        .col-pos { width: 16%; text-align: center; padding-right: 0; color: #666; font-weight: 700; font-size: 10px; }
+        .col-pos { width: 16%; text-align: right; padding-right: 12px; color: #666; font-weight: 700; font-size: 10px; }
 
         .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
         .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
         
-        .val-used { color: #fff; }
+        /* State Classes */
+        .val-used { color: #CCCCCC; } /* Light Grey for Active */
         .val-ignored { color: #444; }
         
         .row-inactive .val-ignored, .row-inactive .col-pos, .row-inactive .est-txt { color: #333; }
@@ -239,28 +252,32 @@
             vertical-align: middle;
         }
 
-        /* --- BOTTOM DOCK (Lifted) --- */
-        .controls-area {
+        /* --- BOTTOM DOCK (Fixed) --- */
+        .bottom-dock {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(28, 28, 30, 0.98);
             backdrop-filter: blur(15px);
-            padding: 12px;
-            /* LIFTED: Safe Area + 80px visual lift */
-            padding-bottom: calc(80px + env(safe-area-inset-bottom)); 
             border-top: 1px solid #333;
-            display: flex; 
             z-index: 100;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: max(0px, env(safe-area-inset-bottom));
+        }
+
+        .controls-area {
+            padding: 12px;
+            display: flex;
         }
 
         #btn-main {
-            width: 100%; height: 150px; 
-            border-radius: 24px;
-            font-size: 44px; 
-            font-weight: 900; 
+            width: 100%; height: 110px; 
+            border-radius: 22px;
+            font-size: 36px; 
+            font-weight: 800; 
             color: white;
             background: var(--green);
             border: none;
-            box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
+            box-shadow: 0 4px 25px rgba(48, 209, 88, 0.3);
             transition: 0.1s;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -268,10 +285,10 @@
         #btn-main:active { transform: scale(0.98); }
         #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
         
-        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3) !important; }
-        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 30px rgba(255, 69, 58, 0.3) !important; }
+        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 25px rgba(10, 132, 255, 0.3) !important; }
+        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 25px rgba(255, 69, 58, 0.3) !important; }
 
-        /* --- MODALS --- */
+        /* --- MODALS (Right Stack Style) --- */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); display: none;
@@ -297,6 +314,7 @@
         }
         .z-tee { color: var(--green); border-color: var(--green); }
 
+        /* Colored Action Buttons */
         .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; border: 1px solid #333; }
         .menu-clear { color: var(--red) !important; border-color: var(--red) !important; border: 1px solid #333; }
 
@@ -320,25 +338,28 @@
         <div class="clear-btn" onclick="app.reset()">×</div>
     </div>
 
-    <!-- CONTROL PANEL -->
+    <!-- CONTROL PANEL (Integrated) -->
     <div class="control-panel">
         <div class="cp-split">
+            <!-- Left: Live Ice Speeds (60%) -->
             <div class="ref-section">
                 <div class="ref-header">Live Ice Speeds</div>
                 <table class="ref-table" id="ref-table"></table>
             </div>
-            <div class="profile-section">
-                <button class="p-btn team active" id="p-team" onclick="app.setProfile('TEAM')">TEAM</button>
+            <!-- Right: Profile Switcher (40%) -->
+            <div class="profile-section" id="profile-container">
                 <div class="p-row">
-                    <button class="p-btn" id="p-skip" onclick="app.setProfile('Skip')">SKIP</button>
-                    <button class="p-btn" id="p-3rd" onclick="app.setProfile('3rd')">3RD</button>
+                    <button class="p-btn" id="p-skip" onclick="app.toggleProfile('Skip')">SKIP</button>
+                    <button class="p-btn" id="p-3rd" onclick="app.toggleProfile('3rd')">3RD</button>
                 </div>
                 <div class="p-row">
-                    <button class="p-btn" id="p-2nd" onclick="app.setProfile('2nd')">2ND</button>
-                    <button class="p-btn" id="p-lead" onclick="app.setProfile('Lead')">LEAD</button>
+                    <button class="p-btn" id="p-2nd" onclick="app.toggleProfile('2nd')">2ND</button>
+                    <button class="p-btn" id="p-lead" onclick="app.toggleProfile('Lead')">LEAD</button>
                 </div>
             </div>
         </div>
+        
+        <!-- Menu Button -->
         <div class="menu-strip" onclick="app.openMenu()">
             <div class="menu-text">MENU</div>
         </div>
@@ -365,7 +386,7 @@
         <button id="btn-main">START</button>
     </div>
 
-    <!-- CALIB MODAL -->
+    <!-- CALIB MODAL (Right Stack) -->
     <div class="modal" id="calib-modal" onclick="if(event.target===this) app.closeCalib()">
         <div class="side-stack-content">
             <div class="modal-header">SET ACTUAL</div>
@@ -374,7 +395,7 @@
         </div>
     </div>
 
-    <!-- PLAYER MODAL -->
+    <!-- PLAYER EDIT MODAL (Right Stack) -->
     <div class="modal" id="player-edit-modal" onclick="if(event.target===this) app.closePlayerEdit()">
         <div class="side-stack-content">
             <div class="modal-header">SET PLAYER</div>
@@ -387,7 +408,7 @@
         </div>
     </div>
 
-    <!-- MENU MODAL -->
+    <!-- MENU MODAL (Right Stack - Only System Actions) -->
     <div class="modal" id="menu-modal" onclick="if(event.target===this) app.closeMenu()">
         <div class="side-stack-content">
             <div class="modal-header">MENU</div>
@@ -399,7 +420,7 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v15.2
+            // Physics Engine v15.3 (Corrected Board Distance)
             bhSlope: -55.0, bhIntercept: 230.0,
             hhSlope: -5.1, hhIntercept: 95.0,
 
@@ -416,10 +437,9 @@
             ],
 
             refRows: [
-                {v: 11.0, n: "Hack", d: 33.0},
-                {v: 10.0, n: "B 12", d: 26.5}, 
+                {v: 10.0, n: "B12", d: 26.5}, 
                 {v: 7.0, n: "Tee", d: 21.0},
-                {v: 4.0, n: "T 12", d: 15.5}, 
+                {v: 4.0, n: "T12", d: 15.5}, 
                 {v: 2.0, n: "Mid", d: 7.5}
             ]
         };
@@ -429,14 +449,18 @@
             t0: 0, t1: 0, split: 0, interval: 0, timerInterval: null,
             enableBH: true, enableHH: true,
             history: [], currentProfile: 'TEAM', 
-            iceOffsetBH: 0, iceOffsetHH: 0, 
+            
+            // DECOUPLED OFFSETS (Distance)
+            iceOffsetBH: 0, 
+            iceOffsetHH: 0, 
+            
             editingId: null, ui: {},
 
             init() {
                 const ids = ['btn-main','time-bh','pred-bh','card-bh','time-hh','pred-hh','card-hh',
-                             'ref-table','history-body',
+                             'ref-table','history-body','profile-container',
                              'calib-modal','menu-modal','player-edit-modal','zone-list',
-                             'p-team','p-skip','p-3rd','p-2nd','p-lead'];
+                             'p-skip','p-3rd','p-2nd','p-lead'];
                 ids.forEach(id => this.ui[id] = document.getElementById(id));
 
                 this.loadData();
@@ -458,7 +482,8 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    b.onclick = () => this.calibrate(z.d); 
+                    // White Tee in Menus
+                    b.onclick = () => this.calibrate(z.d); // Store Distance
                     list.appendChild(b);
                 });
             },
@@ -550,27 +575,30 @@
                 }
             },
 
-            // --- PREDICTION ---
+            // --- PREDICTION (DISTANCE) ---
             predictBH(time) {
                 if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) {
                     this.ui['pred-bh'].innerText = "-"; this.ui['pred-bh'].style.color = "#444"; return null;
                 }
                 const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffsetBH;
                 this.displayPred(this.ui['pred-bh'], dist);
-            },
-            predictHH(time) {
+            }
+
+            ,predictHH(time) {
                 if (time < CONFIG.minHH || time > CONFIG.maxHH || time <= CONFIG.fastLimitHH) {
                     this.ui['pred-hh'].innerText = "-"; this.ui['pred-hh'].style.color = "#444"; return null;
                 }
                 const dist = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffsetHH;
                 this.displayPred(this.ui['pred-hh'], dist);
             },
+
             displayPred(el, dist) {
                 let txt = "UNKNOWN"; let minDiff = 99;
                 CONFIG.zones.forEach(z => {
                     if (Math.abs(z.d - dist) < minDiff) { minDiff = Math.abs(z.d - dist); txt = z.n; }
                 });
-                el.innerText = txt; el.style.color = "#fff"; 
+                el.innerText = txt;
+                el.style.color = "#fff"; 
             },
 
             // --- DATA ---
@@ -578,36 +606,51 @@
                 if (!this.enableBH && !this.enableHH) return;
                 const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
                 const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
+                
                 if (!validBH && !validHH) return;
 
+                // Smart defaults: Gray out fast shots
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
+
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
                 const s = {
                     id: Date.now(), player: p,
-                    bh: validBH ? this.split : 0, hh: validHH ? this.interval : 0,
-                    actual: null, useBH: defaultUseBH, useHH: defaultUseHH,
+                    bh: validBH ? this.split : 0,
+                    hh: validHH ? this.interval : 0,
+                    actual: null, // Stored as DISTANCE
+                    useBH: defaultUseBH, 
+                    useHH: defaultUseHH,
+                    // Store raw Distances
                     rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
                     rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
-                    fixedOffsetBH: this.iceOffsetBH, fixedOffsetHH: this.iceOffsetHH
+                    fixedOffsetBH: this.iceOffsetBH,
+                    fixedOffsetHH: this.iceOffsetHH
                 };
                 
                 this.history.unshift(s);
                 if(this.history.length > 60) this.history.pop();
-                this.saveStorage(); this.updateProfile(); this.renderHistory(); 
+                this.saveStorage();
+                this.updateProfile();
+                this.renderHistory(); 
             },
 
             updateProfile() {
-                const shots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
+                // BH: Player Specific
+                const bhShots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
+                // HH: Universal (All shots)
+                const hhShots = this.history;
+
                 let errSumBH = 0; let countBH = 0;
                 let errSumHH = 0; let countHH = 0;
 
-                shots.forEach(s => {
-                    if (s.actual !== null && s.actual <= 26.5) { // Only calibrate draws
-                        if (s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
-                        if (s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
-                    }
+                bhShots.forEach(s => {
+                    if (s.actual !== null && s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
+                });
+                
+                hhShots.forEach(s => {
+                     if (s.actual !== null && s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
                 });
 
                 this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
@@ -618,22 +661,31 @@
             },
 
             updateProfileUI() {
-                ['p-team','p-skip','p-3rd','p-2nd','p-lead'].forEach(id => this.ui[id].className = 'p-btn');
-                let id = 'p-team';
-                if (this.currentProfile === 'Skip') id = 'p-skip';
-                else if (this.currentProfile === '3rd') id = 'p-3rd';
-                else if (this.currentProfile === '2nd') id = 'p-2nd';
-                else if (this.currentProfile === 'Lead') id = 'p-lead';
-                this.ui[id].className = 'p-btn active';
-                if(id === 'p-team') this.ui[id].classList.add('team');
+                ['p-skip','p-3rd','p-2nd','p-lead'].forEach(id => this.ui[id].className = 'p-btn');
+                this.ui['profile-container'].className = 'profile-section'; 
+
+                if (this.currentProfile === 'TEAM') {
+                    this.ui['profile-container'].classList.add('team-mode');
+                } else {
+                    let id = '';
+                    if (this.currentProfile === 'Skip') id = 'p-skip';
+                    else if (this.currentProfile === '3rd') id = 'p-3rd';
+                    else if (this.currentProfile === '2nd') id = 'p-2nd';
+                    else if (this.currentProfile === 'Lead') id = 'p-lead';
+                    if(id) this.ui[id].className = 'p-btn active';
+                }
             },
 
             // --- UI ACTIONS ---
             openMenu() { this.ui['menu-modal'].style.display = 'flex'; },
             closeMenu() { this.ui['menu-modal'].style.display = 'none'; },
 
-            setProfile(p) {
-                this.currentProfile = p; 
+            toggleProfile(p) {
+                if (this.currentProfile === p) {
+                    this.currentProfile = 'TEAM';
+                } else {
+                    this.currentProfile = p;
+                }
                 this.updateProfile();
                 this.renderHistory();
             },
@@ -641,6 +693,7 @@
             toggleHistoryUse(id, type) {
                 const s = this.history.find(x => x.id === id);
                 if(s) {
+                    // Prevent toggling invalid times (0)
                     if(type === 'bh' && s.bh > 0) s.useBH = !s.useBH;
                     if(type === 'hh' && s.hh > 0) s.useHH = !s.useHH;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -661,6 +714,7 @@
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
                     s.actual = val;
+                    // Auto-enable if within bounds (ignore fast shots)
                     if (s.bh > CONFIG.fastLimitBH && s.bh <= CONFIG.maxBH) s.useBH = true;
                     if (s.hh > CONFIG.fastLimitHH && s.hh <= CONFIG.maxHH) s.useHH = true;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -700,9 +754,11 @@
                 const tbl = this.ui['ref-table'];
                 tbl.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
+                    // d = m*t + b + offset => t = (d - b - offset) / m
                     const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
                     const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
+                    // 5-Col Grid: Target | BH | HH | empty | empty
                     tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
@@ -719,6 +775,7 @@
                 if (offset === undefined) offset = type === 'bh' ? this.iceOffsetBH : this.iceOffsetHH;
 
                 const dist = (slope * time) + intercept + offset;
+                
                 return this.getLabelFromDist(dist);
             },
 
@@ -740,6 +797,7 @@
                     const rowActive = s.useBH || s.useHH;
                     const rowClass = rowActive ? 'row-active' : 'row-inactive';
                     
+                    const offset = (s.fixedOffset !== undefined) ? s.fixedOffset : this.iceOffset;
                     const estBH = this.getEstLabel(s.bh, 'bh', s.fixedOffsetBH);
                     const estHH = this.getEstLabel(s.hh, 'hh', s.fixedOffsetHH);
 
@@ -762,9 +820,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v15_5', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v15_4', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v15_5'); 
+                const d = localStorage.getItem('cp_v15_4'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
