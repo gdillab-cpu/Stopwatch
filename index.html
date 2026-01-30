@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v15.7</title>
+    <title>Clock-Dilla v16.0</title>
     <style>
         :root {
             /* Palette */
@@ -121,7 +121,6 @@
             min-height: 115px; 
         }
 
-        /* Container for Ref + Profiles */
         .cp-split {
             flex: 1;
             display: flex;
@@ -154,7 +153,6 @@
         .ref-table td { padding: 3px 0; border-bottom: 1px solid #333; line-height: 1.2; }
         .ref-table tr:last-child td { border-bottom: none; }
         
-        /* 3-Col Ref Table (Target | BH | HH) */
         .ref-table td:nth-child(1) { text-align: left; width: 25%; font-weight:700; color:#ccc; } 
         .ref-table td:nth-child(2) { text-align: center; width: 37%; } 
         .ref-table td:nth-child(3) { text-align: center; width: 38%; } 
@@ -167,6 +165,16 @@
             flex-direction: column;
             gap: 4px;
             justify-content: center;
+            border-radius: 8px;
+            border: 1px solid transparent; 
+            margin: 4px;
+            transition: 0.2s;
+        }
+        
+        /* TEAM MODE: Light Outline */
+        .profile-section.team-mode {
+            border: 1px solid #777;
+            background: rgba(255,255,255,0.03);
         }
 
         .p-row { display: flex; gap: 4px; flex: 1; }
@@ -187,7 +195,6 @@
             transition: 0.1s;
         }
         
-        /* Active State */
         .p-btn.active {
             background: #444;
             color: #fff;
@@ -222,14 +229,14 @@
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 260px; /* Large padding to clear lifted button */
+            /* Extra padding to clear the lifted button */
+            padding-bottom: 280px; 
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
         .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
-        /* 4 Columns: B-H | H-H | Result | Pos */
         .col-bh { width: 28%; }
         .col-hh { width: 28%; }
         .col-res { width: 28%; }
@@ -239,7 +246,7 @@
         .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
         
         /* State Classes */
-        .val-used { color: #CCCCCC; } /* Light Grey */
+        .val-used { color: #CCCCCC; } 
         .val-ignored { color: #444; }
         
         .row-inactive .val-ignored, .row-inactive .col-pos, .row-inactive .est-txt { color: #333; }
@@ -253,23 +260,17 @@
             vertical-align: middle;
         }
 
-        /* --- BOTTOM DOCK (Fixed) --- */
-        .bottom-dock {
+        /* --- BOTTOM DOCK (Lifted) --- */
+        .controls-area {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(28, 28, 30, 0.98);
             backdrop-filter: blur(15px);
-            border-top: 1px solid #333;
-            z-index: 100;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: max(0px, env(safe-area-inset-bottom));
-        }
-
-        /* Lifted Button Area */
-        .controls-area {
             padding: 12px;
-            padding-bottom: max(40px, env(safe-area-inset-bottom)); 
-            display: flex;
+            /* Significant Lift: 60px + Safe Area */
+            padding-bottom: max(60px, env(safe-area-inset-bottom)); 
+            border-top: 1px solid #333;
+            display: flex; 
+            z-index: 100;
         }
 
         #btn-main {
@@ -341,7 +342,7 @@
         <div class="clear-btn" onclick="app.reset()">×</div>
     </div>
 
-    <!-- CONTROL PANEL (Integrated) -->
+    <!-- CONTROL PANEL -->
     <div class="control-panel">
         <div class="cp-split">
             <!-- Left: Live Ice Speeds (60%) -->
@@ -423,7 +424,7 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v15.5
+            // Physics Engine v16.0 (Distance-Based)
             bhSlope: -55.0, bhIntercept: 230.0,
             hhSlope: -5.1, hhIntercept: 95.0,
 
@@ -482,7 +483,6 @@
                     const b = document.createElement('button');
                     b.className = 'zone-btn';
                     b.innerText = z.n;
-                    // White Tee in Menus
                     b.onclick = () => this.calibrate(z.d); 
                     list.appendChild(b);
                 });
@@ -575,7 +575,7 @@
                 }
             },
 
-            // --- PREDICTION (DISTANCE) ---
+            // --- PREDICTION ---
             predictBH(time) {
                 if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) {
                     this.ui['pred-bh'].innerText = "-"; this.ui['pred-bh'].style.color = "#444"; return null;
@@ -603,12 +603,10 @@
                 if (!this.enableBH && !this.enableHH) return;
                 const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
                 const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
-                
                 if (!validBH && !validHH) return;
 
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
-
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
                 const s = {
@@ -633,7 +631,7 @@
                 let errSumHH = 0; let countHH = 0;
 
                 shots.forEach(s => {
-                    if (s.actual !== null && s.actual <= 26.5) { // Only calibrate draws
+                    if (s.actual !== null && s.actual <= 26.5) { 
                         if (s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
                         if (s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
                     }
@@ -642,7 +640,6 @@
                 this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
                 this.iceOffsetHH = countHH > 0 ? (errSumHH / countHH) : 0;
                 
-                // NO ICE READOUT
                 this.updateProfileUI();
                 this.renderRef();
             },
@@ -739,7 +736,6 @@
                 const tbl = this.ui['ref-table'];
                 tbl.innerHTML = '';
                 CONFIG.refRows.forEach(r => {
-                    // d = m*t + b + offset => t = (d - b - offset) / m
                     const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
                     const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
@@ -803,9 +799,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v15_5', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v16_0', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v15_5'); 
+                const d = localStorage.getItem('cp_v16_0'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
