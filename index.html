@@ -6,12 +6,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v16.3</title>
+    <title>Clock-Dilla v16.0</title>
     <style>
         :root {
             /* Palette */
             --blue: #0A84FF;
-            --green: #30D158; 
+            --green: #30D158; /* Tee Line & Start */
             --red: #FF453A;
             --grey: #98989D;
             --dark: #1C1C1E;
@@ -121,62 +121,173 @@
             min-height: 115px; 
         }
 
-        .cp-split { flex: 1; display: flex; padding: 6px 0; }
-        
-        .ref-section { width: 60%; display: flex; flex-direction: column; justify-content: center; padding-left: 8px; border-right: 1px solid #333; }
-        .ref-header { text-align: center; font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        /* Container for Ref + Profiles */
+        .cp-split {
+            flex: 1;
+            display: flex;
+            padding: 6px 0;
+        }
+
+        /* Left: Live Ice Speeds (60%) */
+        .ref-section {
+            width: 60%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-left: 8px;
+            border-right: 1px solid #333;
+        }
+
+        .ref-header {
+            text-align: center;
+            font-size: 11px; 
+            color: var(--grey); 
+            text-transform: uppercase; 
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
         .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .ref-table td { padding: 3px 0; border-bottom: 1px solid #333; line-height: 1.2; }
         .ref-table tr:last-child td { border-bottom: none; }
+        
+        /* 3-Col Ref Table (Target | BH | HH) */
         .ref-table td:nth-child(1) { text-align: left; width: 25%; font-weight:700; color:#ccc; } 
         .ref-table td:nth-child(2) { text-align: center; width: 37%; } 
         .ref-table td:nth-child(3) { text-align: center; width: 38%; } 
 
-        .profile-section { width: 40%; padding: 4px 8px; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+        /* Right: Profile Grid (40%) */
+        .profile-section {
+            width: 40%;
+            padding: 4px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            justify-content: center;
+            /* REMOVED: border/background for team mode */
+        }
+
         .p-row { display: flex; gap: 4px; flex: 1; }
         
-        /* Fixed: Light Grey Active State */
         .p-btn {
-            flex: 1; background: #252525; border: 1px solid #333; border-radius: 6px; color: #666; font-size: 11px; font-weight: 700;
-            text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.1s; user-select: none;
+            flex: 1;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #666; /* Inactive Text */
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.1s;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        .p-btn.active { background: #444; color: #fff; border-color: #999; }
+        
+        /* Active State */
+        .p-btn.active {
+            background: #444;
+            color: #fff;
+            border-color: #999;
+        }
         .p-btn:active { transform: scale(0.96); }
 
-        .menu-strip { width: 50px; background: #252525; display: flex; flex-direction: column; align-items: center; justify-content: center; border-left: 1px solid #333; cursor: pointer; }
-        .menu-text { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); white-space: nowrap; color: var(--grey); font-weight: 800; font-size: 14px; letter-spacing: 2px; }
+        /* Far Right: Menu Strip */
+        .menu-strip {
+            width: 50px;
+            background: #252525;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid #333; 
+            cursor: pointer;
+        }
+        .menu-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            color: var(--grey);
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
 
-        /* --- HISTORY --- */
-        .scroll-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 260px; }
+        /* --- HISTORY SCROLL AREA --- */
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 260px; /* Large padding to clear lifted button */
+        }
+        
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
         .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
-        .col-bh { width: 28%; } .col-hh { width: 28%; } .col-res { width: 28%; } 
+        /* 4 Columns: B-H | H-H | Result | Pos */
+        .col-bh { width: 28%; }
+        .col-hh { width: 28%; }
+        .col-res { width: 28%; }
         .col-pos { width: 16%; text-align: center; color: #666; font-weight: 700; font-size: 10px; }
-        
-        /* Light Grey Active Time Text */
-        .val-used { color: #CCCCCC; } .val-ignored { color: #444; }
-        .row-inactive .val-ignored, .row-inactive .col-pos, .row-inactive .est-txt { color: #333; }
-        .row-inactive .col-res { color: #333 !important; }
-        .res-box { display: inline-block; width: 100%; height: 20px; border: 1px solid #444; border-radius: 4px; vertical-align: middle; }
 
         .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
         .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
+        
+        /* State Classes */
+        .val-used { color: #CCCCCC; } 
+        .val-ignored { color: #444; }
+        
+        .row-inactive .val-ignored, .row-inactive .col-pos, .row-inactive .est-txt { color: #333; }
+        .row-inactive .col-res { color: #333 !important; }
+        .row-inactive .res-box { border-color: #333; }
 
-        /* --- FOOTER --- */
-        .controls-area {
+        .res-box {
+            display: inline-block;
+            width: 100%; height: 20px;
+            border: 1px solid #444; border-radius: 4px;
+            vertical-align: middle;
+        }
+
+        /* --- BOTTOM DOCK (Fixed) --- */
+        .bottom-dock {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(28, 28, 30, 0.98); backdrop-filter: blur(15px);
-            padding: 12px; padding-bottom: max(60px, env(safe-area-inset-bottom)); 
-            border-top: 1px solid #333; display: flex; z-index: 100;
+            background: rgba(28, 28, 30, 0.98);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid #333;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: max(0px, env(safe-area-inset-bottom));
+        }
+
+        /* Lifted Button Area */
+        .controls-area {
+            padding: 12px;
+            /* Significant Lift: 60px + Safe Area */
+            padding-bottom: max(60px, env(safe-area-inset-bottom)); 
+            display: flex;
         }
 
         #btn-main {
-            width: 100%; height: 150px; border-radius: 22px;
-            font-size: 40px; font-weight: 800; color: white; background: var(--green);
-            border: none; box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
-            transition: 0.1s; text-transform: uppercase; letter-spacing: 2px;
+            width: 100%; height: 150px; 
+            border-radius: 22px;
+            font-size: 40px; 
+            font-weight: 800; 
+            color: white;
+            background: var(--green);
+            border: none;
+            box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
+            transition: 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
         #btn-main:active { transform: scale(0.98); }
         #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
@@ -184,21 +295,43 @@
         .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3) !important; }
         .st-int { background-color: var(--red) !important; box-shadow: 0 4px 30px rgba(255, 69, 58, 0.3) !important; }
 
-        /* --- MODALS --- */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: flex-end; align-items: center; z-index: 200; }
-        .side-stack-content { width: 140px; height: 100%; background: #181818; border-left: 1px solid #333; display: flex; flex-direction: column; overflow-y: auto; padding: 10px; }
+        /* --- MODALS (Right Stack Style) --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none;
+            justify-content: flex-end; align-items: center; z-index: 200;
+        }
+        
+        .side-stack-content {
+            width: 140px; height: 100%;
+            background: #181818;
+            border-left: 1px solid #333;
+            display: flex; flex-direction: column;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
         .modal-header { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        .zone-btn { width: 100%; padding: 12px 0; margin-bottom: 6px; background: #2A2A2A; color: #fff; border: 1px solid #333; border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center; }
+        
+        .zone-btn {
+            width: 100%; padding: 12px 0; margin-bottom: 6px;
+            background: #2A2A2A; color: #fff; border: 1px solid #333;
+            border-radius: 8px; font-size: 14px; font-weight: 700;
+            text-align: center;
+        }
         .z-tee { color: var(--green); border-color: var(--green); }
 
+        /* Colored Action Buttons */
         .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; border: 1px solid #333; }
         .menu-clear { color: var(--red) !important; border-color: var(--red) !important; border: 1px solid #333; }
+        
         .rename-input { width: 100%; background: #333; border: 1px solid #555; color: white; padding: 10px; border-radius: 6px; font-size: 16px; text-transform: uppercase; text-align: center; margin-bottom: 10px; outline: none; }
 
     </style>
 </head>
 <body>
 
+    <!-- TOP: TIMERS -->
     <div class="top-bar">
         <div class="timer-card" id="card-bh" onclick="app.toggleTimer('bh')">
             <div class="t-label">Back to Hog</div>
@@ -210,15 +343,22 @@
             <div class="t-time" id="time-hh">0.00</div>
             <div class="t-pred" id="pred-hh">--</div>
         </div>
+        <!-- Discreet Clear Button -->
         <div class="clear-btn" onclick="app.reset()">×</div>
     </div>
 
+    <!-- CONTROL PANEL (Integrated) -->
     <div class="control-panel">
         <div class="cp-split">
+            <!-- Left: Live Ice Speeds (60%) -->
             <div class="ref-section">
-                <div class="ref-header">Live Ice Speeds</div>
+                <div class="ref-header">
+                    <span>Live Ice Speeds</span>
+                    <!-- No Number Here -->
+                </div>
                 <table class="ref-table" id="ref-table"></table>
             </div>
+            <!-- Right: Profile Switcher (40%) -->
             <div class="profile-section" id="profile-container">
                 <div class="p-row">
                     <button class="p-btn" id="p-skip">SKIP</button>
@@ -230,11 +370,14 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Menu Button -->
         <div class="menu-strip" onclick="app.openMenu()">
             <div class="menu-text">MENU</div>
         </div>
     </div>
 
+    <!-- HISTORY -->
     <div class="scroll-area">
         <table class="history-table">
             <thead>
@@ -249,11 +392,12 @@
         </table>
     </div>
 
+    <!-- FOOTER -->
     <div class="controls-area">
         <button id="btn-main">START</button>
     </div>
 
-    <!-- MODALS -->
+    <!-- CALIB MODAL (Right Stack) -->
     <div class="modal" id="calib-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content">
             <div class="modal-header">SET ACTUAL</div>
@@ -262,6 +406,7 @@
         </div>
     </div>
 
+    <!-- PLAYER EDIT MODAL (Right Stack) -->
     <div class="modal" id="player-edit-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content">
             <div class="modal-header">SET PLAYER</div>
@@ -274,6 +419,7 @@
         </div>
     </div>
 
+    <!-- MENU MODAL (Right Stack - Only System Actions) -->
     <div class="modal" id="menu-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content">
             <div class="modal-header">MENU</div>
@@ -283,6 +429,7 @@
         </div>
     </div>
 
+    <!-- RENAME MODAL -->
     <div class="modal" id="rename-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content" style="justify-content:center; background:rgba(20,20,20,0.95);">
             <div class="modal-header">RENAME</div>
@@ -292,6 +439,7 @@
         </div>
     </div>
     
+    <!-- CONFIRM MODAL -->
     <div class="modal" id="confirm-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content" style="justify-content:center; background:rgba(50,0,0,0.9);">
             <div class="modal-header" style="color:#fff; font-weight:800;">DELETE ALL?</div>
@@ -328,9 +476,8 @@
 
             init() {
                 const ids = ['btn-main','time-bh','pred-bh','card-bh','time-hh','pred-hh','card-hh',
-                             'ref-table','history-body',
-                             'calib-modal','menu-modal','player-edit-modal','zone-list',
-                             'p-skip','p-3rd','p-2nd','p-lead','rename-modal','rename-input','confirm-modal'];
+                             'ref-table','history-body','calib-modal','menu-modal','player-edit-modal','zone-list',
+                             'p-skip','p-3rd','p-2nd','p-lead','rename-modal','rename-input','confirm-modal','profile-container'];
                 ids.forEach(id => this.ui[id] = document.getElementById(id));
 
                 this.loadData();
@@ -376,12 +523,13 @@
             
             renameProfile(key) {
                 this.longPressTimer = null; 
-                const newName = prompt("Enter Name:", this.profileNames[key]);
+                const newName = this.ui['rename-input'].value.trim();
                 if (newName) {
                     this.profileNames[key] = newName.toUpperCase().substring(0, 5); 
                     this.saveStorage();
                     this.updateProfileUI();
                 }
+                this.closeModals();
             },
 
             buildGrid() {
@@ -522,21 +670,19 @@
             },
 
             updateProfileUI() {
-                // FIXED: Explicitly map button IDs to keys
-                this.ui['p-skip'].innerText = this.profileNames['Skip'];
-                this.ui['p-3rd'].innerText = this.profileNames['3rd'];
-                this.ui['p-2nd'].innerText = this.profileNames['2nd'];
-                this.ui['p-lead'].innerText = this.profileNames['Lead'];
-
-                ['p-skip','p-3rd','p-2nd','p-lead'].forEach(id => this.ui[id].className = 'p-btn');
+                const idMap = { 'p-skip': 'Skip', 'p-3rd': '3rd', 'p-2nd': '2nd', 'p-lead': 'Lead' };
+                for (const [id, key] of Object.entries(idMap)) {
+                    this.ui[id].innerText = this.profileNames[key];
+                    this.ui[id].className = 'p-btn';
+                }
 
                 if (this.currentProfile !== 'TEAM') {
-                    let id = '';
-                    if (this.currentProfile === 'Skip') id = 'p-skip';
-                    else if (this.currentProfile === '3rd') id = 'p-3rd';
-                    else if (this.currentProfile === '2nd') id = 'p-2nd';
-                    else if (this.currentProfile === 'Lead') id = 'p-lead';
-                    if(id) this.ui[id].className = 'p-btn active';
+                    let activeId = '';
+                    if (this.currentProfile === 'Skip') activeId = 'p-skip';
+                    else if (this.currentProfile === '3rd') activeId = 'p-3rd';
+                    else if (this.currentProfile === '2nd') activeId = 'p-2nd';
+                    else if (this.currentProfile === 'Lead') activeId = 'p-lead';
+                    if(activeId) this.ui[activeId].className = 'p-btn active';
                 }
             },
 
@@ -668,9 +814,7 @@
                 if(d) {
                     const data = JSON.parse(d);
                     this.history = data.history || [];
-                    if(data.profileNames) {
-                        this.profileNames = { ...this.profileNames, ...data.profileNames };
-                    }
+                    if(data.profileNames) this.profileNames = data.profileNames;
                 }
             }
         };
