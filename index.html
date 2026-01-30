@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v15.4</title>
+    <title>Clock-Dilla v15.7</title>
     <style>
         :root {
             /* Palette */
@@ -112,7 +112,7 @@
         }
         .clear-btn:active { color: #888; }
 
-        /* --- CONTROL PANEL (Split Layout) --- */
+        /* --- CONTROL PANEL --- */
         .control-panel {
             display: flex;
             background: var(--dark);
@@ -176,7 +176,7 @@
             background: #252525;
             border: 1px solid #333;
             border-radius: 6px;
-            color: #888;
+            color: #666;
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
@@ -186,12 +186,13 @@
             justify-content: center;
             transition: 0.1s;
         }
+        
+        /* Active State */
         .p-btn.active {
-            background: #333;
-            color: var(--blue);
-            border-color: var(--blue);
+            background: #444;
+            color: #fff;
+            border-color: #999;
         }
-        .p-btn.team.active { color: var(--green); border-color: var(--green); } 
         .p-btn:active { transform: scale(0.96); }
 
         /* Far Right: Menu Strip */
@@ -221,7 +222,7 @@
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 280px; /* Large padding to clear the bottom stack */
+            padding-bottom: 260px; /* Large padding to clear lifted button */
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
@@ -232,13 +233,13 @@
         .col-bh { width: 28%; }
         .col-hh { width: 28%; }
         .col-res { width: 28%; }
-        .col-pos { width: 16%; text-align: right; padding-right: 12px; color: #666; font-weight: 700; font-size: 10px; }
+        .col-pos { width: 16%; text-align: center; color: #666; font-weight: 700; font-size: 10px; }
 
         .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
         .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
         
         /* State Classes */
-        .val-used { color: #CCCCCC; } /* Light Grey for Active */
+        .val-used { color: #CCCCCC; } /* Light Grey */
         .val-ignored { color: #444; }
         
         .row-inactive .val-ignored, .row-inactive .col-pos, .row-inactive .est-txt { color: #333; }
@@ -264,20 +265,22 @@
             padding-bottom: max(0px, env(safe-area-inset-bottom));
         }
 
+        /* Lifted Button Area */
         .controls-area {
             padding: 12px;
+            padding-bottom: max(40px, env(safe-area-inset-bottom)); 
             display: flex;
         }
 
         #btn-main {
-            width: 100%; height: 110px; 
+            width: 100%; height: 150px; 
             border-radius: 22px;
-            font-size: 36px; 
+            font-size: 40px; 
             font-weight: 800; 
             color: white;
             background: var(--green);
             border: none;
-            box-shadow: 0 4px 25px rgba(48, 209, 88, 0.3);
+            box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
             transition: 0.1s;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -285,8 +288,8 @@
         #btn-main:active { transform: scale(0.98); }
         #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
         
-        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 25px rgba(10, 132, 255, 0.3) !important; }
-        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 25px rgba(255, 69, 58, 0.3) !important; }
+        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3) !important; }
+        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 30px rgba(255, 69, 58, 0.3) !important; }
 
         /* --- MODALS (Right Stack Style) --- */
         .modal {
@@ -420,7 +423,7 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v15.3 (Corrected Board Distance)
+            // Physics Engine v15.5
             bhSlope: -55.0, bhIntercept: 230.0,
             hhSlope: -5.1, hhIntercept: 95.0,
 
@@ -437,9 +440,10 @@
             ],
 
             refRows: [
-                {v: 10.0, n: "B12", d: 26.5}, 
+                {v: 11.0, n: "Hack", d: 33.0},
+                {v: 10.0, n: "B 12", d: 26.5}, 
                 {v: 7.0, n: "Tee", d: 21.0},
-                {v: 4.0, n: "T12", d: 15.5}, 
+                {v: 4.0, n: "T 12", d: 15.5}, 
                 {v: 2.0, n: "Mid", d: 7.5}
             ]
         };
@@ -449,11 +453,7 @@
             t0: 0, t1: 0, split: 0, interval: 0, timerInterval: null,
             enableBH: true, enableHH: true,
             history: [], currentProfile: 'TEAM', 
-            
-            // DECOUPLED OFFSETS (Distance)
-            iceOffsetBH: 0, 
-            iceOffsetHH: 0, 
-            
+            iceOffsetBH: 0, iceOffsetHH: 0, 
             editingId: null, ui: {},
 
             init() {
@@ -483,7 +483,7 @@
                     b.className = 'zone-btn';
                     b.innerText = z.n;
                     // White Tee in Menus
-                    b.onclick = () => this.calibrate(z.d); // Store Distance
+                    b.onclick = () => this.calibrate(z.d); 
                     list.appendChild(b);
                 });
             },
@@ -582,23 +582,20 @@
                 }
                 const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffsetBH;
                 this.displayPred(this.ui['pred-bh'], dist);
-            }
-
-            ,predictHH(time) {
+            },
+            predictHH(time) {
                 if (time < CONFIG.minHH || time > CONFIG.maxHH || time <= CONFIG.fastLimitHH) {
                     this.ui['pred-hh'].innerText = "-"; this.ui['pred-hh'].style.color = "#444"; return null;
                 }
                 const dist = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffsetHH;
                 this.displayPred(this.ui['pred-hh'], dist);
             },
-
             displayPred(el, dist) {
                 let txt = "UNKNOWN"; let minDiff = 99;
                 CONFIG.zones.forEach(z => {
                     if (Math.abs(z.d - dist) < minDiff) { minDiff = Math.abs(z.d - dist); txt = z.n; }
                 });
-                el.innerText = txt;
-                el.style.color = "#fff"; 
+                el.innerText = txt; el.style.color = "#fff"; 
             },
 
             // --- DATA ---
@@ -609,7 +606,6 @@
                 
                 if (!validBH && !validHH) return;
 
-                // Smart defaults: Gray out fast shots
                 const defaultUseBH = validBH && (this.split > CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
 
@@ -617,16 +613,11 @@
 
                 const s = {
                     id: Date.now(), player: p,
-                    bh: validBH ? this.split : 0,
-                    hh: validHH ? this.interval : 0,
-                    actual: null, // Stored as DISTANCE
-                    useBH: defaultUseBH, 
-                    useHH: defaultUseHH,
-                    // Store raw Distances
+                    bh: validBH ? this.split : 0, hh: validHH ? this.interval : 0,
+                    actual: null, useBH: defaultUseBH, useHH: defaultUseHH,
                     rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
                     rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
-                    fixedOffsetBH: this.iceOffsetBH,
-                    fixedOffsetHH: this.iceOffsetHH
+                    fixedOffsetBH: this.iceOffsetBH, fixedOffsetHH: this.iceOffsetHH
                 };
                 
                 this.history.unshift(s);
@@ -637,25 +628,21 @@
             },
 
             updateProfile() {
-                // BH: Player Specific
-                const bhShots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
-                // HH: Universal (All shots)
-                const hhShots = this.history;
-
+                const shots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
                 let errSumBH = 0; let countBH = 0;
                 let errSumHH = 0; let countHH = 0;
 
-                bhShots.forEach(s => {
-                    if (s.actual !== null && s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
-                });
-                
-                hhShots.forEach(s => {
-                     if (s.actual !== null && s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
+                shots.forEach(s => {
+                    if (s.actual !== null && s.actual <= 26.5) { // Only calibrate draws
+                        if (s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
+                        if (s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
+                    }
                 });
 
                 this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
                 this.iceOffsetHH = countHH > 0 ? (errSumHH / countHH) : 0;
                 
+                // NO ICE READOUT
                 this.updateProfileUI();
                 this.renderRef();
             },
@@ -693,7 +680,6 @@
             toggleHistoryUse(id, type) {
                 const s = this.history.find(x => x.id === id);
                 if(s) {
-                    // Prevent toggling invalid times (0)
                     if(type === 'bh' && s.bh > 0) s.useBH = !s.useBH;
                     if(type === 'hh' && s.hh > 0) s.useHH = !s.useHH;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -714,7 +700,6 @@
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
                     s.actual = val;
-                    // Auto-enable if within bounds (ignore fast shots)
                     if (s.bh > CONFIG.fastLimitBH && s.bh <= CONFIG.maxBH) s.useBH = true;
                     if (s.hh > CONFIG.fastLimitHH && s.hh <= CONFIG.maxHH) s.useHH = true;
                     this.saveStorage(); this.updateProfile(); this.renderHistory();
@@ -758,7 +743,6 @@
                     const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
                     const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
                     let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
-                    // 5-Col Grid: Target | BH | HH | empty | empty
                     tbl.innerHTML += `<tr style="color:${color}"><td class="col-1">${r.n}</td><td class="col-2 mono">${bh.toFixed(2)}</td><td class="col-3 mono">${hh.toFixed(2)}</td><td class="col-4"></td><td class="col-5"></td></tr>`;
                 });
             },
@@ -797,7 +781,6 @@
                     const rowActive = s.useBH || s.useHH;
                     const rowClass = rowActive ? 'row-active' : 'row-inactive';
                     
-                    const offset = (s.fixedOffset !== undefined) ? s.fixedOffset : this.iceOffset;
                     const estBH = this.getEstLabel(s.bh, 'bh', s.fixedOffsetBH);
                     const estHH = this.getEstLabel(s.hh, 'hh', s.fixedOffsetHH);
 
@@ -820,9 +803,9 @@
             },
 
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { localStorage.setItem('cp_v15_4', JSON.stringify(this.history)); },
+            saveStorage() { localStorage.setItem('cp_v15_5', JSON.stringify(this.history)); },
             loadData() { 
-                const d = localStorage.getItem('cp_v15_4'); 
+                const d = localStorage.getItem('cp_v15_5'); 
                 if(d) this.history = JSON.parse(d); 
             }
         };
