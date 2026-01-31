@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v16.4</title>
+    <title>Clock-Dilla v16.7</title>
     <style>
         :root {
             /* Palette */
@@ -189,7 +189,7 @@
             -webkit-user-select: none;
         }
         
-        /* Active State: Light Grey */
+        /* Active State */
         .p-btn.active {
             background: #444;
             color: #fff;
@@ -256,13 +256,19 @@
             vertical-align: middle;
         }
 
-        /* --- BOTTOM DOCK (Fixed) --- */
-        .bottom-dock {
-            position: fixed; bottom: 0; left: 0; right: 0;
+        /* --- BOTTOM DOCK (Lifted & Fixed) --- */
+        .controls-area {
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0;
             background: rgba(28, 28, 30, 0.98);
             backdrop-filter: blur(15px);
             padding: 12px;
+            
+            /* CRITICAL: Buffer for Home Bar + Lift */
             padding-bottom: max(60px, env(safe-area-inset-bottom)); 
+            
             border-top: 1px solid #333;
             display: flex; 
             z-index: 100;
@@ -441,7 +447,7 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v16.1
+            // Physics Engine v16.0
             bhSlope: -35.0, bhIntercept: 167.0,
             hhSlope: -6.7616, hhIntercept: 118.5,
             minBH: 2.0, maxBH: 6.0,
@@ -603,8 +609,7 @@
                 this.ui['btn-main'].disabled = (!this.enableBH && !this.enableHH);
             },
             reset(soft=false) {
-                this.stopTimer();
-                this.state = 'IDLE';
+                this.stopTimer(); this.state = 'IDLE';
                 this.ui['time-bh'].innerText = "0.00"; this.ui['pred-bh'].innerText = "--";
                 this.ui['time-hh'].innerText = "0.00"; this.ui['pred-hh'].innerText = "--";
                 this.ui['card-bh'].className = 'timer-card' + (this.enableBH ? '' : ' disabled');
@@ -710,6 +715,7 @@
             openPlayerEdit(id) { this.editingId = id; this.ui['player-edit-modal'].style.display = 'flex'; },
             setShotPlayer(newPlayer) { const s = this.history.find(x => x.id === this.editingId); if(s) { s.player = newPlayer; this.saveStorage(); this.updateProfile(); this.renderHistory(); } this.closeModals(); },
             openModal(id) { this.editingId = id; this.ui['calib-modal'].style.display = 'flex'; },
+            closeCalib() { this.ui['calib-modal'].style.display = 'none'; this.editingId = null; },
             calibrate(val) { 
                 const s = this.history.find(x => x.id === this.editingId);
                 if(s) {
