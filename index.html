@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v16.5 (Fixed)</title>
+    <title>Clock-Dilla v16.7</title>
     <style>
         :root {
             /* Palette */
@@ -112,7 +112,7 @@
         }
         .clear-btn:active { color: #888; }
 
-        /* --- CONTROL PANEL (Split Layout) --- */
+        /* --- CONTROL PANEL --- */
         .control-panel {
             display: flex;
             background: var(--dark);
@@ -226,6 +226,13 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             padding-bottom: 260px; /* Large padding to clear lifted button */
+            
+            /* HIDE SCROLLBAR */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE 10+ */
+        }
+        .scroll-area::-webkit-scrollbar { 
+            display: none; /* Chrome/Safari/Webkit */
         }
         
         .history-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
@@ -266,6 +273,14 @@
             border-top: 1px solid #333;
             display: flex; 
             z-index: 100;
+        }
+
+        /* Lifted Button Area */
+        .controls-area {
+            padding: 12px;
+            /* Significant Lift: 60px + Safe Area */
+            padding-bottom: max(60px, env(safe-area-inset-bottom)); 
+            display: flex;
         }
 
         #btn-main {
@@ -346,7 +361,6 @@
             <div class="ref-section">
                 <div class="ref-header">
                     <span>Live Ice Speeds</span>
-                    <!-- No Number Here -->
                 </div>
                 <table class="ref-table" id="ref-table"></table>
             </div>
