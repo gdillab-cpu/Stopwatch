@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v16.7</title>
+    <title>Clock-Dilla v18.0</title>
     <style>
         :root {
             /* Palette */
@@ -227,9 +227,9 @@
             -webkit-overflow-scrolling: touch;
             padding-bottom: 260px; /* Large padding to clear lifted button */
             
-            /* HIDE SCROLLBAR */
+            /* HIDE SCROLLBAR - FIXED */
             scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none;  /* IE 10+ */
+            -ms-overflow-style: none;  /* IE */
         }
         .scroll-area::-webkit-scrollbar { 
             display: none; /* Chrome/Safari/Webkit */
@@ -277,10 +277,16 @@
 
         /* Lifted Button Area */
         .controls-area {
+            position: fixed; 
+            bottom: 0; left: 0; right: 0;
+            background: rgba(28, 28, 30, 0.98); 
+            backdrop-filter: blur(15px);
             padding: 12px;
-            /* Significant Lift: 60px + Safe Area */
+            /* 60px buffer + Safe Area */
             padding-bottom: max(60px, env(safe-area-inset-bottom)); 
-            display: flex;
+            border-top: 1px solid #333;
+            display: flex; 
+            z-index: 100;
         }
 
         #btn-main {
@@ -333,6 +339,8 @@
         .menu-clear { color: var(--red) !important; border-color: var(--red) !important; border: 1px solid #333; }
         
         .rename-input { width: 100%; background: #333; border: 1px solid #555; color: white; padding: 10px; border-radius: 6px; font-size: 16px; text-transform: uppercase; text-align: center; margin-bottom: 10px; outline: none; }
+        .stat-label { font-size: 10px; color: #888; text-align:center; margin-top:10px; margin-bottom: 4px; }
+        .stat-val { font-size: 14px; color: #fff; text-align:center; font-family:monospace; margin-bottom:5px; font-weight:700; white-space: pre-line; }
 
     </style>
 </head>
@@ -438,9 +446,17 @@
     <!-- RENAME MODAL -->
     <div class="modal" id="rename-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content" style="justify-content:center; background:rgba(20,20,20,0.95);">
-            <div class="modal-header">RENAME</div>
+            <div class="modal-header">PROFILE SETTINGS</div>
+            <div class="stat-label">NAME</div>
             <input type="text" id="rename-input" class="rename-input" maxlength="5" />
-            <button class="zone-btn" style="color:var(--green); border-color:var(--green);" onclick="app.saveRename()">SAVE</button>
+            
+            <div class="stat-label">TEAM TEE vs PLAYER TEE</div>
+            <div class="stat-val" id="calc-offset-display">--</div>
+            
+            <div class="stat-label">MANUAL OFFSET (SEC)</div>
+            <input type="number" id="manual-offset-input" class="rename-input" placeholder="0.00" step="0.01" />
+            
+            <button class="zone-btn" style="color:var(--green); border-color:var(--green); margin-top:10px;" onclick="app.saveRename()">SAVE</button>
             <button class="zone-btn" style="color:#666;" onclick="app.closeModals()">CANCEL</button>
         </div>
     </div>
@@ -456,19 +472,20 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v16.5
+            // Physics Engine v17.0
             bhSlope: -35.0, bhIntercept: 167.0,
             hhSlope: -6.7616, hhIntercept: 118.5,
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 22.0,
             fastLimitBH: 3.65, fastLimitHH: 11.70,
 
+            // Zones (High at top for menu)
             zones: [
-                {v: 11.5, n: "Board", d: 39.0}, {v: 11.0, n: "Hack", d: 33.0},
-                {v: 10.0, n: "B 12", d: 26.5}, {v: 9.0, n: "B 8", d: 24.5}, {v: 8.0, n: "B 4", d: 22.5},
+                {v: 1.0, n: "High", d: 2.5}, {v: 2.0, n: "Mid", d: 7.5}, {v: 3.0, n: "Tight", d: 12.5},
+                {v: 4.0, n: "T 12", d: 15.5}, {v: 5.0, n: "T 8", d: 17.5}, {v: 6.0, n: "T 4", d: 19.5},
                 {v: 7.0, n: "TEE", d: 21.0},
-                {v: 6.0, n: "T 4", d: 19.5}, {v: 5.0, n: "T 8", d: 17.5}, {v: 4.0, n: "T 12", d: 15.5},
-                {v: 3.0, n: "Tight", d: 12.5}, {v: 2.0, n: "Mid", d: 7.5}, {v: 1.0, n: "High", d: 2.5}
+                {v: 8.0, n: "B 4", d: 22.5}, {v: 9.0, n: "B 8", d: 24.5}, {v: 10.0, n: "B 12", d: 26.5},
+                {v: 11.0, n: "Hack", d: 33.0}, {v: 11.5, n: "Board", d: 39.0}
             ],
             refRows: [
                 {v: 11.0, n: "Hack", d: 33.0},
@@ -485,12 +502,14 @@
             history: [], currentProfile: 'TEAM', iceOffsetBH: 0, iceOffsetHH: 0, 
             editingId: null, ui: {}, 
             profileNames: { 'Skip': 'SKIP', '3rd': '3RD', '2nd': '2ND', 'Lead': 'LEAD' },
+            manualOffsets: { 'Skip': 0, '3rd': 0, '2nd': 0, 'Lead': 0 },
             longPressTimer: null, renameTarget: null,
 
             init() {
                 const ids = ['btn-main','time-bh','pred-bh','card-bh','time-hh','pred-hh','card-hh',
                              'ref-table','history-body','calib-modal','menu-modal','player-edit-modal','zone-list',
-                             'p-skip','p-3rd','p-2nd','p-lead','rename-modal','rename-input','confirm-modal','profile-container'];
+                             'p-skip','p-3rd','p-2nd','p-lead','rename-modal','rename-input','confirm-modal',
+                             'profile-container','calc-offset-display','manual-offset-input'];
                 ids.forEach(id => this.ui[id] = document.getElementById(id));
 
                 this.loadData();
@@ -532,6 +551,7 @@
                 btn.addEventListener('mouseup', (e) => { if(e.button===0) end(e); });
                 btn.addEventListener('touchend', end);
                 btn.addEventListener('mouseleave', () => { clearTimeout(this.longPressTimer); this.longPressTimer=null; });
+                btn.addEventListener('contextmenu', e => e.preventDefault());
             },
             
             renameProfile(key) {
@@ -627,9 +647,24 @@
                 if(!soft) { this.ui['btn-main'].innerText = "START"; this.ui['btn-main'].className = ''; }
             },
 
+            // --- OFFSET LOGIC ---
+            getProfileOffsetBH() {
+                if (this.currentProfile === 'TEAM' || this.currentProfile === '-') return this.iceOffsetBH;
+                
+                const man = this.manualOffsets[this.currentProfile];
+                if (man && man !== 0) {
+                    const teamOffset = this.calcOffsetForProfile('TEAM');
+                    const shift = man * CONFIG.bhSlope; 
+                    return teamOffset + shift;
+                }
+                
+                return this.iceOffsetBH; 
+            },
+
             predictBH(time) {
                 if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) { this.ui['pred-bh'].innerText = "-"; this.ui['pred-bh'].style.color = "#444"; return null; }
-                const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffsetBH;
+                const activeOffset = this.getProfileOffsetBH();
+                const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + activeOffset;
                 this.displayPred(this.ui['pred-bh'], dist);
             },
             predictHH(time) {
@@ -653,13 +688,16 @@
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
+                // SNAPSHOT ACTIVE OFFSET
+                const activeOffsetBH = this.getProfileOffsetBH();
+
                 const s = {
                     id: Date.now(), player: p,
                     bh: validBH ? this.split : 0, hh: validHH ? this.interval : 0,
                     actual: null, useBH: defaultUseBH, useHH: defaultUseHH,
                     rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
                     rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0,
-                    fixedOffsetBH: this.iceOffsetBH, fixedOffsetHH: this.iceOffsetHH
+                    fixedOffsetBH: activeOffsetBH, fixedOffsetHH: this.iceOffsetHH
                 };
                 
                 this.history.unshift(s);
@@ -669,18 +707,34 @@
                 this.saveStorage(); this.updateProfile(); this.renderHistory(); 
             },
 
-            updateProfile() {
-                const shots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
-                let errSumBH = 0; let countBH = 0; let errSumHH = 0; let countHH = 0;
+            calcOffsetForProfile(prof) {
+                const shots = prof === 'TEAM' ? this.history : this.history.filter(s => s.player === prof);
+                let errSum = 0; let count = 0;
                 shots.forEach(s => {
-                    if (s.actual !== null && s.actual <= 26.5) { 
-                        if (s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
-                        if (s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
+                    if (s.actual !== null && s.actual <= 26.5 && s.useBH && s.bh > 0) {
+                        errSum += (s.actual - s.rawBH); 
+                        count++; 
                     }
                 });
-                this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
+                return count > 0 ? (errSum / count) : 0;
+            },
+
+            updateProfile() {
+                if (this.currentProfile !== 'TEAM' && this.currentProfile !== '-' && this.manualOffsets[this.currentProfile]) {
+                    this.iceOffsetBH = this.getProfileOffsetBH();
+                } else {
+                    this.iceOffsetBH = this.calcOffsetForProfile(this.currentProfile);
+                }
+
+                const hhShots = this.history;
+                let errSumHH = 0; let countHH = 0;
+                hhShots.forEach(s => {
+                     if (s.actual !== null && s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
+                });
                 this.iceOffsetHH = countHH > 0 ? (errSumHH / countHH) : 0;
-                this.updateProfileUI(); this.renderRef();
+                
+                this.updateProfileUI();
+                this.renderRef();
             },
 
             updateProfileUI() {
@@ -707,16 +761,41 @@
             openRename(key) {
                 this.renameTarget = key;
                 this.ui['rename-input'].value = this.profileNames[key];
+                
+                const teamOffsetFt = this.calcOffsetForProfile('TEAM');
+                const playerOffsetFt = this.calcOffsetForProfile(key);
+                
+                const teamTeeTime = (21.0 - CONFIG.bhIntercept - teamOffsetFt) / CONFIG.bhSlope;
+                const playerTeeTime = (21.0 - CONFIG.bhIntercept - playerOffsetFt) / CONFIG.bhSlope;
+                const diffTime = playerTeeTime - teamTeeTime;
+                const sign = diffTime > 0 ? "+" : "";
+                
+                this.ui['calc-offset-display'].innerText = 
+                    `TEAM TEE: ${teamTeeTime.toFixed(2)}s\n` + 
+                    `${this.profileNames[key]} TEE: ${playerTeeTime.toFixed(2)}s\n` +
+                    `DIFF: ${sign}${diffTime.toFixed(2)}s`;
+                
+                const man = this.manualOffsets[key] || 0;
+                this.ui['manual-offset-input'].value = man === 0 ? '' : man;
+
                 this.ui['rename-modal'].style.display = 'flex';
                 this.ui['rename-input'].focus();
             },
             saveRename() {
-                const val = this.ui['rename-input'].value.trim();
-                if(val) {
-                    this.profileNames[this.renameTarget] = val.substring(0,6).toUpperCase();
-                    this.saveStorage();
-                    this.updateProfileUI();
+                const name = this.ui['rename-input'].value.trim();
+                const manual = parseFloat(this.ui['manual-offset-input'].value);
+                
+                if(name) this.profileNames[this.renameTarget] = name.substring(0,6).toUpperCase();
+                
+                if (!isNaN(manual) && manual !== 0) {
+                    this.manualOffsets[this.renameTarget] = manual;
+                } else {
+                    this.manualOffsets[this.renameTarget] = 0;
                 }
+
+                this.saveStorage();
+                this.updateProfileUI();
+                this.updateProfile();
                 this.closeModals();
             },
 
@@ -726,11 +805,7 @@
             openModal(id) { this.editingId = id; this.ui['calib-modal'].style.display = 'flex'; },
             calibrate(val) { 
                 const s = this.history.find(x => x.id === this.editingId);
-                if(s) {
-                    s.actual = val; 
-                    // No auto-enable!
-                    this.saveStorage(); this.updateProfile(); this.renderHistory();
-                }
+                if(s) { s.actual = val; this.saveStorage(); this.updateProfile(); this.renderHistory(); }
                 this.closeModals();
             },
             toggleHistoryUse(id, type) {
@@ -809,18 +884,13 @@
                     else if (pName !== '-' && this.profileNames[pName]) pName = this.profileNames[pName].substring(0,4);
 
                     tr.className = (s.useBH || s.useHH) ? 'row-active' : 'row-inactive';
-                    tr.innerHTML = `
-                        <td class="col-bh" onclick="app.toggleHistoryUse(${s.id},'bh')"><span class="time-txt mono ${s.useBH ? 'val-used' : 'val-ignored'}">${s.bh > 0 ? s.bh.toFixed(2) : '-'}</span><span class="est-txt">${s.bh > 0 ? estBH : ''}</span></td>
-                        <td class="col-hh" onclick="app.toggleHistoryUse(${s.id},'hh')"><span class="time-txt mono ${s.useHH ? 'val-used' : 'val-ignored'}">${s.hh > 0 ? s.hh.toFixed(2) : '-'}</span><span class="est-txt">${s.hh > 0 ? estHH : ''}</span></td>
-                        <td class="col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td>
-                        <td class="col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${pName}</span></td>
-                    `;
+                    tr.innerHTML = `<td class="col-bh" onclick="app.toggleHistoryUse(${s.id},'bh')"><span class="time-txt mono ${s.useBH ? 'val-used' : 'val-ignored'}">${s.bh > 0 ? s.bh.toFixed(2) : '-'}</span><span class="est-txt">${s.bh > 0 ? estBH : ''}</span></td><td class="col-hh" onclick="app.toggleHistoryUse(${s.id},'hh')"><span class="time-txt mono ${s.useHH ? 'val-used' : 'val-ignored'}">${s.hh > 0 ? s.hh.toFixed(2) : '-'}</span><span class="est-txt">${s.hh > 0 ? estHH : ''}</span></td><td class="col-res" onclick="app.openModal(${s.id})">${this.getResText(s)}</td><td class="col-pos"><span class="player-badge" onclick="app.openPlayerEdit(${s.id})">${pName}</span></td>`;
                     tbody.appendChild(tr);
                 });
             },
             vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
             saveStorage() { 
-                const data = { history: this.history, profileNames: this.profileNames };
+                const data = { history: this.history, profileNames: this.profileNames, manualOffsets: this.manualOffsets };
                 localStorage.setItem('cp_v16_3', JSON.stringify(data)); 
             },
             loadData() { 
@@ -829,6 +899,7 @@
                     const data = JSON.parse(d);
                     this.history = data.history || [];
                     if(data.profileNames) this.profileNames = data.profileNames;
+                    if(data.manualOffsets) this.manualOffsets = data.manualOffsets;
                 }
             }
         };
