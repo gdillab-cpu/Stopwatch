@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v18.2</title>
+    <title>Clock-Dilla v18.4</title>
     <style>
         :root {
             /* Palette */
@@ -121,109 +121,35 @@
             min-height: 115px; 
         }
 
-        /* Container for Ref + Profiles */
-        .cp-split {
-            flex: 1;
-            display: flex;
-            padding: 6px 0;
-        }
-
-        /* Left: Live Ice Speeds (60%) */
-        .ref-section {
-            width: 60%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding-left: 8px;
-            border-right: 1px solid #333;
-        }
-
-        .ref-header {
-            text-align: center;
-            font-size: 11px; 
-            color: var(--grey); 
-            text-transform: uppercase; 
-            font-weight: 700;
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 4px;
-        }
-
+        .cp-split { flex: 1; display: flex; padding: 6px 0; }
+        
+        .ref-section { width: 60%; display: flex; flex-direction: column; justify-content: center; padding-left: 8px; border-right: 1px solid #333; }
+        .ref-header { text-align: center; font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        
         .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .ref-table td { padding: 3px 0; border-bottom: 1px solid #333; line-height: 1.2; }
         .ref-table tr:last-child td { border-bottom: none; }
-        
-        /* 3-Col Ref Table */
         .ref-table td:nth-child(1) { text-align: left; width: 25%; font-weight:700; color:#ccc; } 
         .ref-table td:nth-child(2) { text-align: center; width: 37%; } 
         .ref-table td:nth-child(3) { text-align: center; width: 38%; } 
 
-        /* Right: Profile Grid (40%) */
-        .profile-section {
-            width: 40%;
-            padding: 4px 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            justify-content: center;
-        }
-
+        .profile-section { width: 40%; padding: 4px 8px; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
         .p-row { display: flex; gap: 4px; flex: 1; }
-        
         .p-btn {
-            flex: 1;
-            background: #252525;
-            border: 1px solid #333;
-            border-radius: 6px;
-            color: #666;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.1s;
+            flex: 1; background: #252525; border: 1px solid #333; border-radius: 6px; color: #666; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.1s; user-select: none;
         }
-        
-        .p-btn.active {
-            background: #444;
-            color: #fff;
-            border-color: #999;
-        }
+        .p-btn.active { background: #444; color: #fff; border-color: #999; }
         .p-btn:active { transform: scale(0.96); }
 
-        /* Far Right: Menu Strip */
-        .menu-strip {
-            width: 50px;
-            background: #252525;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-left: 1px solid #333; 
-            cursor: pointer;
-        }
-        .menu-text {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
-            white-space: nowrap;
-            color: var(--grey);
-            font-weight: 800;
-            font-size: 14px;
-            letter-spacing: 2px;
-        }
+        .menu-strip { width: 50px; background: #252525; display: flex; flex-direction: column; align-items: center; justify-content: center; border-left: 1px solid #333; cursor: pointer; }
+        .menu-text { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); white-space: nowrap; color: var(--grey); font-weight: 800; font-size: 14px; letter-spacing: 2px; }
 
-        /* --- HISTORY SCROLL AREA --- */
-        .scroll-area {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+        /* --- HISTORY --- */
+        .scroll-area { 
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; 
             padding-bottom: 260px; /* Buffer for lifted button */
             scrollbar-width: none;
-            -ms-overflow-style: none;
         }
         .scroll-area::-webkit-scrollbar { display: none; }
         
@@ -231,59 +157,37 @@
         .history-table th { position: sticky; top: 0; background: #000; color: var(--grey); font-size: 10px; padding: 8px 4px; border-bottom: 1px solid #333; z-index: 10; }
         .history-table td { padding: 10px 4px; border-bottom: 1px solid #222; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         
-        .col-bh { width: 28%; }
-        .col-hh { width: 28%; }
-        .col-res { width: 28%; }
+        .col-bh { width: 28%; } .col-hh { width: 28%; } .col-res { width: 28%; } 
         .col-pos { width: 16%; text-align: center; color: #666; font-weight: 700; font-size: 10px; }
-
-        .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
-        .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
         
-        .val-used { color: #CCCCCC; } 
-        .val-ignored { color: #444; }
+        .val-used { color: #CCCCCC; } .val-ignored { color: #444; }
         .row-inactive .val-ignored, .row-inactive .col-pos, .row-inactive .est-txt { color: #333; }
         .row-inactive .col-res { color: #333 !important; }
         .row-inactive .res-box { border-color: #333; }
         .res-box { display: inline-block; width: 100%; height: 20px; border: 1px solid #444; border-radius: 4px; vertical-align: middle; }
+        .time-txt { font-family: monospace; font-size: 14px; font-weight: 600; display: inline-block; min-width: 45px; text-align: right; }
+        .est-txt { font-size: 9px; color: #555; font-weight: 600; margin-left: 2px; text-transform: uppercase; }
 
-        /* --- BOTTOM DOCK (Fixed) --- */
-        .bottom-dock {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(28, 28, 30, 0.98);
-            backdrop-filter: blur(15px);
-            padding: 12px;
-            padding-bottom: max(60px, env(safe-area-inset-bottom)); 
-            border-top: 1px solid #333;
-            display: flex; 
-            z-index: 100;
-        }
-
+        /* --- FOOTER --- */
         .controls-area {
-            padding: 12px;
-            padding-bottom: max(60px, env(safe-area-inset-bottom)); 
-            display: flex;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(28, 28, 30, 0.98); backdrop-filter: blur(15px);
+            padding: 12px; 
+            padding-bottom: max(60px, env(safe-area-inset-bottom)); /* Lifted 60px */
+            border-top: 1px solid #333; display: flex; z-index: 100;
         }
 
         #btn-main {
-            width: 100%; height: 150px; 
-            border-radius: 22px;
-            font-size: 40px; 
-            font-weight: 800; 
-            color: white;
-            background: var(--green);
-            border: none;
-            box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
-            transition: 0.1s;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            width: 100%; height: 150px; border-radius: 22px;
+            font-size: 40px; font-weight: 800; color: white; background: var(--green);
+            border: none; box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
+            transition: 0.1s; text-transform: uppercase; letter-spacing: 2px;
         }
         #btn-main:active { transform: scale(0.98); }
-        #btn-main:disabled { background: #333; color: #555; box-shadow: none; }
-        
         .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3) !important; }
         .st-int { background-color: var(--red) !important; box-shadow: 0 4px 30px rgba(255, 69, 58, 0.3) !important; }
 
-        /* --- MODALS (Right Stack Style) --- */
+        /* --- MODALS --- */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: flex-end; align-items: center; z-index: 200; }
         .side-stack-content { width: 140px; height: 100%; background: #181818; border-left: 1px solid #333; display: flex; flex-direction: column; overflow-y: auto; padding: 10px; }
         .modal-header { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
@@ -291,12 +195,12 @@
         .z-tee { color: var(--green); border-color: var(--green); }
         .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; border: 1px solid #333; }
         .menu-clear { color: var(--red) !important; border-color: var(--red) !important; border: 1px solid #333; }
-
+        
         .rename-input { width: 100%; background: #333; border: 1px solid #555; color: white; padding: 10px; border-radius: 6px; font-size: 16px; text-transform: uppercase; text-align: center; margin-bottom: 10px; outline: none; }
         .stat-label { font-size: 10px; color: #888; text-align:center; margin-top:10px; margin-bottom: 4px; }
         .stat-val { font-size: 14px; color: #fff; text-align:center; font-family:monospace; margin-bottom:5px; font-weight:700; white-space: pre-line; }
 
-        /* Steppers */
+        /* STEPPERS */
         .stepper-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
         .step-btn {
             background: #252525; border: 1px solid #444; color: #ccc;
@@ -304,15 +208,9 @@
             display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
         .step-btn:active { background: #444; color: #fff; }
-        
-        /* Offset Display + Reset Button Row */
         .offset-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .offset-display { 
-            font-family: monospace; font-size: 24px; color: var(--blue); font-weight: 700; min-width: 80px; text-align: center;
-        }
-        .reset-icon {
-            color: #666; font-size: 10px; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; cursor: pointer; text-transform: uppercase;
-        }
+        .offset-display { font-family: monospace; font-size: 24px; color: #666; font-weight: 700; min-width: 80px; text-align: center; }
+        .reset-icon { color: #666; font-size: 10px; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; cursor: pointer; text-transform: uppercase; }
         .reset-icon:active { background: #333; color: #fff; }
 
     </style>
@@ -336,9 +234,7 @@
     <div class="control-panel">
         <div class="cp-split">
             <div class="ref-section">
-                <div class="ref-header">
-                    <span>Live Ice Speeds</span>
-                </div>
+                <div class="ref-header"><span>Live Ice Speeds</span></div>
                 <table class="ref-table" id="ref-table"></table>
             </div>
             <div class="profile-section" id="profile-container">
@@ -361,7 +257,6 @@
         <table class="history-table">
             <thead>
                 <tr>
-                    <th class="col-1"></th> 
                     <th class="col-bh">B-H</th>
                     <th class="col-hh">H-H</th>
                     <th class="col-res">Result</th>
@@ -406,7 +301,6 @@
         </div>
     </div>
 
-    <!-- RENAME/OFFSET MODAL WITH RESET -->
     <div class="modal" id="rename-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content" style="justify-content:center; background:rgba(20,20,20,0.95);">
             <div class="modal-header">PROFILE SETTINGS</div>
@@ -434,7 +328,6 @@
         </div>
     </div>
     
-    <!-- CONFIRM MODAL -->
     <div class="modal" id="confirm-modal" onclick="if(event.target===this) app.closeModals()">
         <div class="side-stack-content" style="justify-content:center; background:rgba(50,0,0,0.9);">
             <div class="modal-header" style="color:#fff; font-weight:800;">DELETE ALL?</div>
@@ -445,13 +338,13 @@
 
     <script>
         const CONFIG = {
-            // Physics Engine v17.0
             bhSlope: -35.0, bhIntercept: 167.0,
             hhSlope: -6.7616, hhIntercept: 118.5,
             minBH: 2.0, maxBH: 6.0,
             minHH: 7.0, maxHH: 22.0,
             fastLimitBH: 3.65, fastLimitHH: 11.70,
 
+            // Zones (High at top for menu)
             zones: [
                 {v: 1.0, n: "High", d: 2.5}, {v: 2.0, n: "Mid", d: 7.5}, {v: 3.0, n: "Tight", d: 12.5},
                 {v: 4.0, n: "T 12", d: 15.5}, {v: 5.0, n: "T 8", d: 17.5}, {v: 6.0, n: "T 4", d: 19.5},
@@ -459,6 +352,7 @@
                 {v: 8.0, n: "B 4", d: 22.5}, {v: 9.0, n: "B 8", d: 24.5}, {v: 10.0, n: "B 12", d: 26.5},
                 {v: 11.0, n: "Hack", d: 33.0}, {v: 11.5, n: "Board", d: 39.0}
             ],
+            // Ref table rows (using distance)
             refRows: [
                 {v: 11.0, n: "Hack", d: 33.0},
                 {v: 10.0, n: "B 12", d: 26.5}, 
@@ -525,27 +419,25 @@
                 btn.addEventListener('mouseleave', () => { clearTimeout(this.longPressTimer); this.longPressTimer=null; });
             },
 
-            // --- OFFSET LOGIC ---
+            // --- OFFSET STEPPERS ---
             stepOffset(val) {
-                // Round to avoid float errors
                 this.tempOffset = parseFloat((this.tempOffset + val).toFixed(2));
                 this.updateOffsetDisplay();
             },
-            
             clearManualOffset() {
                 this.tempOffset = 0;
                 this.updateOffsetDisplay();
             },
-            
             updateOffsetDisplay() {
                 const sign = this.tempOffset > 0 ? "+" : "";
-                this.ui['manual-offset-display'].innerText = sign + this.tempOffset.toFixed(2);
-                this.ui['manual-offset-display'].style.color = this.tempOffset !== 0 ? 'var(--blue)' : '#fff';
+                this.ui['manual-offset-display'].innerText = this.tempOffset === 0 ? "0.00" : (sign + this.tempOffset.toFixed(2));
+                // Grey if 0, White if Active
+                this.ui['manual-offset-display'].style.color = this.tempOffset === 0 ? '#666' : '#fff';
             },
 
             renameProfile(key) {
                 this.longPressTimer = null; 
-                // Default logic
+                // Default rename
             },
 
             buildGrid() {
@@ -620,7 +512,8 @@
                 this.ui['btn-main'].disabled = (!this.enableBH && !this.enableHH);
             },
             reset(soft=false) {
-                this.stopTimer(); this.state = 'IDLE';
+                this.stopTimer();
+                this.state = 'IDLE';
                 this.ui['time-bh'].innerText = "0.00"; this.ui['pred-bh'].innerText = "--";
                 this.ui['time-hh'].innerText = "0.00"; this.ui['pred-hh'].innerText = "--";
                 this.ui['card-bh'].className = 'timer-card' + (this.enableBH ? '' : ' disabled');
@@ -629,9 +522,40 @@
                 if(!soft) { this.ui['btn-main'].innerText = "START"; this.ui['btn-main'].className = ''; }
             },
 
+            // --- OFFSET LOGIC (FIXED: Revert to Team when needed) ---
+            getProfileOffsetBH() {
+                if (this.currentProfile === 'TEAM' || this.currentProfile === '-') return this.iceOffsetBH;
+                
+                const man = this.manualOffsets[this.currentProfile];
+                // Check explicit 0 to ensure resets are respected
+                if (man && man !== 0) {
+                    // Calc Team Baseline fresh to compare
+                    const teamOffset = this.calcOffsetForProfile('TEAM');
+                    const shift = man * CONFIG.bhSlope; 
+                    return teamOffset + shift;
+                }
+                
+                // Else use profile calculated offset
+                return this.calcOffsetForProfile(this.currentProfile); 
+            },
+            
+            calcOffsetForProfile(prof) {
+                const shots = prof === 'TEAM' ? this.history : this.history.filter(s => s.player === prof);
+                let errSum = 0; let count = 0;
+                shots.forEach(s => {
+                    if (s.actual !== null && s.actual <= 26.5 && s.useBH && s.bh > 0) {
+                        errSum += (s.actual - s.rawBH); 
+                        count++; 
+                    }
+                });
+                return count > 0 ? (errSum / count) : 0;
+            },
+
             predictBH(time) {
                 if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) { this.ui['pred-bh'].innerText = "-"; this.ui['pred-bh'].style.color = "#444"; return null; }
-                const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + this.iceOffsetBH;
+                
+                const activeOffset = this.getProfileOffsetBH();
+                const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + activeOffset;
                 this.displayPred(this.ui['pred-bh'], dist);
             },
             predictHH(time) {
@@ -655,6 +579,7 @@
                 const defaultUseHH = validHH && (this.interval > CONFIG.fastLimitHH);
                 let p = this.currentProfile; if(p === 'TEAM') p = '-'; 
 
+                // Snapshot active offset logic
                 const activeOffsetBH = this.getProfileOffsetBH();
 
                 const s = {
@@ -668,23 +593,33 @@
                 
                 this.history.unshift(s);
                 if(this.history.length > 60) this.history.pop();
-                // Auto Reset
-                this.currentProfile = 'TEAM';
-                this.saveStorage(); this.updateProfile(); this.renderHistory(); 
+                
+                this.currentProfile = 'TEAM'; // Auto-reset
+                this.saveStorage(); 
+                this.updateProfile(); 
+                this.renderHistory(); 
             },
 
             updateProfile() {
-                const shots = this.currentProfile === 'TEAM' ? this.history : this.history.filter(s => s.player === this.currentProfile);
-                let errSumBH = 0; let countBH = 0; let errSumHH = 0; let countHH = 0;
-                shots.forEach(s => {
-                    if (s.actual !== null && s.actual <= 26.5) { 
-                        if (s.useBH && s.bh > 0) { errSumBH += (s.actual - s.rawBH); countBH++; }
-                        if (s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
-                    }
+                // Determine Main Display Offset
+                // 1. If Team -> Use Team Calc
+                // 2. If Profile -> Use getProfileOffsetBH (handles manual vs calc)
+                
+                if (this.currentProfile === 'TEAM' || this.currentProfile === '-') {
+                    this.iceOffsetBH = this.calcOffsetForProfile('TEAM');
+                } else {
+                    this.iceOffsetBH = this.getProfileOffsetBH();
+                }
+
+                const hhShots = this.history;
+                let errSumHH = 0; let countHH = 0;
+                hhShots.forEach(s => {
+                     if (s.actual !== null && s.useHH && s.hh > 0) { errSumHH += (s.actual - s.rawHH); countHH++; }
                 });
-                this.iceOffsetBH = countBH > 0 ? (errSumBH / countBH) : 0;
                 this.iceOffsetHH = countHH > 0 ? (errSumHH / countHH) : 0;
-                this.updateProfileUI(); this.renderRef();
+                
+                this.updateProfileUI();
+                this.renderRef();
             },
 
             updateProfileUI() {
@@ -704,29 +639,6 @@
                 }
             },
 
-            getProfileOffsetBH() {
-                if (this.currentProfile === 'TEAM' || this.currentProfile === '-') return this.iceOffsetBH;
-                const man = this.manualOffsets[this.currentProfile];
-                if (man && man !== 0) {
-                    const teamOffset = this.calcOffsetForProfile('TEAM');
-                    const shift = man * CONFIG.bhSlope; 
-                    return teamOffset + shift;
-                }
-                return this.iceOffsetBH; 
-            },
-            
-            calcOffsetForProfile(prof) {
-                const shots = prof === 'TEAM' ? this.history : this.history.filter(s => s.player === prof);
-                let errSum = 0; let count = 0;
-                shots.forEach(s => {
-                    if (s.actual !== null && s.actual <= 26.5 && s.useBH && s.bh > 0) {
-                        errSum += (s.actual - s.rawBH); 
-                        count++; 
-                    }
-                });
-                return count > 0 ? (errSum / count) : 0;
-            },
-
             toggleProfile(p) {
                 this.currentProfile = (this.currentProfile === p) ? 'TEAM' : p;
                 this.updateProfile(); this.renderHistory();
@@ -735,6 +647,7 @@
                 this.renameTarget = key;
                 this.ui['rename-input'].value = this.profileNames[key];
                 
+                // Compare
                 const teamOffsetFt = this.calcOffsetForProfile('TEAM');
                 const playerOffsetFt = this.calcOffsetForProfile(key);
                 
