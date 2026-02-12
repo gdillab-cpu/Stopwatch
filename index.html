@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v23.1</title>
+    <title>Clock-Dilla v23.2</title>
     <style>
         :root {
             /* Palette */
@@ -116,10 +116,9 @@
         .fg-sweep { background: #222; border-color: #444; color: #666; font-size: 11px; }
         .fg-sweep.selected { background: var(--purple); color: white; border-color: var(--purple); }
 
-        .fg-zone { /* Default Enabled */ }
         .fg-zone.tee { color: var(--green); border-color: #355; }
-        /* Visual feedback for selected zone */
         .fg-zone.selected { background: var(--green); color: black; border-color: var(--green); }
+        .fg-zone.disabled { opacity: 0.2; pointer-events: none; border-color: #222; color: #444; } 
         
         .fg-empty { pointer-events: none; background: transparent; border: none; }
 
@@ -311,8 +310,8 @@
 
     <script>
         const CONFIG = {
-            bhSlope: -35.0, bhIntercept: 167.0,
-            hhSlope: -6.7616, hhIntercept: 118.5,
+            bhSlope: -30.0, bhIntercept: 139.5,
+            hhSlope: -5.4, hhIntercept: 98.0,
             minBH: 2.0, maxBH: 6.0, fastLimitBH: 3.20,
             minHH: 7.0, maxHH: 22.0, fastLimitHH: 11.70,
 
@@ -336,7 +335,8 @@
             
             refRows: [{v: 11.0, n: "Hack", d: 33.0}, {v: 10.0, n: "B 12", d: 26.5}, {v: 7.0, n: "Tee", d: 21.0}, {v: 4.0, n: "T 12", d: 15.5}, {v: 2.0, n: "Mid", d: 7.5}]
         };
-        
+
+        // Fixed Color Mapping by ID
         const PLAYER_COLORS = { 'Skip': '#FF453A', '3rd': '#FF9F0A', '2nd': '#0A84FF', 'Lead': '#30D158', '-': '#98989D' };
 
         const app = {
@@ -395,14 +395,14 @@
                         div.appendChild(btn);
                     } else if (item.t === 'z') {
                         const btn = document.createElement('button');
-                        btn.className = 'fg-btn fg-zone'; // Default Enabled
+                        btn.className = 'fg-btn fg-zone'; // UNLOCKED by default
                         btn.id = `fz-${item.n.replace(/\s+/g, '')}`;
                         if(item.n === 'TEE') btn.classList.add('tee');
                         btn.innerText = item.n;
                         
                         const zoneDef = CONFIG.zones.find(z => z.n === item.n);
                         const dist = zoneDef ? zoneDef.d : 0;
-                        btn.onclick = () => this.handleZoneSelect(dist, btn.id); // New handler
+                        btn.onclick = () => this.handleZoneSelect(dist, btn.id);
                         div.appendChild(btn);
                     } else if (item.t === 's') {
                         const btn = document.createElement('button');
@@ -423,25 +423,22 @@
             
             toggleSweep(val, btnId) {
                 this.currentSweep = val;
-                // Radio UI
                 const all = document.querySelectorAll('.fg-sweep');
                 all.forEach(b => b.classList.remove('selected'));
                 
                 const active = document.getElementById(btnId);
                 if(active) active.classList.add('selected');
                 
-                // If pending shot exists, update it & check commit
                 if (this.pendingShot) {
                     this.pendingShot.sweep = val;
                     this.checkCommit();
                 }
             },
             
-            // Handle Zone Taps -> Stores Actual, Checks Commit
             handleZoneSelect(dist, btnId) {
                 if(!this.pendingShot) return;
                 
-                // Visual Selection
+                // Visual
                 const all = document.querySelectorAll('.fg-zone');
                 all.forEach(b => b.classList.remove('selected'));
                 const active = document.getElementById(btnId);
@@ -451,17 +448,15 @@
                 this.checkCommit();
             },
             
-            // Commit if requirements met
             checkCommit() {
                 if(!this.pendingShot) return;
-                
                 const isHHOnly = (this.pendingShot.bh <= 0.1);
                 
                 if (isHHOnly) {
                      // H-H Only: Requires Zone only
                      if (this.pendingShot.actual !== null) this.commitShot();
                 } else {
-                     // B-H Shot: Requires Zone AND Sweep (sweep can be 0, but not null)
+                     // B-H Shot: Requires Zone AND Sweep (sweep can be 0/NA, but not null)
                      if (this.pendingShot.actual !== null && this.pendingShot.sweep !== null) {
                          this.commitShot();
                      }
@@ -523,7 +518,7 @@
                 const now = Date.now();
                 if (this.state === 'IDLE' || this.state === 'FINISHED') {
                     if(this.pendingShot) {
-                        this.saveShot(this.pendingShot); // Auto save raw
+                        this.saveShot(this.pendingShot); 
                         this.pendingShot = null;
                     }
                     
@@ -614,6 +609,7 @@
                 
                 if (!validBH && !validHH) return;
                 
+                // Defaults
                 const defaultUseBH = validBH && (this.split <= CONFIG.fastLimitBH);
                 const defaultUseHH = validHH && (this.interval <= CONFIG.fastLimitHH);
                 
@@ -623,15 +619,18 @@
                 this.currentSweep = null;
                 const allSweeps = document.querySelectorAll('.fg-sweep');
                 allSweeps.forEach(b => b.classList.remove('selected'));
-                // RESET ZONES
                 const allZones = document.querySelectorAll('.fg-zone');
                 allZones.forEach(z => z.classList.remove('selected'));
 
                 // Handle H-H Only Case (Disable Sweep UI for clarity)
                 const isHHOnly = validBH === false || this.split <= 0.1;
                 const sweeps = document.querySelectorAll('.fg-sweep');
-                if (isHHOnly) sweeps.forEach(s => s.classList.add('disabled'));
-                else sweeps.forEach(s => s.classList.remove('disabled'));
+                if (isHHOnly) {
+                     sweeps.forEach(s => s.classList.add('disabled'));
+                     // ZONES UNLOCKED BY DEFAULT
+                } else {
+                     sweeps.forEach(s => s.classList.remove('disabled'));
+                }
 
                 this.pendingShot = {
                     id: Date.now(), player: p,
@@ -693,6 +692,7 @@
                             this.ui['pred-bh'].innerText = "--"; 
                             this.ui['card-bh'].classList.remove('running');
                             this.ui['card-bh'].classList.add('disabled');
+                            
                             this.ui['card-hh'].classList.add('running');
                             this.ui['btn-main'].innerText = "HOG 2";
                         }
@@ -701,7 +701,6 @@
                         const curInt = (now - this.t1)/1000;
                         this.ui['time-hh'].innerText = curInt.toFixed(2);
                         
-                        // TIMEOUT
                         if (curInt > 19.0) {
                             this.stopTimer();
                             this.ui['time-hh'].innerText = "0.00";
@@ -799,36 +798,50 @@
             calcSmartStats(type, profile) {
                 let errors = [];
                 let outliers = new Set();
+                
                 this.history.forEach(s => {
                      if(s.actual === null) return;
                      if(profile !== 'TEAM' && s.player !== profile) return;
+                     
                      if (type === 'BH' && s.useBH && s.bh > 0 && s.actual <= 26.5) {
-                         const normActual = s.actual - (s.sweep || 0); // Normalized
+                         // Normalize BH Error: (Actual - Sweep) - Predicted
+                         const normActual = s.actual - (s.sweep || 0);
                          errors.push({ id: s.id, val: normActual - s.rawBH });
                      } else if (type === 'HH' && s.useHH && s.hh > 0) {
+                         // HH uses Raw Actual (Sweeping ignored/baked in)
                          errors.push({ id: s.id, val: s.actual - s.rawHH });
                      }
                 });
+                
                 if(errors.length === 0) return { mean: 0, sd: 0, outlierIds: outliers };
+                
                 const sum = errors.reduce((a,b) => a+b.val, 0);
                 const mean = sum / errors.length;
+                
                 if (errors.length < 4) return { mean, sd: 0, outlierIds: outliers }; 
+                
                 const sqDiff = errors.map(e => Math.pow(e.val - mean, 2));
                 const avgSq = sqDiff.reduce((a,b) => a+b, 0) / errors.length;
                 const sd = Math.sqrt(avgSq);
+                
                 const clean = errors.filter(e => {
                     const isOut = Math.abs(e.val - mean) > (2 * sd);
                     if(isOut) outliers.add(e.id);
                     return !isOut;
                 });
+                
                 const cleanSum = clean.reduce((a,b) => a+b.val, 0);
                 const finalMean = clean.length > 0 ? cleanSum / clean.length : mean;
+
                 return { mean: finalMean, sd: sd, outlierIds: outliers };
             },
             
-            calcOffsetForProfile(prof) { return this.calcSmartStats('BH', prof).mean; },
+            calcOffsetForProfile(prof) {
+                return this.calcSmartStats('BH', prof).mean;
+            },
+
             updateProfile() { this.updateSmartCalibration(); },
-            
+
             updateProfileUI() {
                 const idMap = { 'p-skip': 'Skip', 'p-3rd': '3rd', 'p-2nd': '2nd', 'p-lead': 'Lead' };
                 for (const [id, key] of Object.entries(idMap)) {
@@ -839,6 +852,7 @@
                 }
                 const pLabel = this.currentProfile === 'TEAM' ? 'TEAM' : (this.profileNames[this.currentProfile] || this.currentProfile);
                 if(this.ui['ref-header']) this.ui['ref-header'].innerText = `Live Ice Speeds (${pLabel})`;
+                
                 if (this.currentProfile !== 'TEAM') {
                     let activeId = '';
                     if (this.currentProfile === 'Skip') activeId = 'p-skip';
@@ -850,20 +864,33 @@
                 }
             },
 
-            toggleProfile(p) { this.currentProfile = (this.currentProfile === p) ? 'TEAM' : p; this.updateProfile(); },
+            toggleProfile(p) {
+                this.currentProfile = (this.currentProfile === p) ? 'TEAM' : p;
+                this.updateProfile(); 
+            },
             openRename(key) {
                 this.renameTarget = key;
                 this.ui['rename-input'].value = this.profileNames[key];
+                
                 const teamStats = this.calcSmartStats('BH', 'TEAM');
                 const pStats = this.calcSmartStats('BH', key);
+                
                 const teamTeeTime = (21.0 - CONFIG.bhIntercept - teamStats.mean) / CONFIG.bhSlope;
                 const playerTeeTime = (21.0 - CONFIG.bhIntercept - pStats.mean) / CONFIG.bhSlope;
                 const diffTime = playerTeeTime - teamTeeTime;
                 const sign = diffTime > 0 ? "+" : "";
-                this.ui['calc-offset-display'].innerText = `TEAM TEE: ${teamTeeTime.toFixed(2)}s\n` + `${this.profileNames[key]} TEE: ${playerTeeTime.toFixed(2)}s\n` + `DIFF: ${sign}${diffTime.toFixed(2)}s`;
+                
+                this.ui['calc-offset-display'].innerText = 
+                    `TEAM TEE: ${teamTeeTime.toFixed(2)}s\n` + 
+                    `${this.profileNames[key]} TEE: ${playerTeeTime.toFixed(2)}s\n` +
+                    `DIFF: ${sign}${diffTime.toFixed(2)}s`;
+                
+                // Consistency Score
                 const sdSeconds = pStats.sd;
                 const sdFeet = Math.abs(sdSeconds * CONFIG.bhSlope);
-                this.ui['calc-sd-display'].innerText = `±${sdFeet.toFixed(0)} ft`;
+                this.ui['calc-sd-display'].innerText = 
+                    `±${sdFeet.toFixed(0)} ft`;
+
                 const man = this.manualOffsets[key] || 0;
                 this.tempOffset = man; 
                 this.updateOffsetDisplay();
@@ -918,14 +945,21 @@
                 const mapX = (val) => ((val - xMin) / (xMax - xMin)) * w;
                 const mapY = (val) => h - ((val - yMin) / (yMax - yMin)) * h;
                 
-                // Grid
+                // Grid & Labels
                 ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.fillStyle = '#666'; ctx.font = "10px sans-serif";
                 ctx.beginPath();
-                for(let d=5; d<=30; d+=5) { let y = mapY(d); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.fillText(d+'ft', 2, y-2); }
+                for(let d=5; d<=30; d+=5) { 
+                    let y = mapY(d); ctx.moveTo(0, y); ctx.lineTo(w, y); 
+                    ctx.fillText(d+'ft', 2, y-2);
+                }
                 ctx.stroke();
                 
+                // Axis Labels X
                 ctx.textAlign = "center";
-                for(let t=xMin; t<=xMax; t+=(type==='BH'?0.2:1.0)) { let x = mapX(t); ctx.fillText(t.toFixed(1), x, h-2); }
+                for(let t=xMin; t<=xMax; t+=(type==='BH'?0.2:1.0)) {
+                     let x = mapX(t);
+                     ctx.fillText(t.toFixed(1), x, h-2);
+                }
 
                 // Team Line
                 let slope, intercept, offset;
@@ -944,14 +978,12 @@
                     let valX = type === 'BH' ? s.bh : s.hh;
                     if (valX < xMin || valX > xMax) return;
                     
-                    let pKey = s.player;
-                    if (pKey === '-' || pKey === 'TEAM') pKey = '-';
-                    // Re-match logic: if s.player stores the NAME, reverse lookup ID
-                    // if s.player stores ID, direct.
-                    // We store ID ('Skip', '3rd') in s.player.
-                    let color = colors[pKey] || '#98989D';
+                    let color = '#98989D';
+                    for(let k in this.profileNames) {
+                        if(k === s.player) color = PLAYER_COLORS[k];
+                    }
+                    if(s.player === '-') color = PLAYER_COLORS['-'];
 
-                    // Y Value: Normalized for BH, Actual for HH
                     let valY = s.actual;
                     if(type === 'BH' && s.sweep) valY -= s.sweep;
 
@@ -1036,6 +1068,7 @@
                     if(data.manualOffsets) this.manualOffsets = data.manualOffsets;
                 }
             },
+            // Legacy stubs
             toggleHistoryUse: function(){}, openPlayerEdit: function(){}, openModal: function(){}, calibrate: function(){}
         };
         app.init();
