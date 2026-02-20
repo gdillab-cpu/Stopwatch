@@ -3,1075 +3,1493 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#121212">
-    <title>Clock-Dilla v23.2</title>
+    <title>Clock-Dilla v26</title>
     <style>
         :root {
-            /* Palette */
-            --blue: #0A84FF;
-            --green: #30D158; 
-            --red: #FF453A;
-            --orange: #FF9F0A;
-            --purple: #BF5AF2;
-            --grey: #98989D;
-            --dark: #1C1C1E;
-            --bg: #000000;
-            --text: #FFFFFF;
-            --disabled: #333333;
+            --c-blue: #0A84FF; --c-green: #30D158; --c-red: #FF453A;
+            --c-orange: #FF9F0A; --c-purple: #BF5AF2; --c-grey: #98989D;
+            --c-dark: #1C1C1E; --c-bg: #000000; --c-text: #FFFFFF; --c-border: #333333;
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --header-h: 220px; --control-h: 115px;
         }
-
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Roboto", sans-serif; }
-        
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0; padding: 0; height: 100vh;
-            display: flex; flex-direction: column; overflow: hidden; user-select: none;
+            margin: 0; padding: 0; background-color: var(--c-bg); color: var(--c-text);
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
         }
+        button { border: none; outline: none; background: none; font-family: inherit; touch-action: manipulation; cursor: pointer; user-select: none; -webkit-user-select: none; }
+        .flex-center { display: flex; align-items: center; justify-content: center; }
+        .flex-col { display: flex; flex-direction: column; }
+        .hidden { display: none !important; }
 
-        /* --- TOP BAR --- */
+        /* TOP BAR */
         .top-bar {
-            background: #121212;
-            padding: max(10px, env(safe-area-inset-top)) 10px 10px 10px;
-            border-bottom: 1px solid #333;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            z-index: 50; flex-shrink: 0;
+            height: var(--header-h); flex-shrink: 0;
+            padding: calc(var(--safe-top) + 10px) 10px 10px;
+            background: #121212; border-bottom: 1px solid var(--c-border);
+            display: flex; gap: 8px; z-index: 50;
         }
-
-        .timer-card {
-            background: #222; border-radius: 14px; padding: 10px 8px;
-            text-align: center; border: 2px solid transparent; transition: 0.2s;
-            cursor: pointer; display: flex; flex-direction: column; justify-content: center; min-height: 125px; 
+        .timer-display {
+            flex: 1; background: #222; border-radius: 16px; position: relative;
+            display: grid; grid-template-columns: 1fr 1fr;
+            border: 1px solid rgba(10, 132, 255, 0.3);
         }
-        .timer-card.active { border-color: var(--blue); background: #2A2A2A; }
-        .timer-card.running { border-color: var(--green); background: #2A2A2A; }
-        .timer-card.disabled { opacity: 0.3; border-color: #444; }
-
-        .t-label { font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-        .t-time { font-size: 48px; font-weight: 300; font-family: monospace; font-variant-numeric: tabular-nums; line-height: 1.0; color: #fff; margin: 4px 0; }
-        .t-pred { font-size: 16px; font-weight: 800; text-transform: uppercase; min-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        .clear-btn {
-            position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
-            color: #444; font-size: 32px; font-weight: 200; width: 50px; height: 40px;
-            text-align: center; line-height: 40px; cursor: pointer; z-index: 60;
+        .timer-display::after {
+            content: ''; position: absolute; left: 50%; top: 15%; bottom: 15%;
+            width: 1px; background: #333; transform: translateX(-50%);
         }
+        .td-col {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.2s; cursor: pointer;
+        }
+        .td-col.disabled { opacity: 0.3; }
+        .td-col.disabled .td-val { color: #555; }
+        .td-lbl { font-size: 11px; color: #666; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+        .td-val {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 48px; font-weight: 300; line-height: 1;
+            font-variant-numeric: tabular-nums; color: #fff;
+        }
+        .td-pred { font-size: 18px; font-weight: 800; text-transform: uppercase; margin-top: 10px; min-height: 24px; color: #fff; }
 
-        /* --- CONTROL PANEL --- */
-        .control-panel { display: flex; background: var(--dark); border-bottom: 1px solid #333; flex-shrink: 0; min-height: 115px; }
-        .cp-split { flex: 1; display: flex; padding: 6px 0; }
-        
-        .ref-section { width: 60%; display: flex; flex-direction: column; justify-content: center; padding-left: 8px; border-right: 1px solid #333; }
-        .ref-header { text-align: center; font-size: 11px; color: var(--grey); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; border-bottom: 1px solid #333; padding-bottom: 4px; }
-        
-        .ref-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        .ref-table td { padding: 3px 0; border-bottom: 1px solid #333; line-height: 1.2; }
-        .ref-table tr:last-child td { border-bottom: none; }
-        .ref-table td:nth-child(1) { text-align: left; width: 25%; font-weight:700; color:#ccc; } 
-        .ref-table td:nth-child(2) { text-align: center; width: 37%; } 
-        .ref-table td:nth-child(3) { text-align: center; width: 38%; } 
+        /* CONFIDENCE DOT — shown next to BH prediction when personal cal is active */
+        .pred-wrap { display: flex; align-items: center; gap: 5px; margin-top: 10px; min-height: 24px; }
+        .conf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
+        /* CONTROL PANEL */
+        .control-panel {
+            min-height: var(--control-h); flex-shrink: 0; background: var(--c-dark);
+            border-bottom: 1px solid var(--c-border); display: flex;
+        }
+        .cp-left { flex: 1; display: flex; padding: 6px 0; }
+        .ref-section { width: 60%; padding-left: 8px; border-right: 1px solid var(--c-border); display: flex; flex-direction: column; justify-content: center; }
+        .ref-header { text-align: center; font-size: 11px; color: var(--c-grey); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .ref-table td { padding: 2px 0; border: none; text-align: center; }
+        .ref-table td:first-child { text-align: left; font-weight: 700; color: #ccc; }
         .profile-section { width: 40%; padding: 4px 8px; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
         .p-row { display: flex; gap: 4px; flex: 1; }
         .p-btn {
-            flex: 1; background: #252525; border: 1px solid #333; border-radius: 6px; color: #666; font-size: 11px; font-weight: 700;
-            text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.1s;
+            flex: 1; background: #252525; border: 1px solid #333; border-radius: 6px;
+            color: #666; font-size: 11px; font-weight: 700; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center; transition: 0.1s;
         }
         .p-btn.active { background: #444; color: #fff; border-color: #999; }
-        .p-btn:active { transform: scale(0.96); }
+        /* Green dot inside profile button when personal calibration is active */
+        .p-btn .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--c-green); margin-left: 4px; display: none; }
+        .p-btn.calibrated .cal-dot { display: inline-block; }
 
-        .menu-strip { width: 50px; background: #252525; display: flex; flex-direction: column; align-items: center; justify-content: center; border-left: 1px solid #333; cursor: pointer; }
-        .menu-text { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); white-space: nowrap; color: var(--grey); font-weight: 800; font-size: 14px; letter-spacing: 2px; }
-
-        /* --- FLASH INPUT TRAY (5-Column) --- */
-        .flash-tray {
-            flex: 1; background: #000; padding: 10px; display: flex; flex-direction: column;
-            justify-content: center; overflow: hidden; padding-bottom: 240px; 
-            opacity: 0.3; pointer-events: none; transition: opacity 0.2s;
-            scrollbar-width: none;
+        .menu-strip {
+            width: 50px; background: #252525; border-left: 1px solid var(--c-border);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 0; overflow: visible; z-index: 60;
         }
-        .flash-tray::-webkit-scrollbar { display: none; }
+        .mode-toggle {
+            flex: 0 0 50px; width: 100%; display: flex; align-items: center; justify-content: center;
+            border-bottom: 1px solid #333; cursor: pointer; background: #1c1c1e; overflow: hidden;
+        }
+        .mode-icon-svg { width: 32px; height: 32px; display: block; transition: all 0.2s ease; }
+        .mode-icon-svg.nerd { transform: scale(1.4); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
+        .mode-icon-svg.cool { transform: scale(1.4); }
+        .menu-trigger {
+            flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; background: #252525;
+        }
+        .menu-text { writing-mode: vertical-rl; transform: rotate(180deg); color: var(--c-grey); font-weight: 800; font-size: 14px; letter-spacing: 2px; }
+
+        /* FLASH TRAY */
+        .flash-tray {
+            flex: 1; background: #000; padding: 10px;
+            padding-bottom: calc(var(--safe-bottom) + 190px);
+            display: flex; flex-direction: column; justify-content: flex-start;
+            padding-top: 6px; opacity: 0.3; pointer-events: none; transition: opacity 0.2s;
+            overflow-y: auto;
+        }
         .flash-tray.active { opacity: 1; pointer-events: auto; }
-        
         .flash-grid {
             display: grid;
-            /* Player(20%) | Zones(x3) | Sweep(15%) */
-            grid-template-columns: 20% 1fr 1fr 1fr 15%; 
+            grid-template-columns: 20% 1fr 1fr 1fr 15%;
             grid-template-rows: repeat(4, 55px);
             gap: 6px; width: 100%;
         }
-
         .fg-btn {
-            border-radius: 8px; color: #ccc; font-weight: 700; font-size: 12px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
-            background: #1A1A1A; border: 1px solid #333; 
+            border: 1px solid #333; border-radius: 8px;
+            font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center;
         }
-        .fg-btn:active { background: #444; transform: scale(0.98); }
+        .fg-btn:active { transform: scale(0.96); filter: brightness(1.2); }
+        .fg-btn.selected { color: #fff; border-color: currentColor; border-width: 2px; }
+        .fg-player { background: #333; color: #ccc; }
+        .fg-player.selected { background: var(--c-blue); border-color: var(--c-blue); color: #fff; }
+        .fg-zone { background: #1a1a1a; color: #fff; }
+        .fg-zone.selected { background: var(--c-green); border-color: var(--c-green); color: #000; }
+        .fg-sweep { background: #333; color: #ccc; }
+        .fg-sweep.selected { background: var(--c-purple); border-color: var(--c-purple); color: #fff; }
+        .fg-sweep.disabled { opacity: 0.1; pointer-events: none; }
+        .fg-discard { background: #111; color: #555; border: 1px dashed #333; font-style: italic; font-size: 10px; }
+        .fg-discard:active { background: #222; color: #888; }
 
-        .fg-player { background: #252525; border-color: #555; color: #888; font-weight: 800; font-size: 11px; }
-        .fg-player.selected { background: var(--blue); color: white; border-color: var(--blue); }
-
-        .fg-sweep { background: #222; border-color: #444; color: #666; font-size: 11px; }
-        .fg-sweep.selected { background: var(--purple); color: white; border-color: var(--purple); }
-
-        .fg-zone.tee { color: var(--green); border-color: #355; }
-        .fg-zone.selected { background: var(--green); color: black; border-color: var(--green); }
-        .fg-zone.disabled { opacity: 0.2; pointer-events: none; border-color: #222; color: #444; } 
-        
-        .fg-empty { pointer-events: none; background: transparent; border: none; }
-
-        /* --- FOOTER --- */
+        /* MAIN BUTTON */
         .controls-area {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(28, 28, 30, 0.98); backdrop-filter: blur(15px);
-            padding: 12px; 
-            padding-bottom: max(60px, env(safe-area-inset-bottom)); 
-            border-top: 1px solid #333; display: flex; z-index: 100;
+            background: rgba(28,28,30,0.95); backdrop-filter: blur(10px);
+            padding: 12px; padding-bottom: max(60px, var(--safe-bottom));
+            border-top: 1px solid var(--c-border); z-index: 100;
         }
-
         #btn-main {
             width: 100%; height: 150px; border-radius: 22px;
-            font-size: 40px; font-weight: 800; color: white; background: var(--green);
-            border: none; box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3);
-            transition: 0.1s; text-transform: uppercase; letter-spacing: 2px;
+            font-size: 40px; font-weight: 800; color: white; text-transform: uppercase; letter-spacing: 2px;
+            transition: transform 0.1s, background-color 0.2s;
         }
         #btn-main:active { transform: scale(0.98); }
-        .st-split { background-color: var(--blue) !important; box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3) !important; }
-        .st-int { background-color: var(--red) !important; box-shadow: 0 4px 30px rgba(255, 69, 58, 0.3) !important; }
+        .btn-state-start { background: var(--c-green); box-shadow: 0 4px 30px rgba(48, 209, 88, 0.3); }
+        .btn-state-split { background: var(--c-blue); box-shadow: 0 4px 30px rgba(10, 132, 255, 0.3); }
+        .btn-state-int   { background: var(--c-red);  box-shadow: 0 4px 30px rgba(255, 69, 58, 0.3); }
 
-        /* --- MODALS --- */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: flex-end; align-items: center; z-index: 200; }
-        .side-stack-content { width: 140px; height: 100%; background: #181818; border-left: 1px solid #333; display: flex; flex-direction: column; overflow-y: auto; padding: 10px; }
-        .modal-header { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        .zone-btn { width: 100%; padding: 12px 0; margin-bottom: 6px; background: #2A2A2A; color: #fff; border: 1px solid #333; border-radius: 8px; font-size: 14px; font-weight: 700; text-align: center; }
-        .z-tee { color: var(--green); border-color: var(--green); }
-        .menu-export { color: var(--blue) !important; border-color: var(--blue) !important; margin-top: auto; border: 1px solid #333; }
-        .menu-clear { color: var(--red) !important; border-color: var(--red) !important; border: 1px solid #333; }
-        .menu-purple { color: var(--purple) !important; border-color: var(--purple) !important; border: 1px solid #333; }
-        
-        .rename-input { width: 100%; background: #333; border: 1px solid #555; color: white; padding: 10px; border-radius: 6px; font-size: 16px; text-transform: uppercase; text-align: center; margin-bottom: 10px; outline: none; }
-        .stat-label { font-size: 10px; color: #888; text-align:center; margin-top:10px; margin-bottom: 4px; }
-        .stat-val { font-size: 14px; color: #fff; text-align:center; font-family:monospace; margin-bottom:5px; font-weight:700; white-space: pre-line; }
-        
-        /* Steppers */
-        .stepper-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
-        .step-btn { background: #252525; border: 1px solid #444; color: #ccc; width: 45px; height: 35px; border-radius: 6px; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .step-btn:active { background: #444; color: #fff; }
-        .offset-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .offset-display { font-family: monospace; font-size: 24px; color: #666; font-weight: 700; min-width: 80px; text-align: center; }
-        .reset-icon { color: #666; font-size: 10px; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; cursor: pointer; text-transform: uppercase; }
-        .reset-icon:active { background: #333; color: #fff; }
-
-        /* History Modal Table */
-        .hist-modal-table { width: 100%; font-size: 12px; color: #fff; border-collapse: collapse; }
-        .hist-modal-table th { text-align: center; border-bottom: 1px solid #444; padding: 8px 4px; color: #888; position: sticky; top: 0; background: #222; }
-        .hist-modal-table td { border-bottom: 1px solid #333; padding: 10px 4px; text-align: center; }
-        .hm-ignored { color: #555; }
-        .hm-active { color: #fff; }
-        .hm-outlier { color: var(--orange); }
-
-        /* Graph Canvas */
-        #graph-canvas { background: #111; width: 100%; height: 300px; border: 1px solid #333; border-radius: 8px; }
+        /* MODALS */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-card {
+            background: #222; width: 95%; max-width: 400px; max-height: 80vh;
+            border-radius: 16px; border: 1px solid #444; padding: 20px;
+            display: flex; flex-direction: column;
+        }
+        .modal-header { font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 15px; }
+        .modal-content-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .modal-list { list-style: none; padding: 0; margin: 0; width: 100%; }
+        .modal-list li button { width: 100%; padding: 14px; margin-bottom: 8px; background: #2A2A2A; color: #fff; border: 1px solid #333; border-radius: 8px; font-weight: 700; }
+        .hist-table { width: 100%; font-size: 12px; color: #fff; border-collapse: collapse; }
+        .hist-table th { text-align: center; border-bottom: 1px solid #444; padding: 8px 4px; color: #888; position: sticky; top: 0; background: #222; }
+        .hist-table td { border-bottom: 1px solid #333; padding: 10px 4px; text-align: center; }
+        .h-dim { color: #555; } .h-outlier { color: var(--c-orange); }
+        #graph-canvas { background: #111; width: 100%; height: 250px; border: 1px solid #333; border-radius: 8px; }
         .graph-legend { display: flex; justify-content: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
         .legend-item { font-size: 10px; font-weight: 700; display: flex; align-items: center; gap: 4px; color: #ccc; }
         .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .input-rename { width: 100%; background: #333; border: 1px solid #555; color: white; padding: 12px; border-radius: 8px; font-size: 18px; text-transform: uppercase; text-align: center; margin-bottom: 15px; outline: none; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 13px; color: #ccc; padding: 4px 0; border-bottom: 1px solid #333; }
+        .stat-row span:last-child { font-family: monospace; font-weight: 700; color: #fff; }
+        .stat-row.dim span { color: #555; }
+        .stat-row.dim span:last-child { color: #555; }
+        .section-lbl { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; padding: 8px 0 3px; }
+        .stepper-row { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 15px; align-items: center; justify-content: center; }
+        .step-btn { flex: 1; height: 40px; background: #333; border-radius: 8px; font-size: 16px; font-weight: 700; color: #ccc; }
+        .step-btn:active { background: #555; color: #fff; }
+        .offset-val { font-family: monospace; font-size: 24px; color: var(--c-green); width: 80px; text-align: center; }
+        .conf-bar-wrap { height: 6px; background: #333; border-radius: 3px; margin-top: 4px; margin-bottom: 8px; }
+        .conf-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
 
+        /* SIMPLE MODE */
+        body.simple-mode .profile-section { display: none; }
+        body.simple-mode .ref-section { width: 100%; border-right: none; }
+        body.simple-mode .flash-grid { grid-template-columns: 1fr 1fr 1fr 15%; }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="timer-card" id="card-bh" onclick="app.toggleTimer('bh')">
-            <div class="t-label">Back to Hog</div>
-            <div class="t-time" id="time-bh">0.00</div>
-            <div class="t-pred" id="pred-bh">--</div>
+<div class="top-bar">
+    <div class="timer-display">
+        <div class="td-col" id="disp-bh" data-action="toggle-bh">
+            <div class="td-lbl">Back-Hog</div>
+            <div class="td-val val-bh">--</div>
+            <div class="pred-wrap">
+                <span class="conf-dot" id="conf-dot-bh"></span>
+                <span class="td-pred" id="pred-bh"></span>
+            </div>
         </div>
-        <div class="timer-card" id="card-hh" onclick="app.toggleTimer('hh')">
-            <div class="t-label">Hog to Hog</div>
-            <div class="t-time" id="time-hh">0.00</div>
-            <div class="t-pred" id="pred-hh">--</div>
+        <div class="td-col" id="disp-hh" data-action="toggle-hh">
+            <div class="td-lbl">Hog-Hog</div>
+            <div class="td-val val-hh">--</div>
+            <div class="td-pred" id="pred-hh"></div>
         </div>
-        <div class="clear-btn" onclick="app.reset()">×</div>
     </div>
+</div>
 
-    <div class="control-panel">
-        <div class="cp-split">
-            <div class="ref-section">
-                <div class="ref-header"><span id="ref-title">Live Ice Speeds (TEAM)</span></div>
-                <table class="ref-table" id="ref-table"></table>
+<div class="control-panel">
+    <div class="cp-left">
+        <div class="ref-section">
+            <div class="ref-header" id="ref-header">Live Ice Speeds</div>
+            <table class="ref-table" id="ref-table"></table>
+        </div>
+        <div class="profile-section" id="profile-container">
+            <div class="p-row">
+                <button class="p-btn" id="btn-Skip" data-id="Skip">SKIP<span class="cal-dot"></span></button>
+                <button class="p-btn" id="btn-3rd"  data-id="3rd">3RD<span class="cal-dot"></span></button>
             </div>
-            <div class="profile-section" id="profile-container">
-                <div class="p-row">
-                    <button class="p-btn" id="p-skip">SKIP</button>
-                    <button class="p-btn" id="p-3rd">3RD</button>
-                </div>
-                <div class="p-row">
-                    <button class="p-btn" id="p-2nd">2ND</button>
-                    <button class="p-btn" id="p-lead">LEAD</button>
-                </div>
+            <div class="p-row">
+                <button class="p-btn" id="btn-2nd"  data-id="2nd">2ND<span class="cal-dot"></span></button>
+                <button class="p-btn" id="btn-Lead" data-id="Lead">LEAD<span class="cal-dot"></span></button>
             </div>
         </div>
-        <div class="menu-strip" onclick="app.openMenu()">
+    </div>
+    <div class="menu-strip">
+        <div class="mode-toggle" data-action="toggle-mode" id="mode-icon"></div>
+        <div class="menu-trigger" data-action="open-menu">
             <div class="menu-text">MENU</div>
         </div>
     </div>
+</div>
 
-    <!-- FLASH INPUT TRAY -->
-    <div class="flash-tray" id="flash-tray">
-        <div class="flash-grid" id="flash-grid">
-            <!-- JS Populates 5-Col Grid -->
-        </div>
-    </div>
+<div class="flash-tray" id="flash-tray">
+    <div class="flash-grid" id="flash-grid"></div>
+</div>
 
-    <div class="controls-area">
-        <button id="btn-main">START</button>
-    </div>
+<div class="controls-area">
+    <button id="btn-main" class="btn-state-start" data-action="main-btn">START</button>
+</div>
 
-    <!-- MODALS -->
-    <!-- Menu -->
-    <div class="modal" id="menu-modal" onclick="if(event.target===this) app.closeModals()">
-        <div class="side-stack-content">
-            <div class="modal-header">MENU</div>
-            <button class="zone-btn" onclick="app.openHistoryView()">View History</button>
-            <button class="zone-btn menu-purple" onclick="app.openGraph('BH')">Graph B-H</button>
-            <button class="zone-btn menu-purple" onclick="app.openGraph('HH')">Graph H-H</button>
-            <button class="zone-btn menu-export" onclick="app.exportData()">Export CSV</button>
-            <button class="zone-btn menu-clear" onclick="app.confirmClear()">Clear All</button>
-            <button class="zone-btn" style="color:#666; margin-top: auto;" onclick="app.closeModals()">Cancel</button>
-        </div>
-    </div>
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-card" id="modal-content"></div>
+</div>
 
-    <!-- History View -->
-    <div class="modal" id="history-modal" onclick="if(event.target===this) app.closeModals()">
-        <div style="width:90%; max-width:400px; background:#222; padding:10px; border-radius:12px; height:80vh; display:flex; flex-direction:column; border:1px solid #444;">
-            <div class="modal-header">
-                SHOT HISTORY
-                <span onclick="app.closeModals()" style="float:right; font-size:24px; cursor:pointer; color:#888;">&times;</span>
-            </div>
-            <div style="flex:1; overflow-y:auto;">
-                <table class="hist-modal-table">
-                    <thead><tr><th>Player</th><th>B-H</th><th>H-H</th><th>Res</th><th>Swp</th></tr></thead>
-                    <tbody id="full-history-body"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+<script>
+    // ═══════════════════════════════════════════════════════
+    // CALIBRATION CONSTANTS
+    // ═══════════════════════════════════════════════════════
+    const CALIB = {
+        priorStrength: 12,  // historical profile worth this many equivalent in-game shots — keeps cumulative dominant all game
+        nCap: 8,            // max shots any one slot contributes to baseline (prevents dominance)
+        minConfDot: 0.20,   // confidence threshold to show green dot on profile button
+    };
 
-    <!-- Rename/Offset -->
-    <div class="modal" id="rename-modal" onclick="if(event.target===this) app.closeModals()">
-        <div class="side-stack-content" style="justify-content:center; background:rgba(20,20,20,0.95);">
-            <div class="modal-header">PROFILE SETTINGS</div>
-            <div class="stat-label">NAME</div>
-            <input type="text" id="rename-input" class="rename-input" maxlength="5" />
-            <div class="stat-label">TEAM TEE vs PLAYER TEE</div>
-            <div class="stat-val" id="calc-offset-display">--</div>
-            <div class="stat-label">CONSISTENCY (± FEET)</div>
-            <div class="stat-val" id="calc-sd-display">--</div>
-            <div class="stat-label">MANUAL OFFSET</div>
-            <div class="offset-row">
-                <div class="offset-display" id="manual-offset-display">0.00</div>
-                <div class="reset-icon" onclick="app.clearManualOffset()">RESET</div>
-            </div>
-            <div class="stepper-container">
-                <div class="step-btn" onclick="app.stepOffset(-0.1)">-.10</div>
-                <div class="step-btn" onclick="app.stepOffset(-0.01)">-.01</div>
-                <div class="step-btn" onclick="app.stepOffset(0.01)">+.01</div>
-                <div class="step-btn" onclick="app.stepOffset(0.1)">+.10</div>
-            </div>
-            <button class="zone-btn" style="color:var(--green); border-color:var(--green); margin-top:10px;" onclick="app.saveRename()">SAVE</button>
-            <button class="zone-btn" style="color:#666;" onclick="app.closeModals()">CANCEL</button>
-        </div>
-    </div>
-    
-    <!-- Graph Modal -->
-    <div class="modal" id="graph-modal" onclick="if(event.target===this) app.closeModals()">
-        <div style="width:95%; max-width:400px; background:#222; padding:15px; border-radius:16px; border:1px solid #444;">
-            <div class="modal-header" id="graph-title">DATA VIZ</div>
-            <canvas id="graph-canvas"></canvas>
-            <div class="graph-legend" id="graph-legend"></div>
-            <button class="zone-btn" style="margin-top:15px; background:transparent; color:#666;" onclick="app.closeModals()">CLOSE</button>
-        </div>
-    </div>
+    // Names that are considered "default/generic" — no cross-game profile stored for these
+    const DEFAULT_PROFILE_NAMES = new Set(['SKIP','3RD','2ND','LEAD','HARN','-','TEAM']);
 
-    <!-- Confirm Clear -->
-    <div class="modal" id="confirm-modal" onclick="if(event.target===this) app.closeModals()">
-        <div class="side-stack-content" style="justify-content:center; background:rgba(50,0,0,0.9);">
-            <div class="modal-header" style="color:#fff; font-weight:800;">DELETE ALL?</div>
-            <button class="zone-btn" style="color:#fff; border-color:#fff; background:var(--red);" onclick="app.executeClear()">YES, DELETE</button>
-            <button class="zone-btn" style="color:#fff; margin-top:10px;" onclick="app.closeModals()">CANCEL</button>
-        </div>
-    </div>
-    
-    <!-- Legacy Modals (Safety) -->
-    <div id="calib-modal" class="modal" style="display:none;"></div>
-    <div id="player-edit-modal" class="modal" style="display:none;"></div>
+    // ═══════════════════════════════════════════════════════
+    // PLAYER STORE — persistent cross-game player profiles
+    // ═══════════════════════════════════════════════════════
+    const PlayerStore = {
+        KEY: 'cd_players_v1',
 
-    <script>
-        const CONFIG = {
-            bhSlope: -30.0, bhIntercept: 139.5,
-            hhSlope: -5.4, hhIntercept: 98.0,
-            minBH: 2.0, maxBH: 6.0, fastLimitBH: 3.20,
-            minHH: 7.0, maxHH: 22.0, fastLimitHH: 11.70,
+        loadAll() {
+            try { return JSON.parse(localStorage.getItem(this.KEY) || '{}'); }
+            catch { return {}; }
+        },
 
-            // Zones mapped for lookup
-            zones: [
-                {v: 1.0, n: "High", d: 2.5}, {v: 2.0, n: "Mid", d: 7.5}, {v: 3.0, n: "Tight", d: 12.5},
-                {v: 4.0, n: "T 12", d: 15.5}, {v: 5.0, n: "T 8", d: 17.5}, {v: 6.0, n: "T 4", d: 19.5},
-                {v: 7.0, n: "TEE", d: 21.0},
-                {v: 8.0, n: "B 4", d: 22.5}, {v: 9.0, n: "B 8", d: 24.5}, {v: 10.0, n: "B 12", d: 26.5},
-                {v: 11.0, n: "Hack", d: 33.0}, {v: 11.5, n: "Board", d: 39.0}
-            ],
-            // 5-Col Grid Map with Sweeping
-            gridMap: [
-                {t:'p', id:'Skip'}, {t:'z', n:'High'}, {t:'z', n:'Mid'}, {t:'z', n:'Tight'}, {t:'s', n:'N/A'},
-                {t:'p', id:'3rd'},  {t:'z', n:'T 12'}, {t:'z', n:'T 8'}, {t:'e'},          {t:'s', n:'L'},
-                {t:'p', id:'2nd'},  {t:'z', n:'T 4'},  {t:'z', n:'TEE'}, {t:'z', n:'B 4'},  {t:'s', n:'M'},
-                {t:'p', id:'Lead'}, {t:'e'},          {t:'z', n:'B 8'}, {t:'z', n:'B 12'}, {t:'s', n:'H'}
-            ],
-            // Sweeping values
-            sweeping: [ {n:'N/A', v:0}, {n:'L', v:3}, {n:'M', v:6}, {n:'H', v:9} ],
-            
-            refRows: [{v: 11.0, n: "Hack", d: 33.0}, {v: 10.0, n: "B 12", d: 26.5}, {v: 7.0, n: "Tee", d: 21.0}, {v: 4.0, n: "T 12", d: 15.5}, {v: 2.0, n: "Mid", d: 7.5}]
-        };
+        saveAll(all) {
+            localStorage.setItem(this.KEY, JSON.stringify(all));
+        },
 
-        // Fixed Color Mapping by ID
-        const PLAYER_COLORS = { 'Skip': '#FF453A', '3rd': '#FF9F0A', '2nd': '#0A84FF', 'Lead': '#30D158', '-': '#98989D' };
+        // Returns profile object or null
+        load(name) {
+            if (!name || name.length < 2) return null;
+            return this.loadAll()[name.toUpperCase()] || null;
+        },
 
-        const app = {
-            state: 'IDLE', t0: 0, t1: 0, split: 0, interval: 0, timerInterval: null, animationFrame: null,
-            enableBH: true, enableHH: true,
-            history: [], pendingShot: null, currentSweep: null, 
-            currentProfile: 'TEAM', iceOffsetBH: 0, iceOffsetHH: 0, 
-            profileNames: { 'Skip': 'SKIP', '3rd': '3RD', '2nd': '2ND', 'Lead': 'LEAD' },
-            manualOffsets: { 'Skip': 0, '3rd': 0, '2nd': 0, 'Lead': 0 },
-            statsBH: { mean:0, sd:0, outlierIds: new Set() }, statsHH: { mean:0, sd:0, outlierIds: new Set() },
-            longPressTimer: null, renameTarget: null, tempOffset: 0, ui: {},
+        // Called after each committed shot for a named player
+        appendShot(name, bh, actualAdj, iceBaseline) {
+            if (!name || name.length < 2) return;
+            if (DEFAULT_PROFILE_NAMES.has(name.toUpperCase())) return; // don't accumulate for generic names
+            const all = this.loadAll();
+            const key = name.toUpperCase();
+            if (!all[key]) {
+                all[key] = { name: key, shots: [], historicalOffset: 0, historicalSigma: 99, shotCount: 0 };
+            }
+            all[key].shots.push({ bh, actualAdj, iceBaseline, ts: new Date().toISOString() });
+            // Keep at most 200 shots per player
+            if (all[key].shots.length > 200) all[key].shots = all[key].shots.slice(-200);
+            this._recompute(all[key]);
+            this.saveAll(all);
+        },
 
-            init() {
-                const ids = ['btn-main','time-bh','pred-bh','card-bh','time-hh','pred-hh','card-hh',
-                             'ref-table','flash-tray','flash-grid','full-history-body',
-                             'menu-modal','calib-modal','menu-modal','player-edit-modal','zone-list',
-                             'p-skip','p-3rd','p-2nd','p-lead','rename-modal','rename-input','confirm-modal',
-                             'profile-container','calc-offset-display','manual-offset-display', 'manual-offset-input',
-                             'fp-skip','fp-3rd','fp-2nd','fp-lead', 'history-modal', 'calc-sd-display', 'ref-title',
-                             'graph-modal', 'graph-canvas', 'graph-title', 'graph-legend', 'flash-msg'];
-                ids.forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) this.ui[id] = el;
-                });
+        // Recompute historicalOffset and historicalSigma from stored shots
+        _recompute(profile) {
+            const valid = profile.shots.filter(s => s.bh > 2 && s.actualAdj != null);
+            profile.shotCount = valid.length;
+            if (valid.length < 2) {
+                profile.historicalOffset = 0;
+                profile.historicalSigma  = 99;
+                return;
+            }
+            // residual = sweep-adjusted actual − model_raw − iceBaseline_at_time
+            const slope = CONFIG.physics.bhSlope;
+            const int_  = CONFIG.physics.bhIntercept;
+            const residuals = valid.map(s =>
+                s.actualAdj - (slope * s.bh + int_) - (s.iceBaseline || 0)
+            );
+            const mean = residuals.reduce((a,b) => a+b, 0) / residuals.length;
+            const variance = residuals.map(r => Math.pow(r-mean, 2)).reduce((a,b) => a+b, 0) / residuals.length;
+            profile.historicalOffset = mean;
+            profile.historicalSigma  = Math.sqrt(variance);
+        },
 
-                this.loadData();
-                this.buildFlashGrid();
-                this.bindEvents();
-                this.updateProfile(); 
-                this.renderRef();
-            },
+        listNames() {
+            return Object.keys(this.loadAll()).sort();
+        },
 
-            bindEvents() {
-                this.ui['btn-main'].addEventListener('touchstart', (e) => { e.preventDefault(); this.handleMain(); }, {passive:false});
-                this.ui['btn-main'].addEventListener('click', (e) => { if(e.detail!==0) { e.preventDefault(); this.handleMain(); }});
-                
-                this.setupProfileBtn('p-skip', 'Skip');
-                this.setupProfileBtn('p-3rd', '3rd');
-                this.setupProfileBtn('p-2nd', '2nd');
-                this.setupProfileBtn('p-lead', 'Lead');
-            },
+        // Remove all shots for a player name
+        clearPlayer(name) {
+            if (!name) return;
+            const all = this.loadAll();
+            delete all[name.toUpperCase()];
+            this.saveAll(all);
+        }
+    };
 
-            buildFlashGrid() {
-                const container = this.ui['flash-grid'];
-                container.innerHTML = '';
-                
-                CONFIG.gridMap.forEach((item, index) => {
-                    const div = document.createElement('div');
-                    
-                    if (item.t === 'p') {
-                        const btn = document.createElement('button');
-                        btn.className = 'fg-btn fg-player';
-                        btn.id = `fg-${item.id}`; 
-                        btn.innerText = this.profileNames[item.id];
-                        btn.onclick = () => this.toggleFlashPlayer(item.id);
-                        div.appendChild(btn);
-                    } else if (item.t === 'z') {
-                        const btn = document.createElement('button');
-                        btn.className = 'fg-btn fg-zone'; // UNLOCKED by default
-                        btn.id = `fz-${item.n.replace(/\s+/g, '')}`;
-                        if(item.n === 'TEE') btn.classList.add('tee');
-                        btn.innerText = item.n;
-                        
-                        const zoneDef = CONFIG.zones.find(z => z.n === item.n);
-                        const dist = zoneDef ? zoneDef.d : 0;
-                        btn.onclick = () => this.handleZoneSelect(dist, btn.id);
-                        div.appendChild(btn);
-                    } else if (item.t === 's') {
-                        const btn = document.createElement('button');
-                        btn.className = 'fg-btn fg-sweep';
-                        btn.id = `sw-${item.n.replace('/','')}`; 
-                        btn.innerText = item.n;
-                        
-                        const sweepDef = CONFIG.sweeping.find(s => s.n === item.n);
-                        const val = sweepDef ? sweepDef.v : 0;
-                        btn.onclick = () => this.toggleSweep(val, btn.id);
-                        div.appendChild(btn);
-                    } else {
-                        div.className = 'fg-empty';
-                    }
-                    container.appendChild(div.firstChild || div);
-                });
-            },
-            
-            toggleSweep(val, btnId) {
-                this.currentSweep = val;
-                const all = document.querySelectorAll('.fg-sweep');
-                all.forEach(b => b.classList.remove('selected'));
-                
-                const active = document.getElementById(btnId);
-                if(active) active.classList.add('selected');
-                
-                if (this.pendingShot) {
-                    this.pendingShot.sweep = val;
-                    this.checkCommit();
-                }
-            },
-            
-            handleZoneSelect(dist, btnId) {
-                if(!this.pendingShot) return;
-                
-                // Visual
-                const all = document.querySelectorAll('.fg-zone');
-                all.forEach(b => b.classList.remove('selected'));
-                const active = document.getElementById(btnId);
-                if(active) active.classList.add('selected');
+    // ═══════════════════════════════════════════════════════
+    // 1. CONFIGURATION
+    // ═══════════════════════════════════════════════════════
+    const CONFIG = {
+        physics: {
+            // Updated BH slope/intercept from analysis (n=284 shots, r²=0.16)
+            bhSlope: -22.7, bhIntercept: 109.9,
+            // Updated HH slope/intercept from analysis (n=328 shots, r²=0.85)
+            hhSlope: -4.9,  hhIntercept: 90.6,
+        },
+        limits: {
+            minBH: 2.0, maxBH: 6.0, autoHog: 5.5,
+            minHH: 7.0, maxHH: 22.0, timeout: 19.0
+        },
+        zones: [
+            {v:1.0,  n:"High",  d:2.5},  {v:2.0,  n:"Mid",   d:7.5},  {v:3.0, n:"Tight", d:12.5},
+            {v:4.0,  n:"T 12",  d:15.5}, {v:5.0,  n:"T 8",   d:17.5}, {v:6.0, n:"T 4",   d:19.5},
+            {v:7.0,  n:"TEE",   d:21.0},
+            {v:8.0,  n:"B 4",   d:22.5}, {v:9.0,  n:"B 8",   d:24.5}, {v:10.0,n:"B 12",  d:26.5},
+            {v:10.5, n:"THRU",  d:29.75},{v:11.0, n:"Hack",  d:33.0}, {v:11.5,n:"Board", d:39.0}
+        ],
+        // Updated sweep values from analysis
+        sweeps: [ {n:'N/A', v:0}, {n:'L', v:1.0}, {n:'M', v:2.5}, {n:'H', v:5.3} ],
+        gridMap: [
+            {t:'p', id:'Skip'}, {t:'z', n:'High'}, {t:'z', n:'Mid'}, {t:'z', n:'Tight'}, {t:'s', n:'N/A'},
+            {t:'p', id:'3rd'},  {t:'z', n:'T 12'}, {t:'z', n:'T 8'}, {t:'d'},             {t:'s', n:'L'},
+            {t:'p', id:'2nd'},  {t:'z', n:'T 4'},  {t:'z', n:'TEE'}, {t:'z', n:'B 8'},   {t:'s', n:'M'},
+            {t:'p', id:'Lead'}, {t:'z', n:'THRU'}, {t:'z', n:'B 4'}, {t:'z', n:'B 12'},  {t:'s', n:'H'}
+        ],
+        colors: { 'Skip':'#FF453A', '3rd':'#FF9F0A', '2nd':'#0A84FF', 'Lead':'#30D158', '-':'#98989D' },
+        icons: {
+            data: `<svg class="mode-icon-svg nerd" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
+  <g fill="none" stroke="#505050" stroke-width="5"><circle cx="22" cy="28" r="10"/><circle cx="42" cy="28" r="10"/></g>
+  <g fill="#505050"><circle cx="22" cy="28" r="4"/><circle cx="42" cy="28" r="4"/></g>
+  <path d="M22 46 Q32 54 42 46" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 58 L24 54 V62 Z M32 58 L40 54 V62 Z" fill="#505050"/>
+</svg>`,
+            simple: `<svg class="mode-icon-svg cool" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
+  <path d="M10 24 H54 L53 35 Q53 43 44 43 H35 L32 33 L29 43 H20 Q11 43 11 35 Z" fill="#505050"/>
+  <path d="M30 52 Q38 54 44 48" fill="none" stroke="#505050" stroke-width="3" stroke-linecap="round"/>
+</svg>`
+        }
+    };
 
-                this.pendingShot.actual = dist;
-                this.checkCommit();
-            },
-            
-            checkCommit() {
-                if(!this.pendingShot) return;
-                const isHHOnly = (this.pendingShot.bh <= 0.1);
-                
-                if (isHHOnly) {
-                     // H-H Only: Requires Zone only
-                     if (this.pendingShot.actual !== null) this.commitShot();
+    // ═══════════════════════════════════════════════════════
+    // 2. STOPWATCH
+    // ═══════════════════════════════════════════════════════
+    class Stopwatch {
+        constructor() {
+            this.state = 'IDLE';
+            this.t0 = 0; this.t1 = 0;
+            this.splitBH = 0; this.splitHH = 0;
+            this.enabledBH = true; this.enabledHH = true;
+            this.rafId = null;
+            this.onTick = null; this.onFinish = null;
+        }
+        reset() {
+            this.stop(); this.state = 'IDLE'; this.splitBH = 0; this.splitHH = 0;
+            if (this.onTick) this.onTick(this);
+        }
+        mainAction() {
+            const now = Date.now();
+            if (this.state === 'IDLE' || this.state === 'FINISHED') {
+                if (!this.enabledBH) { this.state = 'INTERVAL'; this.t1 = now; this.startLoop(); }
+                else                 { this.state = 'RUNNING';  this.t0 = now; this.startLoop(); }
+            } else if (this.state === 'RUNNING') {
+                this.t1 = now;
+                this.splitBH = (this.t1 - this.t0) / 1000;
+                if (this.splitBH > CONFIG.limits.autoHog) {
+                    this.splitBH = 0; this.t0 = 0;
+                    this.enabledHH ? (this.state = 'INTERVAL') : this.finish();
                 } else {
-                     // B-H Shot: Requires Zone AND Sweep (sweep can be 0/NA, but not null)
-                     if (this.pendingShot.actual !== null && this.pendingShot.sweep !== null) {
-                         this.commitShot();
-                     }
+                    this.enabledHH ? (this.state = 'INTERVAL') : this.finish();
                 }
-            },
-            
-            commitShot() {
-                // FORCE ENABLE
-                if(this.pendingShot.bh > CONFIG.minBH) this.pendingShot.useBH = true;
-                if(this.pendingShot.hh > CONFIG.minHH) this.pendingShot.useHH = true;
+            } else if (this.state === 'INTERVAL') {
+                this.splitHH = (now - this.t1) / 1000;
+                this.finish();
+            }
+        }
+        startLoop() {
+            if (this.rafId) cancelAnimationFrame(this.rafId);
+            const loop = () => {
+                const now = Date.now();
+                if (this.state === 'RUNNING') {
+                    const cur = (now - this.t0) / 1000;
+                    if (this.onTick) this.onTick({ ...this, liveBH: cur });
+                    if (cur > CONFIG.limits.autoHog) {
+                        this.state = 'INTERVAL'; this.t1 = this.t0; this.t0 = 0; this.splitBH = 0;
+                    }
+                } else if (this.state === 'INTERVAL') {
+                    const cur = (now - this.t1) / 1000;
+                    if (this.onTick) this.onTick({ ...this, liveHH: cur });
+                    if (cur > CONFIG.limits.timeout) { this.splitHH = 0; this.finish(); }
+                }
+                if (this.state !== 'IDLE' && this.state !== 'FINISHED')
+                    this.rafId = requestAnimationFrame(loop);
+            };
+            this.rafId = requestAnimationFrame(loop);
+        }
+        stop()   { if (this.rafId) cancelAnimationFrame(this.rafId); }
+        finish() { this.state = 'FINISHED'; this.stop(); if (this.onFinish) this.onFinish(this); }
+    }
 
-                this.saveShot(this.pendingShot); 
-                this.pendingShot = null;
-                this.ui['flash-tray'].classList.remove('active');
-                
-                this.currentProfile = 'TEAM';
-                this.updateProfile(); 
-            },
+    // ═══════════════════════════════════════════════════════
+    // 3. SESSION — data, calibration, persistence
+    // ═══════════════════════════════════════════════════════
+    class Session {
+        constructor() {
+            this.history  = [];
+            this.archives = [];
+            this.profiles = { 'Skip':'SKIP', '3rd':'3RD', '2nd':'2ND', 'Lead':'LEAD' };
+            this.manualOffsets = { 'Skip':0, '3rd':0, '2nd':0, 'Lead':0 };
+            this.activeProfile = 'TEAM';
 
-            setupProfileBtn(id, key) {
-                const btn = document.getElementById(id);
-                if(!btn) return;
-                const start = (e) => {
-                    if(e.type === 'touchstart') e.preventDefault();
+            // Calibration state — recomputed from history, never stored
+            this.calibration = {
+                bh: { iceBaseline: 0 },
+                hh: { iceOffset: 0 }
+            };
+            // Per-slot calibration results (relative offsets in feet)
+            this.playerSlots = {
+                'Skip': { effectiveOffset: 0, confidence: 0, inGameN: 0 },
+                '3rd':  { effectiveOffset: 0, confidence: 0, inGameN: 0 },
+                '2nd':  { effectiveOffset: 0, confidence: 0, inGameN: 0 },
+                'Lead': { effectiveOffset: 0, confidence: 0, inGameN: 0 },
+            };
+            // For graph rendering backward-compat
+            this.outliersBH = new Set();
+            this.outliersHH = new Set();
+
+            this.load();
+        }
+
+        // Backward-compat getters used by graph drawing code
+        get iceOffsetBH() { return this.calibration.bh.iceBaseline; }
+        get iceOffsetHH() { return this.calibration.hh.iceOffset;   }
+
+        load() {
+            const d = localStorage.getItem('cd_v26');
+            if (d) {
+                const p = JSON.parse(d);
+                this.history  = p.history  || [];
+                this.archives = p.archives || [];
+                this.profiles = p.profiles || this.profiles;
+                this.manualOffsets = p.manualOffsets || this.manualOffsets;
+                if (this.archives.length === 0) this.createSampleArchive();
+                this.recalcStats();
+            } else {
+                this.createSampleArchive();
+                this.save();
+            }
+        }
+
+        save() {
+            localStorage.setItem('cd_v26', JSON.stringify({
+                history: this.history,
+                archives: this.archives,
+                profiles: this.profiles,
+                manualOffsets: this.manualOffsets
+            }));
+            this.recalcStats();
+        }
+
+        // ── MASTER RECALIBRATION ─────────────────────────────────────────────
+        recalcStats() {
+            this.recalibrateBH();
+            this.recalibrateHH();
+        }
+
+        // ── BH CALIBRATION: 3-pass iterative ─────────────────────────────────
+        // Decomposes prediction error into:
+        //   - iceBaseline: shared signal, estimated from all players proportionally
+        //   - playerSlots[id].effectiveOffset: relative offset, constrained to weighted-mean=0
+        // Uses Bayesian blend of in-game data with persistent player profiles.
+        recalibrateBH() {
+            const slope  = CONFIG.physics.bhSlope;
+            const int_   = CONFIG.physics.bhIntercept;
+            const slotIds = ['Skip', '3rd', '2nd', 'Lead'];
+
+            const bhShots = this.history.filter(s =>
+                s.useBH && s.bh > CONFIG.limits.minBH && s.actual !== null
+            );
+
+            this.outliersBH.clear();
+
+            if (!bhShots.length) {
+                this.calibration.bh.iceBaseline = 0;
+                slotIds.forEach(id => {
+                    this.playerSlots[id] = { effectiveOffset: 0, confidence: 0, inGameN: 0 };
+                });
+                return;
+            }
+
+            let iceBaseline = this.calibration.bh.iceBaseline || 0;
+            let finalBlended = null;
+
+            for (let iter = 0; iter < 3; iter++) {
+
+                // PASS 1 — in-game offset per slot ───────────────────────────
+                const inGame = {};
+                slotIds.forEach(slotId => {
+                    const shots = bhShots.filter(s => s.player === slotId);
+                    if (!shots.length) { inGame[slotId] = { offset: 0, sigma: 99, n: 0 }; return; }
+                    const res = shots.map(s =>
+                        (s.actual - (s.sweep || 0)) - (slope * s.bh + int_) - iceBaseline
+                    );
+                    const mu    = res.reduce((a,b) => a+b, 0) / res.length;
+                    const sigma = Math.sqrt(res.map(r => Math.pow(r-mu, 2)).reduce((a,b) => a+b, 0) / res.length) || 99;
+                    inGame[slotId] = { offset: mu, sigma, n: shots.length };
+                });
+
+                // PASS 2 — blend in-game estimate with historical prior ───────
+                // Information-weighted: w = n / sigma²
+                const blended = {};
+                slotIds.forEach(slotId => {
+                    const ig   = inGame[slotId];
+                    const hist = PlayerStore.load(this.profiles[slotId]);
+                    const sigIG   = Math.max(ig.sigma, 0.5);
+                    const sigHist = hist ? Math.max(hist.historicalSigma, 0.5) : 99;
+                    const wIG   = ig.n > 0 ? ig.n / (sigIG * sigIG) : 0;
+                    const wHist = hist    ? CALIB.priorStrength / (sigHist * sigHist) : 0;
+                    const wTotal = wIG + wHist;
+                    const offset     = wTotal > 0 ? (ig.offset * wIG + (hist?.historicalOffset || 0) * wHist) / wTotal : 0;
+                    const confidence = wTotal > 0 ? wIG / wTotal : 0;
+                    blended[slotId] = { offset, confidence, n: ig.n };
+                });
+
+                // NORMALIZE — enforce weighted mean of offsets = 0 ───────────
+                // Any net shift is absorbed into iceBaseline instead.
+                // Only slots with actual data participate in the constraint.
+                let sW = 0, sWO = 0;
+                slotIds.forEach(id => {
+                    const b = blended[id];
+                    const hasData = b.n > 0 || PlayerStore.load(this.profiles[id]) !== null;
+                    if (!hasData) return;
+                    const w = b.confidence * Math.min(Math.max(b.n, 1), CALIB.nCap);
+                    sW += w; sWO += w * b.offset;
+                });
+                if (sW > 0) {
+                    const meanOff = sWO / sW;
+                    slotIds.forEach(id => { blended[id].offset -= meanOff; });
+                    iceBaseline += meanOff;
+                }
+
+                // PASS 3 — recompute iceBaseline ─────────────────────────────
+                // Each slot contributes proportionally to its confidence and n,
+                // capped at nCap to prevent dominance. Unnamed shots get 0.4x weight.
+                const contribs = [];
+
+                slotIds.forEach(id => {
+                    const shots = bhShots.filter(s => s.player === id);
+                    if (!shots.length) return;
+                    const errs = shots.map(s =>
+                        (s.actual - (s.sweep||0)) - (slope * s.bh + int_) - blended[id].offset
+                    );
+                    const mu  = errs.reduce((a,b) => a+b, 0) / errs.length;
+                    const sd  = Math.sqrt(errs.map(r => Math.pow(r-mu,2)).reduce((a,b) => a+b, 0) / errs.length) || 0.5;
+                    // Per-slot outlier filter (2σ) to prevent bad shots from skewing baseline
+                    const clean = errs.filter(e => Math.abs(e - mu) <= 2 * sd);
+                    if (!clean.length) return;
+                    const cmu = clean.reduce((a,b) => a+b, 0) / clean.length;
+                    const csd = Math.sqrt(clean.map(r => Math.pow(r-cmu,2)).reduce((a,b) => a+b, 0) / clean.length) || 0.5;
+                    const w   = (blended[id].confidence + 0.1) * Math.min(clean.length, CALIB.nCap) / (csd * csd);
+                    contribs.push({ mean: cmu, weight: w });
+                });
+
+                // Unnamed ('-') shots: contribute with penalty weight, no offset removed
+                const unShots = bhShots.filter(s => !slotIds.includes(s.player));
+                if (unShots.length) {
+                    const errs = unShots.map(s => (s.actual - (s.sweep||0)) - (slope * s.bh + int_));
+                    const mu   = errs.reduce((a,b) => a+b, 0) / errs.length;
+                    const sd   = Math.sqrt(errs.map(r => Math.pow(r-mu,2)).reduce((a,b) => a+b, 0) / errs.length) || 0.5;
+                    contribs.push({ mean: mu, weight: 0.4 * Math.min(unShots.length, CALIB.nCap) / (sd * sd) });
+                }
+
+                if (contribs.length) {
+                    const tW = contribs.reduce((a,c) => a + c.weight, 0);
+                    if (tW > 0) iceBaseline = contribs.reduce((a,c) => a + c.mean * c.weight, 0) / tW;
+                }
+
+                finalBlended = blended;
+            }
+
+            this.calibration.bh.iceBaseline = iceBaseline;
+
+            if (finalBlended) {
+                slotIds.forEach(id => {
+                    this.playerSlots[id] = {
+                        effectiveOffset: finalBlended[id].offset,
+                        confidence:      finalBlended[id].confidence,
+                        inGameN:         finalBlended[id].n
+                    };
+                });
+            }
+
+            // Post-hoc global outlier detection for history display
+            const allRes = bhShots.map(s => {
+                const slotOff = slotIds.includes(s.player) ? (this.playerSlots[s.player]?.effectiveOffset || 0) : 0;
+                return { id: s.id, err: (s.actual-(s.sweep||0)) - (slope*s.bh+int_) - iceBaseline - slotOff };
+            });
+            if (allRes.length >= 2) {
+                const errMu = allRes.reduce((a,r) => a + r.err, 0) / allRes.length;
+                const errSd = Math.sqrt(allRes.map(r => Math.pow(r.err-errMu,2)).reduce((a,b) => a+b, 0) / allRes.length);
+                allRes.forEach(r => { if (Math.abs(r.err - errMu) > 2 * errSd) this.outliersBH.add(r.id); });
+            }
+        }
+
+        // ── HH CALIBRATION: recency-weighted mean error ──────────────────────
+        recalibrateHH() {
+            this.outliersHH.clear();
+            this.calibration.hh.iceOffset = this._calcHHOffset();
+        }
+
+        _calcHHOffset() {
+            const valid = this.history.filter(s => s.useHH && s.actual !== null);
+            if (!valid.length) return 0;
+            const pts = valid.map((s, i) => {
+                const rawPred = CONFIG.physics.hhSlope * s.hh + CONFIG.physics.hhIntercept;
+                const error   = s.actual - rawPred;
+                let weight = i < 4 ? 1.0 : i < 12 ? 0.6 : 0.2;
+                if (s.actual < 14.0) weight *= 0.5;
+                return { id: s.id, error, weight };
+            });
+            const s1 = this._weightedStats(pts);
+            const clean = pts.filter(d => {
+                if (s1.sd === 0) return true;
+                const isOut = Math.abs(d.error - s1.mean) > 2 * s1.sd;
+                if (isOut) this.outliersHH.add(d.id);
+                return !isOut;
+            });
+            return clean.length ? this._weightedStats(clean).mean : s1.mean;
+        }
+
+        _weightedStats(data) {
+            let sumW=0, sumVW=0;
+            data.forEach(d => { sumW += d.weight; sumVW += d.error * d.weight; });
+            if (!sumW) return { mean: 0, sd: 0 };
+            const mean = sumVW / sumW;
+            const sd   = Math.sqrt(data.reduce((a,d) => a + Math.pow(d.error-mean,2)*d.weight, 0) / sumW);
+            return { mean, sd };
+        }
+
+        // ── PREDICTION ────────────────────────────────────────────────────────
+        getPrediction(type, time) {
+            if (type === 'BH') {
+                if (time < CONFIG.limits.minBH) return null;
+                let offset = this.calibration.bh.iceBaseline;
+                if (this.activeProfile !== 'TEAM') {
+                    const manualSec = this.manualOffsets[this.activeProfile] || 0;
+                    if (manualSec !== 0) {
+                        // Manual override is in seconds — converts to feet via slope, replaces auto-offset
+                        offset += manualSec * CONFIG.physics.bhSlope;
+                    } else {
+                        // Use auto-computed player offset (feet)
+                        offset += (this.playerSlots[this.activeProfile]?.effectiveOffset || 0);
+                    }
+                }
+                const dist = CONFIG.physics.bhSlope * time + CONFIG.physics.bhIntercept + offset;
+                if (dist > 42 || dist < 0) return null;
+                return dist;
+            }
+            if (type === 'HH') {
+                if (time < CONFIG.limits.minHH) return null;
+                const dist = CONFIG.physics.hhSlope * time + CONFIG.physics.hhIntercept + this.calibration.hh.iceOffset;
+                if (dist > 42) return null;
+                return dist;
+            }
+            return null;
+        }
+
+        // Confidence for BH prediction for the active profile (0–1)
+        getActiveBHConfidence() {
+            if (this.activeProfile === 'TEAM') return 0;
+            return this.playerSlots[this.activeProfile]?.confidence || 0;
+        }
+
+        // ── SHOT MANAGEMENT ───────────────────────────────────────────────────
+        addShot(shotData) {
+            this.history.unshift({
+                id: Date.now(),
+                ...shotData,
+                offsetBH: this.calibration.bh.iceBaseline,
+                offsetHH: this.calibration.hh.iceOffset,
+                timestamp: new Date().toISOString()
+            });
+            if (this.history.length > 150) this.history.pop();
+
+            // Persist to PlayerStore for named slots with valid BH
+            if (shotData.useBH && ['Skip','3rd','2nd','Lead'].includes(shotData.player)) {
+                const name = this.profiles[shotData.player];
+                const actualAdj = shotData.actual - (shotData.sweep || 0);
+                if (name && name.length >= 2) {
+                    PlayerStore.appendShot(name, shotData.bh, actualAdj, this.calibration.bh.iceBaseline);
+                }
+            }
+            this.save();
+        }
+
+        // ── ARCHIVING ─────────────────────────────────────────────────────────
+        archiveCurrentGame(name) {
+            this.archives.unshift({
+                id: Date.now(),
+                name: name || `Game ${this.archives.length + 1}`,
+                date: new Date().toLocaleDateString(),
+                history: [...this.history],
+                profiles: {...this.profiles}
+            });
+            this.save();
+        }
+
+        loadArchive(id) {
+            const game = this.archives.find(a => a.id === id);
+            if (game) { this.history = [...game.history]; this.profiles = {...game.profiles}; this.save(); }
+        }
+
+        deleteArchive(id) {
+            this.archives = this.archives.filter(a => a.id !== id);
+            this.save();
+        }
+
+        // ── PROFILE MANAGEMENT ────────────────────────────────────────────────
+        renameProfile(id, newName) {
+            if (!newName) return;
+            this.profiles[id] = newName.substring(0, 6).toUpperCase();
+            this.save();
+        }
+
+        setManualOffset(id, val) {
+            this.manualOffsets[id] = parseFloat(val.toFixed(2));
+            this.save();
+        }
+
+        getPlayerMeanError(profileId) {
+            const shots = this.history.filter(s => s.player === profileId && s.useBH && s.actual !== null);
+            if (!shots.length) return 0;
+            let sum = 0;
+            shots.forEach(s => {
+                const pred = CONFIG.physics.bhSlope * s.bh + CONFIG.physics.bhIntercept;
+                sum += (s.actual - (s.sweep||0)) - pred;
+            });
+            return sum / shots.length;
+        }
+
+        // ── EXPORT ────────────────────────────────────────────────────────────
+        exportCSV(saveName) {
+            this.archiveCurrentGame(saveName);
+            let csv = "Pos,B-H,Used,H-H,Used,Result,Sweep\n";
+            this.history.forEach(s => {
+                const sw = s.sweep === 1 ? 'L' : s.sweep === 2.5 ? 'M' : s.sweep === 5.3 ? 'H' : 'N/A';
+                // Use the custom profile name (e.g. "SCOTT"), not the slot key (e.g. "Skip")
+                const pName = (s.player === 'TEAM' || !s.player || s.player === '-')
+                    ? '-'
+                    : (this.profiles[s.player] || s.player);
+                csv += `${pName},${s.bh.toFixed(2)},${s.useBH},${s.hh.toFixed(2)},${s.useHH},${s.actual},${sw}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url  = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `${saveName}.csv`; a.click();
+        }
+
+        // ── SAMPLE DATA ───────────────────────────────────────────────────────
+        createSampleArchive() {
+            const s = {
+                id: 1739720000000, name: "Sample: 2025 Brier Semifinal", date: "2025-03-08",
+                profiles: {'Skip':'SKIP','3rd':'3RD','2nd':'2ND','Lead':'LEAD'},
+                history: [
+                    {id:1,  player:'3rd',  bh:4.31,hh:14.84,useBH:true,useHH:true,actual:17.5,sweep:1.0,  offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:00:00Z"},
+                    {id:2,  player:'Skip', bh:4.04,hh:14.81,useBH:true,useHH:true,actual:19.5,sweep:1.0,  offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:05:00Z"},
+                    {id:3,  player:'-',    bh:4.04,hh:14.27,useBH:true,useHH:true,actual:21.0,sweep:0,   offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:10:00Z"},
+                    {id:4,  player:'-',    bh:4.04,hh:14.47,useBH:true,useHH:true,actual:17.5,sweep:0,   offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:15:00Z"},
+                    {id:5,  player:'-',    bh:4.29,hh:14.20,useBH:true,useHH:true,actual:19.5,sweep:2.5, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:20:00Z"},
+                    {id:6,  player:'2nd',  bh:4.34,hh:14.94,useBH:true,useHH:true,actual:17.5,sweep:1.0, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:25:00Z"},
+                    {id:7,  player:'-',    bh:4.39,hh:15.18,useBH:true,useHH:true,actual:15.5,sweep:2.5, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:30:00Z"},
+                    {id:8,  player:'3rd',  bh:4.11,hh:13.87,useBH:true,useHH:true,actual:21.0,sweep:0,   offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:35:00Z"},
+                    {id:9,  player:'Skip', bh:4.16,hh:14.80,useBH:true,useHH:true,actual:17.5,sweep:2.5, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:40:00Z"},
+                    {id:10, player:'-',    bh:4.29,hh:14.48,useBH:true,useHH:true,actual:19.5,sweep:1.0, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:45:00Z"},
+                    {id:11, player:'2nd',  bh:4.29,hh:15.41,useBH:true,useHH:true,actual:15.5,sweep:2.5, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:50:00Z"},
+                    {id:12, player:'-',    bh:4.27,hh:15.50,useBH:true,useHH:true,actual:17.5,sweep:5.3, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:55:00Z"},
+                    {id:13, player:'3rd',  bh:4.37,hh:14.08,useBH:true,useHH:true,actual:22.5,sweep:5.3, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T20:00:00Z"},
+                    {id:14, player:'-',    bh:4.08,hh:13.97,useBH:true,useHH:true,actual:26.5,sweep:2.5, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T20:05:00Z"},
+                    {id:15, player:'Skip', bh:3.99,hh:13.94,useBH:true,useHH:true,actual:24.5,sweep:1.0, offsetBH:0,offsetHH:0,timestamp:"2025-03-08T20:10:00Z"},
+                    {id:16, player:'-',    bh:3.99,hh:14.43,useBH:true,useHH:true,actual:19.5,sweep:0,   offsetBH:0,offsetHH:0,timestamp:"2025-03-08T20:15:00Z"},
+                    {id:17, player:'-',    bh:4.25,hh:14.17,useBH:true,useHH:true,actual:22.5,sweep:0,   offsetBH:0,offsetHH:0,timestamp:"2025-03-08T20:20:00Z"},
+                    {id:18, player:'-',    bh:4.36,hh:14.34,useBH:true,useHH:true,actual:19.5,sweep:0,   offsetBH:0,offsetHH:0,timestamp:"2025-03-08T20:25:00Z"},
+                    {id:19, player:'-',    bh:4.36,hh:13.94,useBH:true,useHH:true,actual:22.5,sweep:0,   offsetBH:0,offsetHH:0,timestamp:"2025-03-08T20:30:00Z"}
+                ]
+            };
+            if (!this.archives.find(a => a.id === s.id)) this.archives.push(s);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 4. UI CONTROLLER
+    // ═══════════════════════════════════════════════════════
+    class UI {
+        constructor(app) {
+            this.app = app;
+            this.els = {
+                btnMain:      document.getElementById('btn-main'),
+                valBH:        document.querySelector('.val-bh'),
+                valHH:        document.querySelector('.val-hh'),
+                predBH:       document.getElementById('pred-bh'),
+                predHH:       document.getElementById('pred-hh'),
+                confDotBH:    document.getElementById('conf-dot-bh'),
+                flashTray:    document.getElementById('flash-tray'),
+                refTable:     document.getElementById('ref-table'),
+                modal:        document.getElementById('modal-overlay'),
+                modalContent: document.getElementById('modal-content'),
+                modeIcon:     document.getElementById('mode-icon')
+            };
+            this.tempShot = null;
+            this.longPressTimer = null;
+            this.tempOffset = 0;
+            this.lastActionTime = 0;
+
+            this.renderGrid();
+            this.bindEvents();
+            this.updateLayoutForMode();
+        }
+
+        bindEvents() {
+            let isTouchDevice = false;
+
+            // TOUCH: instant delegation via touchstart — e.preventDefault() blocks synthetic click
+            document.body.addEventListener('touchstart', (e) => {
+                isTouchDevice = true;
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+                e.preventDefault();
+                this.handleAction(target.dataset.action, target);
+            }, { passive: false });
+
+            // DESKTOP: click delegation (suppressed on touch)
+            document.body.addEventListener('click', (e) => {
+                if (isTouchDevice) return;
+                const target = e.target.closest('[data-action]');
+                if (target) this.handleAction(target.dataset.action, target);
+            });
+
+            // DESKTOP: mousedown on main button for instant response
+            document.getElementById('btn-main').addEventListener('mousedown', (e) => {
+                if (isTouchDevice) return;
+                this.handleAction('main-btn', document.getElementById('btn-main'));
+            });
+
+            // Modal close on overlay click
+            this.els.modal.addEventListener('click', (e) => {
+                if (e.target === this.els.modal) {
+                    if (this.els.modal.dataset.view === 'sub') this.showMenu();
+                    else this.els.modal.classList.remove('open');
+                }
+            });
+
+            // Profile buttons: tap = select, long press = edit
+            ['Skip','3rd','2nd','Lead'].forEach(id => {
+                const btn = document.getElementById(`btn-${id}`);
+                if (!btn) return;
+                const start = () => {
                     this.longPressTimer = setTimeout(() => {
-                        this.longPressTimer = null; 
-                        this.openRename(key);
+                        this.longPressTimer = null;
+                        this.showProfileModal(id);
                     }, 800);
                 };
                 const end = (e) => {
+                    if (e.type === 'touchend') e.preventDefault();
                     if (this.longPressTimer) {
                         clearTimeout(this.longPressTimer);
                         this.longPressTimer = null;
-                        this.toggleProfile(key); 
+                        this.app.session.activeProfile = (this.app.session.activeProfile === id) ? 'TEAM' : id;
+                        this.updateProfileUI();
+                        this.updateRefTable();
                     }
                 };
-                btn.addEventListener('mousedown', (e) => { if(e.button===0) start(e); });
-                btn.addEventListener('touchstart', start);
-                btn.addEventListener('mouseup', (e) => { if(e.button===0) end(e); });
-                btn.addEventListener('touchend', end);
-                btn.addEventListener('mouseleave', () => { clearTimeout(this.longPressTimer); this.longPressTimer=null; });
-            },
+                btn.addEventListener('touchstart', start, { passive: true });
+                btn.addEventListener('touchend',   end);
+                btn.addEventListener('mousedown',  start);
+                btn.addEventListener('mouseup',    end);
+            });
+        }
 
-            stepOffset(val) {
-                this.tempOffset = parseFloat((this.tempOffset + val).toFixed(2));
-                this.updateOffsetDisplay();
-            },
-            clearManualOffset() {
-                this.tempOffset = 0;
-                this.updateOffsetDisplay();
-            },
-            updateOffsetDisplay() {
-                const sign = this.tempOffset > 0 ? "+" : "";
-                this.ui['manual-offset-display'].innerText = this.tempOffset === 0 ? "0.00" : (sign + this.tempOffset.toFixed(2));
-                this.ui['manual-offset-display'].style.color = this.tempOffset === 0 ? '#666' : '#fff';
-            },
+        handleAction(action, el) {
+            const now = Date.now();
+            if (now - this.lastActionTime < 200) return;
+            this.lastActionTime = now;
 
-            handleMain() {
-                const now = Date.now();
-                if (this.state === 'IDLE' || this.state === 'FINISHED') {
-                    if(this.pendingShot) {
-                        this.saveShot(this.pendingShot); 
-                        this.pendingShot = null;
+            switch (action) {
+                case 'main-btn':    this.app.timer.mainAction(); break;
+                case 'reset':       this.app.reset(); break;
+                case 'toggle-bh':
+                    this.app.timer.enabledBH = !this.app.timer.enabledBH;
+                    document.getElementById('disp-bh').classList.toggle('disabled', !this.app.timer.enabledBH);
+                    this.update(this.app.timer);
+                    break;
+                case 'toggle-hh':
+                    this.app.timer.enabledHH = !this.app.timer.enabledHH;
+                    document.getElementById('disp-hh').classList.toggle('disabled', !this.app.timer.enabledHH);
+                    this.update(this.app.timer);
+                    break;
+                case 'toggle-mode':
+                    this.app.mode = (this.app.mode === 'DATA') ? 'SIMPLE' : 'DATA';
+                    localStorage.setItem('cd_mode_v26', this.app.mode);
+                    this.updateLayoutForMode();
+                    break;
+                case 'grid-player':
+                    if (this.tempShot) {
+                        this.tempShot.player = (this.tempShot.player === el.dataset.id) ? 'TEAM' : el.dataset.id;
+                        this.highlightGrid();
                     }
-                    
-                    this.reset(true); 
-                    this.ui['flash-tray'].classList.remove('active');
-                    
-                    if (!this.enableBH && !this.enableHH) return;
+                    break;
+                case 'grid-zone':
+                    if (this.tempShot) { this.tempShot.actual = parseFloat(el.dataset.val); this.checkCommit(); }
+                    break;
+                case 'grid-sweep':
+                    if (this.tempShot) { this.tempShot.sweep = parseFloat(el.dataset.val); this.checkCommit(); }
+                    break;
+                case 'grid-discard':
+                    this.tempShot = null;
+                    this.els.flashTray.classList.remove('active');
+                    this.setBtnState('start', 'START');
+                    break;
+                case 'open-menu':   this.showMenu(); break;
+                case 'back-menu':   this.showMenu(); break;
+                case 'close-modal': this.els.modal.classList.remove('open'); break;
+                case 'save-profile':
+                    const val = document.getElementById('rename-input').value;
+                    this.app.session.renameProfile(el.dataset.id, val);
+                    this.app.session.setManualOffset(el.dataset.id, this.tempOffset);
+                    this.updateProfileUI();
+                    this.renderGrid();
+                    this.updateRefTable();
+                    this.els.modal.classList.remove('open');
+                    break;
+                case 'adj-offset':
+                    this.tempOffset += parseFloat(el.dataset.val);
+                    document.getElementById('offset-val').innerText = (this.tempOffset > 0 ? "+" : "") + this.tempOffset.toFixed(2) + "s";
+                    break;
+                case 'open-archives': this.showArchives(); break;
+                case 'load-archive':
+                    if (confirm("Load old game? Unsaved progress will be lost.")) {
+                        this.app.session.loadArchive(parseInt(el.dataset.id));
+                        this.updateRefTable(); this.updateProfileUI();
+                        this.els.modal.classList.remove('open');
+                    }
+                    break;
+                case 'delete-archive':
+                    if (confirm("Delete this saved game?")) {
+                        this.app.session.deleteArchive(parseInt(el.dataset.id));
+                        this.showArchives();
+                    }
+                    break;
+                case 'do-export':
+                    const name = prompt("Name this game:", "Curling_Game_" + new Date().toLocaleDateString().replace(/\//g,'-'));
+                    if (name) { this.app.session.exportCSV(name); this.els.modal.classList.remove('open'); }
+                    break;
+            }
+        }
 
-                    this.state = 'RUNNING';
-                    if (this.enableBH) {
-                        this.t0 = now;
-                        this.ui['card-bh'].classList.remove('disabled'); this.ui['card-bh'].classList.add('running');
-                        this.ui['pred-bh'].innerText = "";
-                        this.ui['btn-main'].innerText = "HOG 1"; this.ui['btn-main'].className = 'st-split';
-                    } else {
-                        this.t1 = now; this.state = 'INTERVAL'; 
-                        this.ui['card-bh'].classList.add('disabled');
-                        this.ui['card-hh'].classList.add('running');
-                        this.ui['pred-hh'].innerText = "";
-                        this.ui['btn-main'].innerText = "HOG 2"; this.ui['btn-main'].className = 'st-int';
-                    }
-                    this.startTimer();
-                    this.vibrate(15);
-                } else if (this.state === 'RUNNING') {
-                    this.t1 = now; this.split = (this.t1 - this.t0) / 1000;
-                    this.ui['card-bh'].classList.remove('running'); this.ui['card-bh'].classList.add('active');
-                    this.ui['time-bh'].innerText = this.split.toFixed(2);
-                    
-                    // AUTO-DETECT HOG TO HOG
-                    if (this.split > 5.5) {
-                        this.interval = this.split;
-                        this.split = 0;
-                        this.t1 = this.t0; 
-                        this.t0 = 0;
-                        this.state = 'INTERVAL';
-                        
-                        this.ui['time-bh'].innerText = "0.00";
-                        this.ui['pred-bh'].innerText = "--"; 
-                        this.ui['card-bh'].classList.remove('running');
-                        this.ui['card-bh'].classList.add('disabled');
-                        
-                        this.ui['card-hh'].classList.add('running');
-                        this.ui['btn-main'].innerText = "HOG 2";
-                    } else {
-                        this.predictBH(this.split);
-                        if (this.enableHH) {
-                            this.state = 'INTERVAL';
-                            this.ui['card-hh'].classList.add('running');
-                            this.ui['pred-hh'].innerText = "";
-                            this.ui['btn-main'].innerText = "HOG 2"; this.ui['btn-main'].className = 'st-int';
-                        } else {
-                            this.finishShot();
-                        }
-                    }
-                    this.vibrate(30);
-                } else if (this.state === 'INTERVAL') {
-                    this.interval = (now - this.t1) / 1000;
-                    this.ui['card-hh'].classList.remove('running'); this.ui['card-hh'].classList.add('active');
-                    this.ui['time-hh'].innerText = this.interval.toFixed(2);
-                    this.predictHH(this.interval);
-                    
-                    // TIMEOUT LOGIC
-                    if (this.interval > 19.0) {
-                        this.stopTimer();
-                        this.ui['time-hh'].innerText = "0.00";
-                        if (this.split > 0) {
-                            this.interval = 0; 
-                            this.finishShot();
-                        } else {
-                            this.reset();
-                        }
-                        return;
-                    }
-                    
-                    this.finishShot();
-                    this.vibrate([10,30]);
-                }
-            },
-            
-            finishShot() {
-                this.state = 'FINISHED'; 
-                this.stopTimer(); 
-                this.ui['btn-main'].innerText = "START"; 
-                this.ui['btn-main'].className = '';
-                
-                const validBH = this.enableBH && (this.split >= CONFIG.minBH && this.split <= CONFIG.maxBH);
-                const validHH = this.enableHH && (this.interval >= CONFIG.minHH && this.interval <= CONFIG.maxHH);
-                
-                if (!validBH && !validHH) return;
-                
-                // Defaults
-                const defaultUseBH = validBH && (this.split <= CONFIG.fastLimitBH);
-                const defaultUseHH = validHH && (this.interval <= CONFIG.fastLimitHH);
-                
-                let p = this.currentProfile === 'TEAM' ? '-' : this.currentProfile;
-                
-                // RESET SWEEP to Null
-                this.currentSweep = null;
-                const allSweeps = document.querySelectorAll('.fg-sweep');
-                allSweeps.forEach(b => b.classList.remove('selected'));
-                const allZones = document.querySelectorAll('.fg-zone');
-                allZones.forEach(z => z.classList.remove('selected'));
-
-                // Handle H-H Only Case (Disable Sweep UI for clarity)
-                const isHHOnly = validBH === false || this.split <= 0.1;
-                const sweeps = document.querySelectorAll('.fg-sweep');
-                if (isHHOnly) {
-                     sweeps.forEach(s => s.classList.add('disabled'));
-                     // ZONES UNLOCKED BY DEFAULT
+        // ── TIMER DISPLAY ─────────────────────────────────────────────────────
+        update(timerState) {
+            if (timerState.state === 'RUNNING') {
+                this.els.valBH.innerText = timerState.liveBH.toFixed(2);
+                this.els.predBH.innerText = "";
+                this.els.confDotBH.style.display = 'none';
+                this.els.predHH.innerText = "";
+                this.setBtnState('split', 'HOG 1');
+                this.els.valHH.innerText = "--";
+            } else if (timerState.state === 'INTERVAL') {
+                this.els.valHH.innerText = timerState.liveHH.toFixed(2);
+                this.els.predHH.innerText = "";
+                this.setBtnState('int', 'HOG 2');
+                if (timerState.splitBH === 0) {
+                    this.els.valBH.innerText = "--";
+                    this.els.confDotBH.style.display = 'none';
                 } else {
-                     sweeps.forEach(s => s.classList.remove('disabled'));
+                    this.predictBH(timerState.splitBH);
                 }
+            } else if (timerState.state === 'IDLE') {
+                this.setBtnState('start', 'START');
+            }
+        }
 
-                this.pendingShot = {
-                    id: Date.now(), player: p,
-                    bh: validBH ? this.split : 0, hh: validHH ? this.interval : 0,
-                    actual: null, sweep: null, // Req selection
-                    useBH: defaultUseBH, useHH: defaultUseHH,
-                    rawBH: validBH ? (CONFIG.bhSlope * this.split) + CONFIG.bhIntercept : 0,
-                    rawHH: validHH ? (CONFIG.hhSlope * this.interval) + CONFIG.hhIntercept : 0
-                };
-                
-                this.updateFlashPlayers(this.pendingShot.player);
-                this.ui['flash-tray'].classList.add('active');
-            },
-            
-            updateFlashPlayers(activeP) {
-                const keys = ['Skip', '3rd', '2nd', 'Lead'];
-                keys.forEach(key => {
-                     const btn = document.getElementById(`fg-${key}`);
-                     if(btn) {
-                         btn.className = 'fg-btn fg-player';
-                         btn.innerText = this.profileNames[key];
-                         if (activeP === key) btn.className = 'fg-btn fg-player selected';
-                     }
-                });
-            },
-            
-            setFlashPlayer(p) {
-                if(this.pendingShot) {
-                    this.pendingShot.player = p;
-                    this.updateFlashPlayers(p);
+        predictBH(time) {
+            const dist = this.app.session.getPrediction('BH', time);
+            if (dist === null) { this.els.predBH.innerText = ""; this.els.confDotBH.style.display = 'none'; return; }
+            let label = "?"; let min = 99;
+            CONFIG.zones.forEach(z => { const d = Math.abs(z.d - dist); if (d < min) { min = d; label = z.n; } });
+            this.els.predBH.innerText = label;
+            // Show confidence dot for personal calibration
+            const conf = this.app.session.getActiveBHConfidence();
+            if (conf >= CALIB.minConfDot && this.app.session.activeProfile !== 'TEAM') {
+                const color = conf > 0.6 ? '#30D158' : conf > 0.35 ? '#FF9F0A' : '#FF453A';
+                this.els.confDotBH.style.display = 'block';
+                this.els.confDotBH.style.background = color;
+            } else {
+                this.els.confDotBH.style.display = 'none';
+            }
+        }
+
+        predictHH(time) {
+            const dist = this.app.session.getPrediction('HH', time);
+            if (dist === null) { this.els.predHH.innerText = ""; return; }
+            let label = "?"; let min = 99;
+            CONFIG.zones.forEach(z => { const d = Math.abs(z.d - dist); if (d < min) { min = d; label = z.n; } });
+            this.els.predHH.innerText = label;
+        }
+
+        activateInput(finalState) {
+            // Clear HH if it timed out (splitHH=0 after enabledHH was on)
+            if (finalState.enabledHH && finalState.splitHH === 0) {
+                this.els.valHH.innerText = "--";
+                this.els.predHH.innerText = "";
+            }
+            if (finalState.enabledBH && finalState.splitBH > 0) this.predictBH(finalState.splitBH);
+            if (finalState.enabledHH && finalState.splitHH > 0) this.predictHH(finalState.splitHH);
+
+            const bhValid     = finalState.enabledBH && finalState.splitBH >= CONFIG.limits.minBH;
+            const hhValid     = finalState.enabledHH && finalState.splitHH >= CONFIG.limits.minHH;
+            const bhTooShort  = finalState.enabledBH && finalState.splitBH < CONFIG.limits.minBH;
+            const hhTooShort  = finalState.enabledHH && finalState.splitHH < CONFIG.limits.minHH;
+
+            let abort = false;
+            if (finalState.enabledBH && finalState.enabledHH && bhTooShort && hhTooShort) abort = true;
+            if (finalState.enabledBH && !finalState.enabledHH && bhTooShort) abort = true;
+            if (!finalState.enabledBH && finalState.enabledHH && hhTooShort) abort = true;
+            if (abort) { this.setBtnState('start', 'START'); return; }
+
+            this.tempShot = {
+                player: this.app.session.activeProfile,
+                bh:     finalState.splitBH,
+                hh:     finalState.splitHH,
+                useBH:  bhValid && (finalState.splitBH < CONFIG.limits.maxBH),
+                useHH:  hhValid && (finalState.splitHH < CONFIG.limits.maxHH),
+                actual: null,
+                sweep:  null
+            };
+            this.setBtnState('start', 'START');
+            this.els.flashTray.classList.add('active');
+            this.highlightGrid();
+        }
+
+        // ── GRID ─────────────────────────────────────────────────────────────
+        renderGrid() {
+            const c = document.getElementById('flash-grid');
+            c.innerHTML = '';
+            CONFIG.gridMap.forEach(i => {
+                if (this.app.mode === 'SIMPLE' && i.t === 'p') return;
+                const b = document.createElement('div');
+                b.className = `fg-btn fg-${i.t==='p'?'player':i.t==='z'?'zone':i.t==='s'?'sweep':'discard'}`;
+                if (i.t === 'p') { b.innerText = this.app.session.profiles[i.id]; b.dataset.action = 'grid-player'; b.dataset.id = i.id; b.id = `gp-${i.id}`; }
+                if (i.t === 'z') { const z = CONFIG.zones.find(z => z.n === i.n); b.innerText = i.n; b.dataset.action = 'grid-zone'; b.dataset.val = z.d; b.id = `gz-${i.n}`; }
+                if (i.t === 's') { const s = CONFIG.sweeps.find(s => s.n === i.n); b.innerText = i.n; b.dataset.action = 'grid-sweep'; b.dataset.val = s.v; b.id = `gs-${i.n}`; }
+                if (i.t === 'd') { b.innerText = 'DISCARD'; b.dataset.action = 'grid-discard'; }
+                c.appendChild(b);
+            });
+        }
+
+        highlightGrid() {
+            document.querySelectorAll('.fg-btn').forEach(b => b.classList.remove('selected', 'disabled'));
+            if (!this.tempShot) return;
+            if (this.tempShot.player !== 'TEAM') {
+                const el = document.getElementById(`gp-${this.tempShot.player}`);
+                if (el) el.classList.add('selected');
+            }
+            if (this.tempShot.actual !== null) {
+                const z = CONFIG.zones.find(z => z.d === this.tempShot.actual);
+                if (z) { const el = document.getElementById(`gz-${z.n}`); if (el) el.classList.add('selected'); }
+            }
+            if (this.tempShot.sweep !== null) {
+                const s = CONFIG.sweeps.find(s => s.v === this.tempShot.sweep);
+                if (s) { const el = document.getElementById(`gs-${s.n}`); if (el) el.classList.add('selected'); }
+            }
+            if (!this.tempShot.useBH) {
+                document.querySelectorAll('.fg-sweep').forEach(b => b.classList.add('disabled'));
+            }
+        }
+
+        checkCommit() {
+            if (!this.tempShot) return;
+            const needsSweep = this.tempShot.useBH;
+            const hasZone    = this.tempShot.actual !== null;
+            const hasSweep   = this.tempShot.sweep  !== null;
+            if (hasZone && (!needsSweep || hasSweep)) {
+                this.highlightGrid();
+                this.app.session.addShot(this.tempShot);
+                this.tempShot = null;
+                this.els.flashTray.classList.remove('active');
+                this.updateRefTable();
+                this.updateProfileUI(); // refresh confidence dots
+            } else {
+                this.highlightGrid();
+            }
+        }
+
+        setBtnState(state, text) {
+            this.els.btnMain.className = '';
+            this.els.btnMain.classList.add(`btn-state-${state}`);
+            this.els.btnMain.innerText = text;
+        }
+
+        // ── LAYOUT ────────────────────────────────────────────────────────────
+        updateLayoutForMode() {
+            if (this.app.mode === 'SIMPLE') {
+                document.body.classList.add('simple-mode');
+                this.els.modeIcon.innerHTML = CONFIG.icons.simple;
+                this.app.session.activeProfile = 'TEAM';
+            } else {
+                document.body.classList.remove('simple-mode');
+                this.els.modeIcon.innerHTML = CONFIG.icons.data;
+            }
+            this.updateProfileUI();
+            this.renderGrid();
+            this.updateRefTable();
+        }
+
+        updateProfileUI() {
+            if (this.app.mode === 'SIMPLE') {
+                document.getElementById('ref-header').innerText = 'Live Ice Speeds';
+                return;
+            }
+            ['Skip','3rd','2nd','Lead'].forEach(id => {
+                const btn  = document.getElementById(`btn-${id}`);
+                btn.childNodes[0].textContent = this.app.session.profiles[id];
+                btn.classList.toggle('active', id === this.app.session.activeProfile);
+                // Show green cal-dot if this slot has meaningful personal confidence
+                const conf = this.app.session.playerSlots[id]?.confidence || 0;
+                btn.classList.toggle('calibrated', conf >= CALIB.minConfDot);
+            });
+            const pName = this.app.session.activeProfile === 'TEAM'
+                ? 'TEAM'
+                : this.app.session.profiles[this.app.session.activeProfile];
+            document.getElementById('ref-header').innerText = `Live Ice Speeds (${pName})`;
+        }
+
+        updateRefTable() {
+            const tbl        = this.els.refTable;
+            tbl.innerHTML    = '';
+            const rowZones   = [11.0, 10.0, 7.0, 4.0, 2.0]; // Hack, B12, TEE, T12, Mid
+            const bhBaseline = this.app.session.calibration.bh.iceBaseline;
+            const hhOffset   = this.app.session.calibration.hh.iceOffset;
+            const bhInt      = CONFIG.physics.bhIntercept;
+            const bhSlope    = CONFIG.physics.bhSlope;
+            const hhInt      = CONFIG.physics.hhIntercept;
+            const hhSlope    = CONFIG.physics.hhSlope;
+
+            let playerBHOffset = 0;
+            if (this.app.session.activeProfile !== 'TEAM') {
+                const manualSec = this.app.session.manualOffsets[this.app.session.activeProfile] || 0;
+                playerBHOffset = manualSec !== 0
+                    ? manualSec * bhSlope
+                    : (this.app.session.playerSlots[this.app.session.activeProfile]?.effectiveOffset || 0);
+            }
+
+            rowZones.forEach(v => {
+                const z = CONFIG.zones.find(x => x.v === v); if (!z) return;
+                const bhTime = (z.d - bhInt - bhBaseline - playerBHOffset) / bhSlope;
+                const hhTime = (z.d - hhInt - hhOffset) / hhSlope;
+                const color  = z.n === 'TEE' ? 'var(--c-green)' : '#fff';
+                tbl.innerHTML += `<tr style="color:${color}"><td>${z.n}</td><td>${bhTime.toFixed(2)}</td><td>${hhTime.toFixed(2)}</td></tr>`;
+            });
+        }
+
+        // ── MODALS ────────────────────────────────────────────────────────────
+        showMenu() {
+            this.els.modal.dataset.view = 'menu';
+            const isSimple = this.app.mode === 'SIMPLE';
+            this.els.modalContent.innerHTML = `
+                <div class="modal-header">Menu${isSimple ? ' (Simple)' : ''}</div>
+                <ul class="modal-list">
+                    ${!isSimple ? `
+                    <li><button onclick="app.ui.showHistory()">View History</button></li>
+                    <li><button onclick="app.ui.showGraph('BH')">Graph (Back-Hog)</button></li>
+                    <li><button onclick="app.ui.showGraph('HH')">Graph (Hog-Hog)</button></li>
+                    <li><button onclick="app.ui.showGraph('BH-Error')">Error Plot (BH)</button></li>
+                    <li><button onclick="app.ui.showGraph('HH-Error')">Error Plot (HH)</button></li>
+                    ` : ''}
+                    <li><button data-action="open-archives" style="color:var(--c-orange);border-color:var(--c-orange)">Saved Games</button></li>
+                    <li><button data-action="do-export" style="color:var(--c-blue);border-color:var(--c-blue)">Save & Export</button></li>
+                    <li><button onclick="app.resetData()" style="color:var(--c-red);border-color:var(--c-red)">Clear Game Data</button></li>
+                    <li><button data-action="close-modal" style="color:#666;margin-top:10px;">Close</button></li>
+                </ul>`;
+            this.els.modal.classList.add('open');
+        }
+
+        showArchives() {
+            this.els.modal.dataset.view = 'sub';
+            let list = this.app.session.archives.length === 0
+                ? '<div style="text-align:center;color:#666;padding:20px;">No saved games</div>'
+                : this.app.session.archives.map(a => `
+                    <div style="background:#333;padding:10px;margin-bottom:8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-weight:700;color:#fff;">${a.name}</div>
+                            <div style="font-size:10px;color:#888;">${a.date}</div>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button data-action="load-archive" data-id="${a.id}" style="padding:6px 10px;font-size:11px;background:var(--c-blue);color:#fff;border:none;border-radius:4px;">LOAD</button>
+                            <button data-action="delete-archive" data-id="${a.id}" style="padding:6px 10px;font-size:11px;background:var(--c-red);color:#fff;border:none;border-radius:4px;">DEL</button>
+                        </div>
+                    </div>`).join('');
+            this.els.modalContent.innerHTML = `
+                <div class="modal-header">Saved Games</div>
+                <div class="modal-content-scroll">${list}</div>
+                <button data-action="back-menu" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Back</button>`;
+        }
+
+        showHistory() {
+            this.els.modal.dataset.view = 'sub';
+            let rows = '';
+            this.app.session.history.forEach(s => {
+                const sw  = s.sweep === 1 ? 'L' : s.sweep === 2.5 ? 'M' : s.sweep === 5.3 ? 'H' : '-';
+                const res = CONFIG.zones.find(z => z.d === s.actual)?.n || '-';
+                const pName = (s.player === 'TEAM' || !s.player) ? '-' : (this.app.session.profiles[s.player] || s.player).substring(0,4);
+                const bhOut = this.app.session.outliersBH.has(s.id);
+                const hhOut = this.app.session.outliersHH.has(s.id);
+                rows += `<tr>
+                    <td>${pName}</td>
+                    <td class="${!s.useBH?'h-dim':bhOut?'h-outlier':''}">${s.bh.toFixed(2)}</td>
+                    <td class="${!s.useHH?'h-dim':hhOut?'h-outlier':''}">${s.hh.toFixed(2)}</td>
+                    <td>${res}</td>
+                    <td class="h-dim">${sw}</td>
+                </tr>`;
+            });
+            this.els.modalContent.innerHTML = `
+                <div class="modal-header">History</div>
+                <div class="modal-content-scroll">
+                    <table class="hist-table">
+                        <thead><tr><th>Ply</th><th>BH</th><th>HH</th><th>Res</th><th>Sw</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <button data-action="back-menu" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Back</button>`;
+        }
+
+        showProfileModal(id) {
+            this.els.modal.dataset.view = 'modal';
+            const name    = this.app.session.profiles[id];
+            const slot    = this.app.session.playerSlots[id];
+            const hist    = PlayerStore.load(name);
+            this.tempOffset = this.app.session.manualOffsets[id] || 0;
+
+            const bhSlope = CONFIG.physics.bhSlope;
+
+            // Confidence bar
+            const conf    = slot?.confidence || 0;
+            const confPct = (conf * 100).toFixed(0);
+            const confColor = conf > 0.55 ? '#30D158' : conf > 0.25 ? '#FF9F0A' : '#FF453A';
+            const confLabel = conf > 0.55 ? 'Personal' : conf > 0.25 ? 'Blending' : 'Team baseline';
+
+            // Historical profile block — convert feet → seconds for display
+            const histBlock = hist && hist.shotCount >= 2
+                ? (() => {
+                    const histSec  = hist.historicalOffset / bhSlope; // feet/slope = sec (slope neg → sign flips)
+                    const histSign = histSec > 0 ? '+' : '';
+                    const histSigSec = (hist.historicalSigma / Math.abs(bhSlope)).toFixed(3);
+                    const histColor  = Math.abs(histSec) < 0.02 ? '#888' : histSec > 0 ? 'var(--c-orange)' : 'var(--c-green)';
+                    return `<div class="stat-row"><span>Total shots on file:</span><span>${hist.shotCount}</span></div>
+                   <div class="stat-row"><span>Historical BH offset:</span><span style="color:${histColor}">${histSign}${histSec.toFixed(3)}s</span></div>
+                   <div class="stat-row"><span>Consistency (σ):</span><span>±${histSigSec}s</span></div>`;
+                })()
+                : `<div style="color:#555;font-size:11px;text-align:center;padding:6px 0;">No cross-game profile for "<b style="color:#777">${name}</b>" yet. Shots will accumulate as you play.</div>`;
+
+            // In-game block — effective offset in seconds
+            const effFt    = slot?.effectiveOffset || 0;
+            const effSec   = effFt / bhSlope;  // feet / (ft/s) = s; slope is neg so sign flips correctly
+            const effSign  = effSec > 0 ? '+' : '';
+            const effColor = Math.abs(effSec) < 0.02 ? '#888' : effSec > 0 ? 'var(--c-orange)' : 'var(--c-green)';
+            const manualActive = (this.app.session.manualOffsets[id] || 0) !== 0;
+            const inGameBlock = `
+                <div class="stat-row"><span>In-game shots (BH):</span><span>${slot?.inGameN || 0}</span></div>
+                <div class="stat-row"><span>Auto BH offset:</span><span style="color:${effColor}">${effSign}${effSec.toFixed(3)}s ${manualActive ? '<span style="color:#555;font-size:10px;">(overridden)</span>' : ''}</span></div>
+                <div class="stat-row"><span>Calibration source:</span><span style="color:${confColor}">${confLabel} (${confPct}%)</span></div>`;
+
+            this.els.modalContent.innerHTML = `
+                <div class="modal-header">Profile: ${name}</div>
+                <input id="rename-input" class="input-rename" value="${name}" maxlength="6" />
+                <div class="conf-bar-wrap"><div class="conf-bar" style="width:${confPct}%;background:${confColor}"></div></div>
+                <div class="section-lbl">📍 This Game</div>
+                ${inGameBlock}
+                <div class="section-lbl">📚 Persistent Profile (Cross-Game)</div>
+                ${histBlock}
+                <div class="section-lbl">⚙️ Manual Override (replaces auto-offset when non-zero)</div>
+                <div class="stepper-row">
+                    <button class="step-btn" data-action="adj-offset" data-val="-0.01">−0.01s</button>
+                    <div class="offset-val" id="offset-val">${(this.tempOffset > 0 ? "+" : "")+this.tempOffset.toFixed(2)}s</div>
+                    <button class="step-btn" data-action="adj-offset" data-val="0.01">+0.01s</button>
+                </div>
+                <button data-action="save-profile" data-id="${id}" style="width:100%;height:62px;background:var(--c-green);color:#000;font-size:18px;font-weight:800;border-radius:10px;margin-top:4px;">SAVE</button>
+                <button data-action="close-modal" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Cancel</button>`;
+            this.els.modal.classList.add('open');
+        }
+
+        showGraph(type) {
+            this.els.modal.dataset.view = 'sub';
+            const titles = { 'BH':'Back-to-Hog', 'HH':'Hog-to-Hog', 'BH-Error':'BH Error (Feet)', 'HH-Error':'HH Error (Feet)' };
+            this.els.modalContent.innerHTML = `
+                <div class="modal-header">${titles[type]}</div>
+                <canvas id="graph-canvas"></canvas>
+                <div class="graph-legend">
+                    ${Object.keys(CONFIG.colors).filter(k => k!=='-').map(k => `
+                    <div class="legend-item"><span class="dot" style="background:${CONFIG.colors[k]}"></span>${this.app.session.profiles[k]||k}</div>`).join('')}
+                </div>
+                <button data-action="back-menu" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Back</button>`;
+            setTimeout(() => {
+                const canvas = document.getElementById('graph-canvas');
+                const ctx    = canvas.getContext('2d');
+                const rect   = canvas.getBoundingClientRect();
+                canvas.width  = rect.width * 2; canvas.height = rect.height * 2; ctx.scale(2, 2);
+                type.includes('Error') ? this.drawErrorGraph(ctx, type, rect.width, rect.height)
+                                       : this.drawGraph(ctx, type, rect.width, rect.height);
+            }, 50);
+        }
+
+        drawGraph(ctx, type, w, h) {
+            const xMin = type==='BH' ? 3.4 : 12.5; const xMax = type==='BH' ? 4.7 : 18.0;
+            const yMin = 5; const yMax = 30;
+            const pad = { left: 30, bottom: 22, top: 5, right: 5 };
+            const mapX = v => pad.left + ((v-xMin)/(xMax-xMin)) * (w - pad.left - pad.right);
+            const mapY = v => (h - pad.bottom) - ((v-yMin)/(yMax-yMin)) * (h - pad.top - pad.bottom);
+            ctx.font = "9px sans-serif"; ctx.textAlign = "left";
+
+            // Y-axis zone labels + grid lines
+            ['Mid','T 12','T 8','TEE','B 8','B 12'].forEach(name => {
+                const z = CONFIG.zones.find(z => z.n===name);
+                if (!z) return;
+                const y = mapY(z.d);
+                ctx.strokeStyle = '#333'; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w-pad.right, y); ctx.stroke();
+                ctx.fillStyle = '#666'; ctx.fillText(name, 2, y-2);
+            });
+
+            // X-axis labels
+            const xStep = type==='BH' ? 0.2 : 1.0;
+            ctx.fillStyle = '#666'; ctx.textAlign = 'center';
+            for (let xv = xMin; xv <= xMax + 0.001; xv += xStep) {
+                const x = mapX(xv);
+                ctx.strokeStyle = '#2a2a2a'; ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, h-pad.bottom); ctx.stroke();
+                ctx.fillStyle = '#666'; ctx.fillText(xv.toFixed(1), x, h - 4);
+            }
+            // X-axis label
+            ctx.fillStyle = '#555'; ctx.font = "8px sans-serif"; ctx.textAlign = 'center';
+            ctx.fillText(type==='BH' ? 'BH Time (s)' : 'HH Time (s)', w/2, h);
+
+            const slope = type==='BH' ? CONFIG.physics.bhSlope   : CONFIG.physics.hhSlope;
+            const int_  = type==='BH' ? CONFIG.physics.bhIntercept: CONFIG.physics.hhIntercept;
+            const off   = type==='BH' ? this.app.session.iceOffsetBH : this.app.session.iceOffsetHH;
+            ctx.strokeStyle = 'cyan'; ctx.lineWidth = 2; ctx.beginPath();
+            ctx.moveTo(mapX(xMin), mapY(slope*xMin+int_+off));
+            ctx.lineTo(mapX(xMax), mapY(slope*xMax+int_+off));
+            ctx.stroke();
+            this.app.session.history.forEach(s => {
+                if (!s.actual) return;
+                const t = type==='BH' ? s.bh : s.hh;
+                if (t < xMin || t > xMax) return;
+                let y = s.actual;
+                if (type==='BH' && s.sweep) y -= s.sweep;
+                ctx.fillStyle = CONFIG.colors[s.player] || '#666';
+                ctx.beginPath(); ctx.arc(mapX(t), mapY(y), 4, 0, Math.PI*2); ctx.fill();
+            });
+        }
+
+        drawErrorGraph(ctx, type, w, h) {
+            const shots = this.app.session.history.filter(s =>
+                s.actual !== null && (type==='BH-Error' ? s.useBH : s.useHH)
+            );
+            if (!shots.length) return;
+            const yRange = 10;
+            const padB = 18; // bottom padding for x-axis labels
+            const mapX = idx => (idx / (shots.length+1)) * (w-15) + 10;
+            const mapY = val => ((h-padB)/2) - (val/yRange) * ((h-padB)/2);
+            const midY = (h-padB)/2;
+            ctx.strokeStyle = '#444'; ctx.beginPath(); ctx.moveTo(0,midY); ctx.lineTo(w,midY); ctx.stroke();
+            ctx.strokeStyle = '#222'; ctx.beginPath();
+            ctx.moveTo(0,mapY(5));  ctx.lineTo(w,mapY(5));
+            ctx.moveTo(0,mapY(-5)); ctx.lineTo(w,mapY(-5));
+            ctx.stroke();
+            ctx.fillStyle = '#666'; ctx.font = "10px sans-serif"; ctx.textAlign = "left";
+            ctx.fillText("+5ft", 5, mapY(5)-2);
+            ctx.fillText("0",    5, midY-2);
+            ctx.fillText("-5ft", 5, mapY(-5)-2);
+
+            // X-axis: label every ~5 shots
+            const tickInterval = shots.length <= 10 ? 1 : shots.length <= 20 ? 2 : 5;
+            ctx.fillStyle = '#555'; ctx.textAlign = 'center'; ctx.font = "8px sans-serif";
+            for (let i = 1; i <= shots.length; i++) {
+                if ((shots.length - i + 1) % tickInterval === 0 || i === shots.length) {
+                    const x = mapX(i);
+                    ctx.strokeStyle = '#2a2a2a'; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h-padB); ctx.stroke();
+                    ctx.fillStyle = '#555';
+                    ctx.fillText('#' + (shots.length - i + 1), x, h - 4);
                 }
-            },
-            
-            toggleFlashPlayer(p) {
-                 if(this.pendingShot) {
-                     if (this.pendingShot.player === p) {
-                         this.pendingShot.player = '-'; 
-                     } else {
-                         this.pendingShot.player = p; 
-                     }
-                     this.updateFlashPlayers(this.pendingShot.player);
-                 }
-            },
+            }
+            ctx.fillStyle = '#444'; ctx.font = "8px sans-serif"; ctx.textAlign = 'center';
+            ctx.fillText('Shot # (recent → left)', w/2, h);
 
-            startTimer() {
-                if(this.animationFrame) cancelAnimationFrame(this.animationFrame);
-                const animate = () => {
-                    const now = Date.now();
-                    if(this.state === 'RUNNING') {
-                        const curSplit = (now - this.t0)/1000;
-                        this.ui['time-bh'].innerText = curSplit.toFixed(2);
-                        
-                        // AUTO-HOG LIVE CHECK
-                        if (curSplit > 5.5) {
-                            this.t1 = this.t0; 
-                            this.t0 = 0;
-                            this.state = 'INTERVAL';
-                            this.ui['time-bh'].innerText = "0.00";
-                            this.ui['pred-bh'].innerText = "--"; 
-                            this.ui['card-bh'].classList.remove('running');
-                            this.ui['card-bh'].classList.add('disabled');
-                            
-                            this.ui['card-hh'].classList.add('running');
-                            this.ui['btn-main'].innerText = "HOG 2";
-                        }
-                    } 
-                    else if (this.state === 'INTERVAL') {
-                        const curInt = (now - this.t1)/1000;
-                        this.ui['time-hh'].innerText = curInt.toFixed(2);
-                        
-                        if (curInt > 19.0) {
-                            this.stopTimer();
-                            this.ui['time-hh'].innerText = "0.00";
-                            if (this.split > 0) {
-                                this.interval = 0; 
-                                this.finishShot();
-                            } else {
-                                this.reset();
-                            }
-                            return;
-                        }
-                    }
-                    this.animationFrame = requestAnimationFrame(animate);
-                };
-                this.animationFrame = requestAnimationFrame(animate);
-            },
-            stopTimer() { if(this.animationFrame) cancelAnimationFrame(this.animationFrame); },
-            toggleTimer(type) {
-                if (this.state !== 'IDLE' && this.state !== 'FINISHED') return;
-                if (type === 'bh') { this.enableBH = !this.enableBH; this.ui['card-bh'].classList.toggle('disabled', !this.enableBH); }
-                else { this.enableHH = !this.enableHH; this.ui['card-hh'].classList.toggle('disabled', !this.enableHH); }
-                this.ui['btn-main'].disabled = (!this.enableBH && !this.enableHH);
-            },
-            reset(soft=false) {
-                this.stopTimer(); this.state = 'IDLE';
-                this.ui['time-bh'].innerText = "0.00"; this.ui['pred-bh'].innerText = "--";
-                this.ui['time-hh'].innerText = "0.00"; this.ui['pred-hh'].innerText = "--";
-                this.ui['card-bh'].className = 'timer-card' + (this.enableBH ? '' : ' disabled');
-                this.ui['card-hh'].className = 'timer-card' + (this.enableHH ? '' : ' disabled');
-                this.ui['pred-bh'].style.color = "#fff"; this.ui['pred-hh'].style.color = "#fff";
-                if(!soft) { this.ui['btn-main'].innerText = "START"; this.ui['btn-main'].className = ''; }
-                this.pendingShot = null;
-                this.ui['flash-tray'].classList.remove('active');
-            },
+            const slope = type==='BH-Error' ? CONFIG.physics.bhSlope   : CONFIG.physics.hhSlope;
+            const int_  = type==='BH-Error' ? CONFIG.physics.bhIntercept: CONFIG.physics.hhIntercept;
+            for (let i = 0; i < shots.length; i++) {
+                const s   = shots[i];
+                const off = type==='BH-Error'
+                    ? (s.offsetBH !== undefined ? s.offsetBH : this.app.session.iceOffsetBH)
+                    : (s.offsetHH !== undefined ? s.offsetHH : this.app.session.iceOffsetHH);
+                const t    = type==='BH-Error' ? s.bh : s.hh;
+                const pred = slope * t + int_ + off;
+                let   act  = s.actual;
+                if (type==='BH-Error' && s.sweep) act -= s.sweep;
+                const err = act - pred;
+                ctx.fillStyle = CONFIG.colors[s.player] || '#666';
+                ctx.beginPath(); ctx.arc(mapX(shots.length-i), mapY(err), 4, 0, Math.PI*2); ctx.fill();
+            }
+        }
+    }
 
-            // --- OFFSET LOGIC ---
-            getProfileOffsetBH() {
-                if (this.currentProfile === 'TEAM' || this.currentProfile === '-') return this.iceOffsetBH;
-                const man = this.manualOffsets[this.currentProfile];
-                if (man && man !== 0) {
-                    const teamOffset = this.calcSmartStats('BH', 'TEAM').mean;
-                    const shift = man * CONFIG.bhSlope; 
-                    return teamOffset + shift;
-                }
-                return this.iceOffsetBH; 
-            },
+    // ═══════════════════════════════════════════════════════
+    // 5. APP
+    // ═══════════════════════════════════════════════════════
+    class App {
+        constructor() {
+            this.session = new Session();
+            this.timer   = new Stopwatch();
+            this.mode    = localStorage.getItem('cd_mode_v26') || 'SIMPLE';
+            this.ui      = new UI(this);
+            this.ui.updateLayoutForMode();
 
-            predictBH(time) {
-                if (time < CONFIG.minBH || time > CONFIG.maxBH || time <= CONFIG.fastLimitBH) { this.ui['pred-bh'].innerText = "-"; this.ui['pred-bh'].style.color = "#444"; return null; }
-                const activeOffset = this.getProfileOffsetBH();
-                const dist = (CONFIG.bhSlope * time) + CONFIG.bhIntercept + activeOffset;
-                this.displayPred(this.ui['pred-bh'], dist);
-            },
-            predictHH(time) {
-                if (time < CONFIG.minHH || time > CONFIG.maxHH || time <= CONFIG.fastLimitHH) { this.ui['pred-hh'].innerText = "-"; this.ui['pred-hh'].style.color = "#444"; return null; }
-                const dist = (CONFIG.hhSlope * time) + CONFIG.hhIntercept + this.iceOffsetHH;
-                this.displayPred(this.ui['pred-hh'], dist);
-            },
-            displayPred(el, dist) {
-                let txt = "UNKNOWN"; let minDiff = 99;
-                CONFIG.zones.forEach(z => { if (Math.abs(z.d - dist) < minDiff) { minDiff = Math.abs(z.d - dist); txt = z.n; } });
-                el.innerText = txt; el.style.color = "#fff"; 
-            },
+            this.timer.onTick   = t => this.ui.update(t);
+            this.timer.onFinish = t => this.ui.activateInput(t);
 
-            saveShot(shot) {
-                shot.fixedOffsetBH = this.getProfileOffsetBH();
-                shot.fixedOffsetHH = this.iceOffsetHH;
-                this.history.unshift(shot);
-                if(this.history.length > 60) this.history.pop();
-                
-                this.saveStorage(); 
-                this.updateSmartCalibration(); 
-            },
+            this.ui.updateProfileUI();
+            this.ui.updateRefTable();
+            this.ui.update(this.timer);
 
-            // --- SMART CALIBRATION ---
-            updateSmartCalibration() {
-                // BH
-                if (this.currentProfile !== 'TEAM' && this.currentProfile !== '-' && this.manualOffsets[this.currentProfile]) {
-                    this.iceOffsetBH = this.getProfileOffsetBH(); 
-                } else {
-                    const stats = this.calcSmartStats('BH', this.currentProfile);
-                    this.iceOffsetBH = stats.mean; 
-                    this.statsBH = stats; 
-                }
+            // Attempt fullscreen on first touch (Android Chrome works; iOS requires home screen PWA)
+            document.addEventListener('touchstart', () => {
+                const el = document.documentElement;
+                if      (el.requestFullscreen)       el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            }, { once: true });
+        }
 
-                // HH
-                const hhStats = this.calcSmartStats('HH', 'TEAM');
-                this.iceOffsetHH = hhStats.mean;
-                this.statsHH = hhStats;
-                
-                this.updateProfileUI();
-                this.renderRef();
-            },
-            
-            calcSmartStats(type, profile) {
-                let errors = [];
-                let outliers = new Set();
-                
-                this.history.forEach(s => {
-                     if(s.actual === null) return;
-                     if(profile !== 'TEAM' && s.player !== profile) return;
-                     
-                     if (type === 'BH' && s.useBH && s.bh > 0 && s.actual <= 26.5) {
-                         // Normalize BH Error: (Actual - Sweep) - Predicted
-                         const normActual = s.actual - (s.sweep || 0);
-                         errors.push({ id: s.id, val: normActual - s.rawBH });
-                     } else if (type === 'HH' && s.useHH && s.hh > 0) {
-                         // HH uses Raw Actual (Sweeping ignored/baked in)
-                         errors.push({ id: s.id, val: s.actual - s.rawHH });
-                     }
-                });
-                
-                if(errors.length === 0) return { mean: 0, sd: 0, outlierIds: outliers };
-                
-                const sum = errors.reduce((a,b) => a+b.val, 0);
-                const mean = sum / errors.length;
-                
-                if (errors.length < 4) return { mean, sd: 0, outlierIds: outliers }; 
-                
-                const sqDiff = errors.map(e => Math.pow(e.val - mean, 2));
-                const avgSq = sqDiff.reduce((a,b) => a+b, 0) / errors.length;
-                const sd = Math.sqrt(avgSq);
-                
-                const clean = errors.filter(e => {
-                    const isOut = Math.abs(e.val - mean) > (2 * sd);
-                    if(isOut) outliers.add(e.id);
-                    return !isOut;
-                });
-                
-                const cleanSum = clean.reduce((a,b) => a+b.val, 0);
-                const finalMean = clean.length > 0 ? cleanSum / clean.length : mean;
+        reset() {
+            this.timer.reset();
+            this.ui.els.flashTray.classList.remove('active');
+            this.ui.update(this.timer);
+        }
 
-                return { mean: finalMean, sd: sd, outlierIds: outliers };
-            },
-            
-            calcOffsetForProfile(prof) {
-                return this.calcSmartStats('BH', prof).mean;
-            },
+        resetData() {
+            if (confirm("Clear this game's shot history? Player profiles are kept.")) {
+                this.session.history       = [];
+                this.session.manualOffsets = { 'Skip':0, '3rd':0, '2nd':0, 'Lead':0 };
+                this.session.save();
+                this.ui.updateRefTable();
+                this.ui.updateProfileUI();
+                this.ui.handleAction('close-modal');
+            }
+        }
+    }
 
-            updateProfile() { this.updateSmartCalibration(); },
-
-            updateProfileUI() {
-                const idMap = { 'p-skip': 'Skip', 'p-3rd': '3rd', 'p-2nd': '2nd', 'p-lead': 'Lead' };
-                for (const [id, key] of Object.entries(idMap)) {
-                    if(this.ui[id]) {
-                        this.ui[id].innerText = this.profileNames[key];
-                        this.ui[id].className = 'p-btn';
-                    }
-                }
-                const pLabel = this.currentProfile === 'TEAM' ? 'TEAM' : (this.profileNames[this.currentProfile] || this.currentProfile);
-                if(this.ui['ref-header']) this.ui['ref-header'].innerText = `Live Ice Speeds (${pLabel})`;
-                
-                if (this.currentProfile !== 'TEAM') {
-                    let activeId = '';
-                    if (this.currentProfile === 'Skip') activeId = 'p-skip';
-                    else if (this.currentProfile === '3rd') activeId = 'p-3rd';
-                    else if (this.currentProfile === '2nd') activeId = 'p-2nd';
-                    else if (this.currentProfile === 'Lead') activeId = 'p-lead';
-                    const btn = document.getElementById(activeId);
-                    if(btn) btn.className = 'p-btn active';
-                }
-            },
-
-            toggleProfile(p) {
-                this.currentProfile = (this.currentProfile === p) ? 'TEAM' : p;
-                this.updateProfile(); 
-            },
-            openRename(key) {
-                this.renameTarget = key;
-                this.ui['rename-input'].value = this.profileNames[key];
-                
-                const teamStats = this.calcSmartStats('BH', 'TEAM');
-                const pStats = this.calcSmartStats('BH', key);
-                
-                const teamTeeTime = (21.0 - CONFIG.bhIntercept - teamStats.mean) / CONFIG.bhSlope;
-                const playerTeeTime = (21.0 - CONFIG.bhIntercept - pStats.mean) / CONFIG.bhSlope;
-                const diffTime = playerTeeTime - teamTeeTime;
-                const sign = diffTime > 0 ? "+" : "";
-                
-                this.ui['calc-offset-display'].innerText = 
-                    `TEAM TEE: ${teamTeeTime.toFixed(2)}s\n` + 
-                    `${this.profileNames[key]} TEE: ${playerTeeTime.toFixed(2)}s\n` +
-                    `DIFF: ${sign}${diffTime.toFixed(2)}s`;
-                
-                // Consistency Score
-                const sdSeconds = pStats.sd;
-                const sdFeet = Math.abs(sdSeconds * CONFIG.bhSlope);
-                this.ui['calc-sd-display'].innerText = 
-                    `±${sdFeet.toFixed(0)} ft`;
-
-                const man = this.manualOffsets[key] || 0;
-                this.tempOffset = man; 
-                this.updateOffsetDisplay();
-                this.ui['rename-modal'].style.display = 'flex';
-                this.ui['rename-input'].focus();
-            },
-            saveRename() {
-                const name = this.ui['rename-input'].value.trim();
-                if(name) this.profileNames[this.renameTarget] = name.substring(0,6).toUpperCase();
-                this.manualOffsets[this.renameTarget] = this.tempOffset !== 0 ? this.tempOffset : 0;
-                this.saveStorage();
-                this.updateProfileUI();
-                this.updateProfile();
-                this.closeModals();
-            },
-            openMenu() { this.ui['menu-modal'].style.display = 'flex'; },
-            openHistoryView() { 
-                this.ui['menu-modal'].style.display = 'none';
-                this.renderFullHistory();
-                this.ui['history-modal'].style.display = 'flex';
-            },
-            // GRAPH
-            openGraph(type) {
-                this.ui['menu-modal'].style.display = 'none';
-                this.ui['graph-modal'].style.display = 'flex';
-                const cvs = this.ui['graph-canvas'];
-                const ctx = cvs.getContext('2d');
-                const dpr = window.devicePixelRatio || 1;
-                const rect = cvs.getBoundingClientRect();
-                cvs.width = rect.width * dpr; cvs.height = rect.height * dpr;
-                ctx.scale(dpr, dpr);
-                this.ui['graph-title'].innerText = type === 'BH' ? 'Back-to-Hog' : 'Hog-to-Hog';
-                
-                // Legend
-                const legend = this.ui['graph-legend'];
-                legend.innerHTML = '';
-                const pKeys = ['Skip', '3rd', '2nd', 'Lead'];
-                const colors = [PLAYER_COLORS['Skip'], PLAYER_COLORS['3rd'], PLAYER_COLORS['2nd'], PLAYER_COLORS['Lead']];
-                pKeys.forEach((key, i) => {
-                     const item = document.createElement('div');
-                     item.className = 'legend-item';
-                     item.innerHTML = `<span class="dot" style="background:${colors[i]}"></span>${this.profileNames[key]}`;
-                     legend.appendChild(item);
-                });
-                
-                this.drawGraph(type, ctx, rect.width, rect.height);
-            },
-            drawGraph(type, ctx, w, h) {
-                ctx.clearRect(0, 0, w, h);
-                const xMin = type === 'BH' ? 3.5 : 13.0; const xMax = type === 'BH' ? 4.6 : 17.5;
-                const yMin = 5; const yMax = 30;
-                const mapX = (val) => ((val - xMin) / (xMax - xMin)) * w;
-                const mapY = (val) => h - ((val - yMin) / (yMax - yMin)) * h;
-                
-                // Grid & Labels
-                ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.fillStyle = '#666'; ctx.font = "10px sans-serif";
-                ctx.beginPath();
-                for(let d=5; d<=30; d+=5) { 
-                    let y = mapY(d); ctx.moveTo(0, y); ctx.lineTo(w, y); 
-                    ctx.fillText(d+'ft', 2, y-2);
-                }
-                ctx.stroke();
-                
-                // Axis Labels X
-                ctx.textAlign = "center";
-                for(let t=xMin; t<=xMax; t+=(type==='BH'?0.2:1.0)) {
-                     let x = mapX(t);
-                     ctx.fillText(t.toFixed(1), x, h-2);
-                }
-
-                // Team Line
-                let slope, intercept, offset;
-                if (type === 'BH') { slope = CONFIG.bhSlope; intercept = CONFIG.bhIntercept; offset = this.calcSmartStats('BH', 'TEAM').mean; }
-                else { slope = CONFIG.hhSlope; intercept = CONFIG.hhIntercept; offset = this.statsHH.mean; }
-                ctx.strokeStyle = 'cyan'; ctx.lineWidth = 2; ctx.beginPath();
-                let y1 = (slope * xMin) + intercept + offset;
-                let y2 = (slope * xMax) + intercept + offset;
-                ctx.moveTo(0, mapY(y1)); ctx.lineTo(w, mapY(y2));
-                ctx.stroke();
-                
-                // Points
-                const colors = { 'Skip': '#FF453A', '3rd': '#FF9F0A', '2nd': '#0A84FF', 'Lead': '#30D158', '-': '#98989D' };
-                this.history.forEach(s => {
-                    if (s.actual === null) return;
-                    let valX = type === 'BH' ? s.bh : s.hh;
-                    if (valX < xMin || valX > xMax) return;
-                    
-                    let color = '#98989D';
-                    for(let k in this.profileNames) {
-                        if(k === s.player) color = PLAYER_COLORS[k];
-                    }
-                    if(s.player === '-') color = PLAYER_COLORS['-'];
-
-                    let valY = s.actual;
-                    if(type === 'BH' && s.sweep) valY -= s.sweep;
-
-                    ctx.fillStyle = color;
-                    ctx.beginPath(); ctx.arc(mapX(valX), mapY(valY), 4, 0, 2*Math.PI); ctx.fill();
-                });
-            },
-            confirmClear() { this.ui['confirm-modal'].style.display = 'flex'; },
-            executeClear() {
-                this.history = []; this.iceOffsetBH = 0; this.iceOffsetHH = 0;
-                this.saveStorage(); this.updateProfile(); this.closeModals();
-            },
-            closeModals() {
-                if(this.ui['menu-modal']) this.ui['menu-modal'].style.display = 'none';
-                if(this.ui['calib-modal']) this.ui['calib-modal'].style.display = 'none';
-                if(this.ui['player-edit-modal']) this.ui['player-edit-modal'].style.display = 'none';
-                if(this.ui['rename-modal']) this.ui['rename-modal'].style.display = 'none';
-                if(this.ui['confirm-modal']) this.ui['confirm-modal'].style.display = 'none';
-                if(this.ui['history-modal']) this.ui['history-modal'].style.display = 'none';
-                if(this.ui['graph-modal']) this.ui['graph-modal'].style.display = 'none';
-                this.editingId = null; 
-                window.scrollTo(0,0);
-            },
-            exportData() {
-                const name = prompt("Filename:", "curling_data") || "curling_data";
-                let csv = "Pos,B-H,Used,H-H,Used,Result,Sweep\n";
-                this.history.forEach(s => { 
-                    const sw = s.sweep ? (s.sweep === 3 ? 'L' : s.sweep === 6 ? 'M' : s.sweep === 9 ? 'H' : 'N/A') : 'N/A';
-                    csv += `${s.player},${s.bh.toFixed(2)},${s.useBH},${s.hh.toFixed(2)},${s.useHH},${s.actual},${sw}\n`; 
-                });
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = `${name}_${Date.now()}.csv`; a.click();
-                this.closeModals();
-            },
-            renderRef() {
-                const tbl = this.ui['ref-table']; tbl.innerHTML = '';
-                CONFIG.refRows.forEach(r => {
-                    const bh = (r.d - CONFIG.bhIntercept - this.iceOffsetBH) / CONFIG.bhSlope;
-                    const hh = (r.d - CONFIG.hhIntercept - this.iceOffsetHH) / CONFIG.hhSlope;
-                    let color = "#fff"; if(r.n === "Tee") color = "var(--green)";
-                    tbl.innerHTML += `<tr style="color:${color}"><td style="text-align:left; width:25%; font-weight:700; color:#ccc;">${r.n}</td><td style="text-align:center; width:37%;">${bh.toFixed(2)}</td><td style="text-align:center; width:38%;">${hh.toFixed(2)}</td></tr>`;
-                });
-            },
-            getResText(s) {
-                if (s.actual === null) return '-';
-                let label = "?"; let minDiff = 99;
-                CONFIG.zones.forEach(z => { if (Math.abs(z.d - s.actual) < minDiff) { minDiff = Math.abs(z.d - s.actual); label = z.n; } });
-                return label;
-            },
-            renderFullHistory() {
-                const tbody = this.ui['full-history-body']; tbody.innerHTML = '';
-                this.history.forEach(s => {
-                    const tr = document.createElement('tr');
-                    let pName = s.player;
-                    if(pName.length > 4 && this.profileNames[pName]) pName = this.profileNames[pName].substring(0,4);
-                    else if (pName !== '-' && this.profileNames[pName]) pName = this.profileNames[pName].substring(0,4);
-                    
-                    let bhClass = s.useBH ? 'hm-active' : 'hm-ignored';
-                    let hhClass = s.useHH ? 'hm-active' : 'hm-ignored';
-                    
-                    if (s.useBH && this.statsBH.outlierIds && this.statsBH.outlierIds.has(s.id)) bhClass = 'hm-outlier';
-                    if (s.useHH && this.statsHH.outlierIds && this.statsHH.outlierIds.has(s.id)) hhClass = 'hm-outlier';
-                    
-                    let swVal = s.sweep ? (s.sweep === 3 ? 'L' : s.sweep === 6 ? 'M' : s.sweep === 9 ? 'H' : 'NA') : 'NA';
-
-                    tr.innerHTML = `<td>${pName}</td><td class="${bhClass}">${s.bh.toFixed(2)}</td><td class="${hhClass}">${s.hh.toFixed(2)}</td><td>${this.getResText(s)}</td><td style="font-size:10px; color:#999;">${swVal}</td>`;
-                    tbody.appendChild(tr);
-                });
-            },
-            vibrate(p) { if(navigator.vibrate) navigator.vibrate(p); },
-            saveStorage() { 
-                const data = { history: this.history, profileNames: this.profileNames, manualOffsets: this.manualOffsets };
-                localStorage.setItem('cp_v23_1', JSON.stringify(data)); 
-            },
-            loadData() { 
-                const d = localStorage.getItem('cp_v23_1'); 
-                if(d) {
-                    const data = JSON.parse(d);
-                    this.history = data.history || [];
-                    if(data.profileNames) this.profileNames = data.profileNames;
-                    if(data.manualOffsets) this.manualOffsets = data.manualOffsets;
-                }
-            },
-            // Legacy stubs
-            toggleHistoryUse: function(){}, openPlayerEdit: function(){}, openModal: function(){}, calibrate: function(){}
-        };
-        app.init();
-    </script>
+    const app = new App();
+</script>
 </body>
 </html>
