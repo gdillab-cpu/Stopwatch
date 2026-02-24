@@ -77,12 +77,13 @@
         .p-btn {
             flex: 1; background: #252525; border: 1px solid #333; border-radius: 6px;
             color: #666; font-size: 11px; font-weight: 700; text-transform: uppercase;
-            display: flex; align-items: center; justify-content: center; transition: 0.1s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; transition: 0.1s;
         }
         .p-btn.active { background: #444; color: #fff; border-color: #999; }
-        /* Green dot inside profile button when personal calibration is active */
-        .p-btn .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--c-green); margin-left: 4px; display: none; }
-        .p-btn.calibrated .cal-dot { display: inline-block; }
+        /* Dot sits below the name */
+        .p-btn .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--c-green); display: none; }
+        .p-btn.calibrated .cal-dot { display: block; }
 
         .menu-strip {
             width: 50px; background: #252525; border-left: 1px solid var(--c-border);
@@ -284,15 +285,15 @@
         },
 
         // Called after each committed shot for a named player
-        appendShot(name, bh, actualAdj, iceBaseline) {
+        appendShot(name, bh, actualAdj, iceBaseline, gameTag) {
             if (!name || name.length < 2) return;
             if (DEFAULT_PROFILE_NAMES.has(name.toUpperCase())) return; // don't accumulate for generic names
             const all = this.loadAll();
             const key = name.toUpperCase();
             if (!all[key]) {
-                all[key] = { name: key, shots: [], historicalOffset: 0, historicalSigma: 99, shotCount: 0 };
+                all[key] = { name: key, shots: [], historicalOffset: 0, historicalSigma: 99, shotCount: 0, gameCount: 0 };
             }
-            all[key].shots.push({ bh, actualAdj, iceBaseline, ts: new Date().toISOString() });
+            all[key].shots.push({ bh, actualAdj, iceBaseline, game: gameTag || 'live', ts: new Date().toISOString() });
             // Keep at most 200 shots per player
             if (all[key].shots.length > 200) all[key].shots = all[key].shots.slice(-200);
             this._recompute(all[key]);
@@ -303,6 +304,8 @@
         _recompute(profile) {
             const valid = profile.shots.filter(s => s.bh > 2 && s.actualAdj != null);
             profile.shotCount = valid.length;
+            // Count distinct games by unique iceBaseline buckets (proxy for game identity)
+            profile.gameCount = new Set(valid.map(s => s.game || s.ts?.substring(0,10) || 'x')).size;
             if (valid.length < 2) {
                 profile.historicalOffset = 0;
                 profile.historicalSigma  = 99;
@@ -330,11 +333,101 @@
             const all = this.loadAll();
             delete all[name.toUpperCase()];
             this.saveAll(all);
-        }
-    };
+        },
 
-    // ═══════════════════════════════════════════════════════
-    // 1. CONFIGURATION
+        // Seed baseline profiles for GUSHU/NICHO/BOTTC/WALKE from pre-computed historical data.
+        // Uses a seed-version key so re-running on a fresh install always seeds,
+        // but never overwrites profiles that already have real accumulated data.
+        SEED_KEY: 'cd_players_seeded_v1',
+        seedBaseProfiles() {
+            if (localStorage.getItem(this.SEED_KEY)) return; // already done
+
+            const BH_SLOPE = CONFIG.physics.bhSlope;
+            const BH_INT   = CONFIG.physics.bhIntercept;
+
+            const seeds = {
+                GUSHU: {
+                    shots: [
+                        {bh:4.09,actualAdj:17.0, iceBaseline:-0.211,game:'2024BF'},{bh:4.45,actualAdj:0.0,  iceBaseline:-0.211,game:'2024BF'},
+                        {bh:4.2, actualAdj:15.0, iceBaseline:-0.211,game:'2024BF'},{bh:3.94,actualAdj:20.0, iceBaseline:-0.211,game:'2024BF'},
+                        {bh:4.0, actualAdj:21.5, iceBaseline:-0.211,game:'2024BF'},{bh:3.79,actualAdj:25.5, iceBaseline:1.541, game:'25d5'},
+                        {bh:4.0, actualAdj:20.0, iceBaseline:1.541, game:'25d5'}, {bh:4.04,actualAdj:20.0, iceBaseline:1.541, game:'25d5'},
+                        {bh:4.16,actualAdj:16.5, iceBaseline:1.541, game:'25d5'}, {bh:3.95,actualAdj:24.5, iceBaseline:1.541, game:'25d5'},
+                        {bh:3.98,actualAdj:13.0, iceBaseline:1.541, game:'25d5'}, {bh:3.89,actualAdj:26.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.0, actualAdj:20.0, iceBaseline:2.757, game:'25p1v2'},{bh:3.98,actualAdj:21.0, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:3.85,actualAdj:22.5, iceBaseline:2.757, game:'25p1v2'},{bh:3.92,actualAdj:22.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.38,actualAdj:12.5, iceBaseline:2.757, game:'25p1v2'},{bh:3.99,actualAdj:23.5, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.16,actualAdj:15.0, iceBaseline:1.604, game:'25semi'},{bh:4.04,actualAdj:18.5, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.01,actualAdj:22.5, iceBaseline:1.604, game:'25semi'},{bh:3.89,actualAdj:20.0, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.4, actualAdj:6.5,  iceBaseline:1.604, game:'25semi'},{bh:4.02,actualAdj:20.0, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.03,actualAdj:16.5, iceBaseline:0.239, game:'25d14'},{bh:3.91,actualAdj:21.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.19,actualAdj:10.0, iceBaseline:0.239, game:'25d14'},{bh:4.17,actualAdj:17.0, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.07,actualAdj:21.5, iceBaseline:0.239, game:'25d14'},{bh:4.41,actualAdj:22.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.21,actualAdj:10.0, iceBaseline:0.239, game:'25d14'},{bh:3.89,actualAdj:22.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.08,actualAdj:16.5, iceBaseline:-0.368,game:'25d3'}, {bh:4.06,actualAdj:20.0, iceBaseline:-0.368,game:'25d3'},
+                        {bh:3.85,actualAdj:24.5, iceBaseline:-0.368,game:'25d3'}, {bh:4.15,actualAdj:14.5, iceBaseline:-0.368,game:'25d3'},
+                        {bh:3.97,actualAdj:22.5, iceBaseline:-0.368,game:'25d3'},
+                    ]
+                },
+                NICHO: {
+                    shots: [
+                        {bh:4.08,actualAdj:18.5, iceBaseline:-0.211,game:'2024BF'},{bh:4.2, actualAdj:18.5, iceBaseline:-0.211,game:'2024BF'},
+                        {bh:4.12,actualAdj:17.0, iceBaseline:-0.211,game:'2024BF'},{bh:4.2, actualAdj:6.5,  iceBaseline:-0.211,game:'2024BF'},
+                        {bh:4.41,actualAdj:5.0,  iceBaseline:-0.211,game:'2024BF'},{bh:4.24,actualAdj:21.0, iceBaseline:-0.211,game:'2024BF'},
+                        {bh:4.17,actualAdj:20.0, iceBaseline:1.541, game:'25d5'}, {bh:4.29,actualAdj:14.2, iceBaseline:1.541, game:'25d5'},
+                        {bh:4.18,actualAdj:23.5, iceBaseline:2.757, game:'25p1v2'},{bh:4.63,actualAdj:7.2,  iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.22,actualAdj:24.5, iceBaseline:2.757, game:'25p1v2'},{bh:4.6, actualAdj:20.0, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.37,actualAdj:17.2, iceBaseline:1.604, game:'25semi'},{bh:4.11,actualAdj:21.0, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.31,actualAdj:16.5, iceBaseline:1.604, game:'25semi'},{bh:4.41,actualAdj:11.5, iceBaseline:1.604, game:'25semi'},
+                        {bh:3.9, actualAdj:21.0, iceBaseline:1.604, game:'25semi'},{bh:4.33,actualAdj:12.2, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.3, actualAdj:18.5, iceBaseline:0.239, game:'25d14'},{bh:4.34,actualAdj:11.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.25,actualAdj:17.0, iceBaseline:0.239, game:'25d14'},{bh:4.41,actualAdj:12.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.41,actualAdj:7.5,  iceBaseline:0.239, game:'25d14'},{bh:4.21,actualAdj:15.0, iceBaseline:0.239, game:'25d14'},
+                    ]
+                },
+                BOTTC: {
+                    shots: [
+                        {bh:3.98,actualAdj:19.5, iceBaseline:1.541, game:'25d5'}, {bh:4.2, actualAdj:21.0, iceBaseline:1.541, game:'25d5'},
+                        {bh:4.14,actualAdj:20.0, iceBaseline:1.541, game:'25d5'}, {bh:4.28,actualAdj:15.0, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.43,actualAdj:6.5,  iceBaseline:2.757, game:'25p1v2'},{bh:4.04,actualAdj:23.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.16,actualAdj:21.0, iceBaseline:2.757, game:'25p1v2'},{bh:4.24,actualAdj:14.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.26,actualAdj:18.5, iceBaseline:2.757, game:'25p1v2'},{bh:4.06,actualAdj:19.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:3.97,actualAdj:22.5, iceBaseline:2.757, game:'25p1v2'},{bh:3.97,actualAdj:21.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.2, actualAdj:23.5, iceBaseline:2.757, game:'25p1v2'},{bh:4.29,actualAdj:13.0, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.34,actualAdj:16.5, iceBaseline:1.604, game:'25semi'},{bh:4.1, actualAdj:18.5, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.14,actualAdj:17.0, iceBaseline:1.604, game:'25semi'},{bh:4.05,actualAdj:19.5, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.2, actualAdj:18.5, iceBaseline:1.604, game:'25semi'},{bh:4.22,actualAdj:17.0, iceBaseline:1.604, game:'25semi'},
+                        {bh:4.05,actualAdj:17.0, iceBaseline:0.239, game:'25d14'},{bh:4.04,actualAdj:12.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.04,actualAdj:20.0, iceBaseline:0.239, game:'25d14'},{bh:4.08,actualAdj:12.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.32,actualAdj:2.5,  iceBaseline:0.239, game:'25d14'},{bh:3.89,actualAdj:18.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:3.89,actualAdj:19.5, iceBaseline:0.239, game:'25d14'},
+                    ]
+                },
+                WALKE: {
+                    shots: [
+                        {bh:3.98,actualAdj:21.5, iceBaseline:-0.211,game:'2024BF'},{bh:4.2, actualAdj:18.5, iceBaseline:-0.211,game:'2024BF'},
+                        {bh:4.28,actualAdj:10.2, iceBaseline:-0.211,game:'2024BF'},{bh:4.17,actualAdj:16.5, iceBaseline:1.541, game:'25d5'},
+                        {bh:4.31,actualAdj:14.5, iceBaseline:1.541, game:'25d5'}, {bh:4.03,actualAdj:17.5, iceBaseline:1.541, game:'25d5'},
+                        {bh:4.13,actualAdj:16.5, iceBaseline:1.541, game:'25d5'}, {bh:3.4, actualAdj:24.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:3.83,actualAdj:16.5, iceBaseline:2.757, game:'25p1v2'},{bh:4.33,actualAdj:11.5, iceBaseline:2.757, game:'25p1v2'},
+                        {bh:4.36,actualAdj:6.5,  iceBaseline:1.604, game:'25semi'},{bh:3.91,actualAdj:18.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.25,actualAdj:20.0, iceBaseline:0.239, game:'25d14'},{bh:4.07,actualAdj:16.5, iceBaseline:0.239, game:'25d14'},
+                        {bh:4.2, actualAdj:21.0, iceBaseline:0.239, game:'25d14'},{bh:4.2, actualAdj:16.5, iceBaseline:-0.368,game:'25d3'},
+                        {bh:3.97,actualAdj:16.5, iceBaseline:-0.368,game:'25d3'}, {bh:4.0, actualAdj:12.5, iceBaseline:-0.368,game:'25d3'},
+                    ]
+                }
+            };
+
+            const all = this.loadAll();
+            for (const [name, data] of Object.entries(seeds)) {
+                if (all[name]) continue; // don't overwrite real accumulated data
+                all[name] = { name, shots: data.shots, historicalOffset: 0, historicalSigma: 99, shotCount: 0, gameCount: 0 };
+                this._recompute(all[name]);
+            }
+            this.saveAll(all);
+            localStorage.setItem(this.SEED_KEY, '1');
+        }
+    }; // end PlayerStore
     // ═══════════════════════════════════════════════════════
     const CONFIG = {
         physics: {
@@ -486,6 +579,7 @@
                 this.createSampleArchive();
                 this.save();
             }
+            PlayerStore.seedBaseProfiles(); // no-op if already seeded
         }
 
         save() {
@@ -727,7 +821,8 @@
                 const name = this.profiles[shotData.player];
                 const actualAdj = shotData.actual - (shotData.sweep || 0);
                 if (name && name.length >= 2) {
-                    PlayerStore.appendShot(name, shotData.bh, actualAdj, this.calibration.bh.iceBaseline);
+                    if (!this._gameTag) this._gameTag = 'g' + Date.now();
+                    PlayerStore.appendShot(name, shotData.bh, actualAdj, this.calibration.bh.iceBaseline, this._gameTag);
                 }
             }
             this.save();
@@ -758,7 +853,7 @@
         // ── PROFILE MANAGEMENT ────────────────────────────────────────────────
         renameProfile(id, newName) {
             if (!newName) return;
-            this.profiles[id] = newName.substring(0, 6).toUpperCase();
+            this.profiles[id] = newName.substring(0, 5).toUpperCase();
             this.save();
         }
 
@@ -799,7 +894,7 @@
         createSampleArchive() {
             const s = {
                 id: 1739720000000, name: "Sample: 2025 Brier Semifinal", date: "2025-03-08",
-                profiles: {'Skip':'SKIP','3rd':'3RD','2nd':'2ND','Lead':'LEAD'},
+                profiles: {'Skip':'GUSHU','3rd':'NICHO','2nd':'BOTTC','Lead':'WALKE'},
                 history: [
                     {id:1,  player:'3rd',  bh:4.31,hh:14.84,useBH:true,useHH:true,actual:17.5,sweep:1.0,  offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:00:00Z"},
                     {id:2,  player:'Skip', bh:4.04,hh:14.81,useBH:true,useHH:true,actual:19.5,sweep:1.0,  offsetBH:0,offsetHH:0,timestamp:"2025-03-08T19:05:00Z"},
@@ -1211,6 +1306,7 @@
                     <li><button onclick="app.ui.showGraph('HH-Error')">Error Plot (HH)</button></li>
                     ` : ''}
                     <li><button data-action="open-archives" style="color:var(--c-orange);border-color:var(--c-orange)">Saved Games</button></li>
+                    <li><button onclick="app.ui.showProfiles()" style="color:var(--c-purple);border-color:var(--c-purple)">Player Profiles</button></li>
                     <li><button data-action="do-export" style="color:var(--c-blue);border-color:var(--c-blue)">Save & Export</button></li>
                     <li><button onclick="app.resetData()" style="color:var(--c-red);border-color:var(--c-red)">Clear Game Data</button></li>
                     <li><button data-action="close-modal" style="color:#666;margin-top:10px;">Close</button></li>
@@ -1239,9 +1335,66 @@
                 <button data-action="back-menu" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Back</button>`;
         }
 
-        showHistory() {
+        showProfiles() {
             this.els.modal.dataset.view = 'sub';
-            let rows = '';
+            const all    = PlayerStore.loadAll();
+            const names  = Object.keys(all).sort();
+            const bhSlope = CONFIG.physics.bhSlope;
+
+            if (!names.length) {
+                this.els.modalContent.innerHTML = `
+                    <div class="modal-header">Player Profiles</div>
+                    <div style="color:#555;text-align:center;padding:20px;font-size:13px;">No custom profiles yet.<br>Name a slot (long-press) and throw shots to build one.</div>
+                    <button data-action="back-menu" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Back</button>`;
+                this.els.modal.classList.add('open');
+                return;
+            }
+
+            const rows = names.map(name => {
+                const p = all[name];
+                const offSec  = p.historicalOffset / bhSlope; // ft ÷ (ft/s) — sign flips with neg slope
+                const sigSec  = p.historicalSigma  / Math.abs(bhSlope);
+                const offSign = offSec > 0 ? '+' : '';
+                const offColor = Math.abs(offSec) < 0.02 ? '#888' : offSec > 0 ? 'var(--c-orange)' : 'var(--c-green)';
+                const games = p.gameCount || '?';
+                const shots = p.shotCount || 0;
+                // Reliability label based on shot count and sigma
+                const reliable = shots >= 15 && p.historicalSigma < 4.5;
+                const reliabilityColor = reliable ? 'var(--c-green)' : shots >= 8 ? 'var(--c-orange)' : 'var(--c-red)';
+                const reliabilityLabel = reliable ? '●' : shots >= 8 ? '◐' : '○';
+
+                return `
+                <div style="background:#2a2a2a;border-radius:10px;padding:12px;margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+                        <span style="font-size:16px;font-weight:800;color:#fff;">${name}</span>
+                        <span style="font-size:12px;color:${reliabilityColor};">${reliabilityLabel} ${games}g / ${shots}sh</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;">
+                        <div style="color:#888;">Approx BH offset</div>
+                        <div style="font-family:monospace;font-weight:700;color:${offColor};text-align:right;">${offSign}${offSec.toFixed(3)}s</div>
+                        <div style="color:#888;">Consistency (σ)</div>
+                        <div style="font-family:monospace;color:#ccc;text-align:right;">±${sigSec.toFixed(3)}s</div>
+                    </div>
+                    <div style="font-size:9px;color:#444;margin-top:6px;line-height:1.4;">Offset is relative — changes when paired with different teammates.</div>
+                    <button onclick="if(confirm('Clear all data for ${name}?')){PlayerStore.clearPlayer('${name}');app.ui.showProfiles();}" 
+                        style="margin-top:8px;width:100%;padding:5px;background:transparent;border:1px solid #333;color:#555;border-radius:6px;font-size:10px;">
+                        Clear ${name}
+                    </button>
+                </div>`;
+            }).join('');
+
+            this.els.modalContent.innerHTML = `
+                <div class="modal-header">Player Profiles (${names.length})</div>
+                <div style="font-size:10px;color:#555;text-align:center;margin-bottom:10px;line-height:1.5;">
+                    Offsets shown are approximate averages across all games.<br>
+                    They shift relative to teammates — what matters is the <em style="color:#777">spread between players</em>, not absolute values.
+                </div>
+                <div class="modal-content-scroll">${rows}</div>
+                <button data-action="back-menu" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Back</button>`;
+            this.els.modal.classList.add('open');
+        }
+
+        showHistory() {
             this.app.session.history.forEach(s => {
                 const sw  = s.sweep === 1 ? 'L' : s.sweep === 2.5 ? 'M' : s.sweep === 5.3 ? 'H' : '-';
                 const res = CONFIG.zones.find(z => z.d === s.actual)?.n || '-';
@@ -1308,7 +1461,7 @@
 
             this.els.modalContent.innerHTML = `
                 <div class="modal-header">Profile: ${name}</div>
-                <input id="rename-input" class="input-rename" value="${name}" maxlength="6" />
+                <input id="rename-input" class="input-rename" value="${name}" maxlength="5" />
                 <div class="conf-bar-wrap"><div class="conf-bar" style="width:${confPct}%;background:${confColor}"></div></div>
                 <div class="section-lbl">📍 This Game</div>
                 ${inGameBlock}
