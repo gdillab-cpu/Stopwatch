@@ -57,9 +57,8 @@
         }
         .td-pred { font-size: 18px; font-weight: 800; text-transform: uppercase; margin-top: 10px; min-height: 24px; color: #fff; }
 
-        /* CONFIDENCE DOT — shown next to BH prediction when personal cal is active */
-        .pred-wrap { display: flex; align-items: center; gap: 5px; margin-top: 10px; min-height: 24px; }
-        .conf-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        /* PREDICTION WRAP */
+        .pred-wrap { display: flex; align-items: center; justify-content: center; margin-top: 10px; min-height: 24px; }
 
         /* CONTROL PANEL */
         .control-panel {
@@ -86,17 +85,17 @@
         .p-btn.calibrated .cal-dot { display: block; }
 
         .menu-strip {
-            width: 50px; background: #252525; border-left: 1px solid var(--c-border);
+            width: 50px; background: #252525;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 0; overflow: visible; z-index: 60;
         }
         .mode-toggle {
             flex: 0 0 50px; width: 100%; display: flex; align-items: center; justify-content: center;
-            border-bottom: 1px solid #333; cursor: pointer; background: #1c1c1e; overflow: hidden;
+            cursor: pointer; background: #1c1c1e; overflow: hidden;
         }
-        .mode-icon-svg { width: 32px; height: 32px; display: block; transition: all 0.2s ease; }
-        .mode-icon-svg.nerd { transform: scale(1.4); filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
-        .mode-icon-svg.cool { transform: scale(1.4); }
+        .mode-icon-svg { width: 50px; height: 50px; display: block; transition: all 0.2s ease; }
+        .mode-icon-svg.nerd { filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5)); }
+        .mode-icon-svg.cool { }
         .menu-trigger {
             flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
             cursor: pointer; background: #252525;
@@ -105,18 +104,18 @@
 
         /* FLASH TRAY */
         .flash-tray {
-            flex: 1; background: #000; padding: 10px;
+            flex: 1; background: #000; padding: 8px;
             padding-bottom: calc(var(--safe-bottom) + 190px);
             display: flex; flex-direction: column; justify-content: flex-start;
-            padding-top: 6px; opacity: 0.3; pointer-events: none; transition: opacity 0.2s;
+            padding-top: 5px; opacity: 0.3; pointer-events: none; transition: opacity 0.2s;
             overflow-y: auto;
         }
         .flash-tray.active { opacity: 1; pointer-events: auto; }
         .flash-grid {
             display: grid;
             grid-template-columns: 20% 1fr 1fr 1fr 15%;
-            grid-template-rows: repeat(4, 55px);
-            gap: 6px; width: 100%;
+            grid-template-rows: repeat(4, 44px);
+            gap: 5px; width: 100%;
         }
         .fg-btn {
             border: 1px solid #333; border-radius: 8px;
@@ -201,7 +200,6 @@
             <div class="td-lbl">Back-Hog</div>
             <div class="td-val val-bh">--</div>
             <div class="pred-wrap">
-                <span class="conf-dot" id="conf-dot-bh"></span>
                 <span class="td-pred" id="pred-bh"></span>
             </div>
         </div>
@@ -616,9 +614,32 @@
 
             if (!bhShots.length) {
                 this.calibration.bh.iceBaseline = 0;
+                // Still populate playerSlots from historical profiles so ref table
+                // shows meaningful relative offsets even before any in-game shots
                 slotIds.forEach(id => {
-                    this.playerSlots[id] = { effectiveOffset: 0, confidence: 0, inGameN: 0 };
+                    const hist = PlayerStore.load(this.profiles[id]);
+                    if (hist && hist.shotCount >= 2) {
+                        this.playerSlots[id] = {
+                            effectiveOffset: hist.historicalOffset,
+                            confidence: 0,
+                            inGameN: 0
+                        };
+                    } else {
+                        this.playerSlots[id] = { effectiveOffset: 0, confidence: 0, inGameN: 0 };
+                    }
                 });
+                // Normalize so weighted mean = 0 (same constraint as full calibration)
+                let sW = 0, sWO = 0;
+                slotIds.forEach(id => {
+                    const hist = PlayerStore.load(this.profiles[id]);
+                    if (!hist || hist.shotCount < 2) return;
+                    const w = 1 / Math.max(hist.historicalSigma, 0.5);
+                    sW += w; sWO += w * this.playerSlots[id].effectiveOffset;
+                });
+                if (sW > 0) {
+                    const meanOff = sWO / sW;
+                    slotIds.forEach(id => { this.playerSlots[id].effectiveOffset -= meanOff; });
+                }
                 return;
             }
 
@@ -933,7 +954,6 @@
                 valHH:        document.querySelector('.val-hh'),
                 predBH:       document.getElementById('pred-bh'),
                 predHH:       document.getElementById('pred-hh'),
-                confDotBH:    document.getElementById('conf-dot-bh'),
                 flashTray:    document.getElementById('flash-tray'),
                 refTable:     document.getElementById('ref-table'),
                 modal:        document.getElementById('modal-overlay'),
@@ -1021,7 +1041,13 @@
                 case 'toggle-bh':
                     this.app.timer.enabledBH = !this.app.timer.enabledBH;
                     document.getElementById('disp-bh').classList.toggle('disabled', !this.app.timer.enabledBH);
-                    this.update(this.app.timer);
+                    // If a shot is waiting for input, update useBH live so sweep req updates too
+                    if (this.tempShot) {
+                        this.tempShot.useBH = this.app.timer.enabledBH && this.tempShot.bh >= CONFIG.limits.minBH && this.tempShot.bh < CONFIG.limits.maxBH;
+                        this.highlightGrid();
+                    } else {
+                        this.update(this.app.timer);
+                    }
                     break;
                 case 'toggle-hh':
                     this.app.timer.enabledHH = !this.app.timer.enabledHH;
@@ -1092,7 +1118,6 @@
             if (timerState.state === 'RUNNING') {
                 this.els.valBH.innerText = timerState.liveBH.toFixed(2);
                 this.els.predBH.innerText = "";
-                this.els.confDotBH.style.display = 'none';
                 this.els.predHH.innerText = "";
                 this.setBtnState('split', 'HOG 1');
                 this.els.valHH.innerText = "--";
@@ -1102,7 +1127,6 @@
                 this.setBtnState('int', 'HOG 2');
                 if (timerState.splitBH === 0) {
                     this.els.valBH.innerText = "--";
-                    this.els.confDotBH.style.display = 'none';
                 } else {
                     this.predictBH(timerState.splitBH);
                 }
@@ -1113,19 +1137,10 @@
 
         predictBH(time) {
             const dist = this.app.session.getPrediction('BH', time);
-            if (dist === null) { this.els.predBH.innerText = ""; this.els.confDotBH.style.display = 'none'; return; }
+            if (dist === null) { this.els.predBH.innerText = ""; return; }
             let label = "?"; let min = 99;
             CONFIG.zones.forEach(z => { const d = Math.abs(z.d - dist); if (d < min) { min = d; label = z.n; } });
             this.els.predBH.innerText = label;
-            // Show confidence dot for personal calibration
-            const conf = this.app.session.getActiveBHConfidence();
-            if (conf >= CALIB.minConfDot && this.app.session.activeProfile !== 'TEAM') {
-                const color = conf > 0.6 ? '#30D158' : conf > 0.35 ? '#FF9F0A' : '#FF453A';
-                this.els.confDotBH.style.display = 'block';
-                this.els.confDotBH.style.background = color;
-            } else {
-                this.els.confDotBH.style.display = 'none';
-            }
         }
 
         predictHH(time) {
@@ -1216,8 +1231,15 @@
                 this.app.session.addShot(this.tempShot);
                 this.tempShot = null;
                 this.els.flashTray.classList.remove('active');
+                // Reset profile selection back to TEAM after each committed shot
+                this.app.session.activeProfile = 'TEAM';
+                // Re-enable BH for next shot and clear its disabled state
+                if (!this.app.timer.enabledBH) {
+                    this.app.timer.enabledBH = true;
+                    document.getElementById('disp-bh').classList.remove('disabled');
+                }
+                this.updateProfileUI();
                 this.updateRefTable();
-                this.updateProfileUI(); // refresh confidence dots
             } else {
                 this.highlightGrid();
             }
@@ -1371,9 +1393,9 @@
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;">
                         <div style="color:#888;">Approx BH offset</div>
-                        <div style="font-family:monospace;font-weight:700;color:${offColor};text-align:right;">${offSign}${offSec.toFixed(3)}s</div>
+                        <div style="font-family:monospace;font-weight:700;color:${offColor};text-align:right;">${offSign}${offSec.toFixed(2)}s</div>
                         <div style="color:#888;">Consistency (σ)</div>
-                        <div style="font-family:monospace;color:#ccc;text-align:right;">±${sigSec.toFixed(3)}s</div>
+                        <div style="font-family:monospace;color:#ccc;text-align:right;">±${sigSec.toFixed(2)}s</div>
                     </div>
                     <div style="font-size:9px;color:#444;margin-top:6px;line-height:1.4;">Offset is relative — changes when paired with different teammates.</div>
                     <button onclick="if(confirm('Clear all data for ${name}?')){PlayerStore.clearPlayer('${name}');app.ui.showProfiles();}" 
@@ -1395,6 +1417,8 @@
         }
 
         showHistory() {
+            this.els.modal.dataset.view = 'sub';
+            let rows = '';
             this.app.session.history.forEach(s => {
                 const sw  = s.sweep === 1 ? 'L' : s.sweep === 2.5 ? 'M' : s.sweep === 5.3 ? 'H' : '-';
                 const res = CONFIG.zones.find(z => z.d === s.actual)?.n || '-';
@@ -1418,6 +1442,7 @@
                     </table>
                 </div>
                 <button data-action="back-menu" style="width:100%;padding:14px;margin-top:10px;background:transparent;border:1px solid #444;color:#666;border-radius:8px;">Back</button>`;
+            this.els.modal.classList.add('open');
         }
 
         showProfileModal(id) {
@@ -1440,10 +1465,10 @@
                 ? (() => {
                     const histSec  = hist.historicalOffset / bhSlope; // feet/slope = sec (slope neg → sign flips)
                     const histSign = histSec > 0 ? '+' : '';
-                    const histSigSec = (hist.historicalSigma / Math.abs(bhSlope)).toFixed(3);
+                    const histSigSec = (hist.historicalSigma / Math.abs(bhSlope)).toFixed(2);
                     const histColor  = Math.abs(histSec) < 0.02 ? '#888' : histSec > 0 ? 'var(--c-orange)' : 'var(--c-green)';
                     return `<div class="stat-row"><span>Total shots on file:</span><span>${hist.shotCount}</span></div>
-                   <div class="stat-row"><span>Historical BH offset:</span><span style="color:${histColor}">${histSign}${histSec.toFixed(3)}s</span></div>
+                   <div class="stat-row"><span>Historical BH offset:</span><span style="color:${histColor}">${histSign}${histSec.toFixed(2)}s</span></div>
                    <div class="stat-row"><span>Consistency (σ):</span><span>±${histSigSec}s</span></div>`;
                 })()
                 : `<div style="color:#555;font-size:11px;text-align:center;padding:6px 0;">No cross-game profile for "<b style="color:#777">${name}</b>" yet. Shots will accumulate as you play.</div>`;
@@ -1456,7 +1481,7 @@
             const manualActive = (this.app.session.manualOffsets[id] || 0) !== 0;
             const inGameBlock = `
                 <div class="stat-row"><span>In-game shots (BH):</span><span>${slot?.inGameN || 0}</span></div>
-                <div class="stat-row"><span>Auto BH offset:</span><span style="color:${effColor}">${effSign}${effSec.toFixed(3)}s ${manualActive ? '<span style="color:#555;font-size:10px;">(overridden)</span>' : ''}</span></div>
+                <div class="stat-row"><span>Auto BH offset:</span><span style="color:${effColor}">${effSign}${effSec.toFixed(2)}s ${manualActive ? '<span style="color:#555;font-size:10px;">(overridden)</span>' : ''}</span></div>
                 <div class="stat-row"><span>Calibration source:</span><span style="color:${confColor}">${confLabel} (${confPct}%)</span></div>`;
 
             this.els.modalContent.innerHTML = `
