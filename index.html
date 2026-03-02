@@ -157,42 +157,49 @@ body {
   width: 300px; height: 300px; pointer-events: none;
   background: radial-gradient(circle, rgba(61,220,132,0.07) 0%, transparent 70%);
 }
-.start-cover::after {
-  content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 360px; height: 360px; pointer-events: none; opacity: 0.7;
-  background:
-    radial-gradient(circle, transparent 42%, rgba(61,220,132,0.04) 42.5%, rgba(61,220,132,0.04) 46%, transparent 46.5%),
-    radial-gradient(circle, transparent 28%, rgba(61,220,132,0.00) 28.5%, rgba(61,220,132,0.00) 32%, transparent 32.5%),
-    radial-gradient(circle, transparent 14%, rgba(61,220,132,0.05) 14.5%, rgba(61,220,132,0.05) 18%, transparent 18.5%),
-    radial-gradient(circle, transparent 5%, rgba(61,220,132,0.00) 5.5%, rgba(61,220,132,0.00) 7.5%, transparent 8%),
-    radial-gradient(circle, rgba(61,220,132,0.35) 0%, rgba(61,220,132,0.35) 1.2%, transparent 1.5%);
-}
 .start-cover.peek { transform: translateY(calc(100% - 28px)); }
 .start-cover .lbl-main { }
 .start-cover .lbl-peek {
   display: none;
   position: absolute;
-  /* bottom: -0.5em = text center sits at cover's bottom edge, top half visible in strip */
-  bottom: -0.5em;
-  font-size: 22px; font-weight: 800; letter-spacing: 3px;
-  color: rgba(61,220,132,0.50);
+  top: 2px;
+  font-size: 18px; font-weight: 800; letter-spacing: 3px;
+  color: rgba(61,220,132,0.50); opacity: 0.5;
+  height: 22px; overflow: hidden; line-height: 1.2;
 }
 .start-cover.peek .lbl-main { display: none; }
 .start-cover.peek .lbl-peek { display: block; }
-.start-cover.peek .ghost-col { display: none; }
-/* Ghost ice speed times */
-.ghost-col {
-  position: absolute; top: 0; bottom: 0;
-  display: flex; flex-direction: column; justify-content: center; gap: 6px;
-  z-index: 1; pointer-events: none;
+.start-cover.peek .ice-rings-wrap { display: none; }
+/* Ghost ice numbers + curling rings on START button */
+.ice-rings-wrap {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; padding: 0 10px;
 }
-.ghost-left  { left: 6px; align-items: flex-start; }
-.ghost-right { right: 6px; align-items: flex-end; }
-.ghost-t {
-  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
-  color: rgba(61,220,132,0.22);
+.ice-rings-svg {
+  width: 100px; height: 115px; opacity: 0.12; flex-shrink: 0;
+}
+.ice-ghost {
+  display: flex; flex-direction: column; justify-content: space-between;
+  height: 115px; flex: 1; flex-shrink: 0;
+  font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: rgba(61,220,132,0.22); letter-spacing: 0; pointer-events: none;
+  line-height: 1; padding: 2px 0 18px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", monospace;
 }
+.ice-ghost.left  { align-items: flex-start; }
+.ice-ghost.right { align-items: flex-end; }
+/* Graph canvas in sub-screen */
+.graph-canvas { width: 100%; height: 140px; background: #080808; border-radius: 4px; }
+.graph-legend { display: flex; justify-content: center; gap: 6px; padding: 4px 0; flex-wrap: wrap; }
+.graph-legend span { font-size: 7px; font-weight: 700; display: flex; align-items: center; gap: 2px; color: #666; }
+.graph-legend .gdot { width: 5px; height: 5px; border-radius: 50%; }
+/* Full-screen mode */
+body.fullscreen-mode .watch-frame {
+  transform: scale(1.8); transform-origin: center center;
+}
+body.fullscreen-mode .watch-frame::after { display: none; }
+body.fullscreen-mode #hint { display: none !important; }
 
 /* ─── MENU OVERLAY ─── */
 .menu-overlay {
@@ -357,18 +364,31 @@ body {
     </div>
 
     <div class="start-cover" id="start-cover" data-action="start">
-      <div class="ghost-col ghost-left">
-        <span class="ghost-t" id="gh-bh-t12"></span>
-        <span class="ghost-t" id="gh-bh-tee"></span>
-        <span class="ghost-t" id="gh-bh-b12"></span>
+      <div class="ice-rings-wrap">
+        <div class="ice-ghost left" id="ice-ghost-bh"><span>—</span><span>—</span><span>—</span></div>
+        <svg class="ice-rings-svg" viewBox="0 0 80 92">
+          <!-- Shaded 12-foot ring -->
+          <circle cx="40" cy="40" r="38" fill="#3ddc84" fill-opacity="0.025"/>
+          <circle cx="40" cy="40" r="25" fill="#0a1a0d"/>
+          <!-- Shaded 4-foot ring -->
+          <circle cx="40" cy="40" r="13" fill="#3ddc84" fill-opacity="0.03"/>
+          <circle cx="40" cy="40" r="3.5" fill="#0a1a0d"/>
+          <!-- Ring outlines -->
+          <circle cx="40" cy="40" r="38" fill="none" stroke="#3ddc84" stroke-width="0.7"/>
+          <circle cx="40" cy="40" r="25" fill="none" stroke="#3ddc84" stroke-width="0.7"/>
+          <circle cx="40" cy="40" r="13" fill="none" stroke="#3ddc84" stroke-width="0.7"/>
+          <circle cx="40" cy="40" r="3.5" fill="#3ddc84" opacity="0.5"/>
+          <!-- Back line -->
+          <line x1="0" y1="78" x2="80" y2="78" stroke="#3ddc84" stroke-width="0.7"/>
+          <!-- Hack -->
+          <rect x="34" y="87" width="12" height="2.5" rx="1" fill="#3ddc84" fill-opacity="0.18"/>
+          <line x1="37" y1="86" x2="37" y2="90" stroke="#3ddc84" stroke-width="0.5" opacity="0.12"/>
+          <line x1="43" y1="86" x2="43" y2="90" stroke="#3ddc84" stroke-width="0.5" opacity="0.12"/>
+        </svg>
+        <div class="ice-ghost right" id="ice-ghost-hh"><span>—</span><span>—</span><span>—</span></div>
       </div>
       <span class="lbl-main" id="start-lbl">START</span>
       <span class="lbl-peek">START</span>
-      <div class="ghost-col ghost-right">
-        <span class="ghost-t" id="gh-hh-t12"></span>
-        <span class="ghost-t" id="gh-hh-tee"></span>
-        <span class="ghost-t" id="gh-hh-b12"></span>
-      </div>
     </div>
   </div>
 
@@ -379,7 +399,12 @@ body {
       <div class="menu-header">
         <div class="menu-title">Menu</div>
         <div style="display:flex;gap:6px;align-items:center;">
-          <div class="scale-btn" id="scale-btn" data-action="toggle-scale" style="font-size:10px;font-weight:800;color:#555;cursor:pointer;padding:4px;touch-action:manipulation;">⤢</div>
+          <div class="mode-btn" id="scale-btn" data-action="toggle-scale" style="width:22px;height:22px;cursor:pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width:100%;height:100%;display:block;">
+              <path d="M15 3h6v6M9 21H3v-6" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 3l-7 7M3 21l7-7" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
           <div class="mode-btn" id="mode-btn" data-action="toggle-mode">
           <svg id="mode-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
             <rect x="2" y="2" width="60" height="60" rx="15" fill="#B0B0B0"/>
@@ -430,8 +455,21 @@ body {
     </div>
     <!-- Graphs -->
     <div class="sub" id="sc-graphs">
-      <div class="sub-hdr"><div class="sub-title" id="graph-title" data-action="cycle-graph" style="cursor:pointer;">BH Shots ›</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
-      <div class="sub-body" style="padding:4px;"><canvas id="graph-canvas" width="176" height="160" style="width:100%;"></canvas></div>
+      <div class="sub-hdr"><div class="sub-title">Graphs</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
+      <div class="menu-body">
+        <div class="menu-item c-grey" data-action="show-graph" data-type="BH">Back-Hog</div>
+        <div class="menu-item c-grey" data-action="show-graph" data-type="HH">Hog-Hog</div>
+        <div class="menu-item c-grey" data-action="show-graph" data-type="BH-Error">BH Error</div>
+        <div class="menu-item c-grey" data-action="show-graph" data-type="HH-Error">HH Error</div>
+      </div>
+    </div>
+    <!-- Graph view -->
+    <div class="sub" id="sc-graph-view">
+      <div class="sub-hdr"><div class="sub-title" id="graph-title">Graph</div><div class="sub-back" data-action="nav-back">‹ Back</div></div>
+      <div class="sub-body" style="padding:4px;">
+        <canvas class="graph-canvas" id="graph-canvas"></canvas>
+        <div class="graph-legend" id="graph-legend"></div>
+      </div>
     </div>
   </div><!-- /menu-overlay -->
 
@@ -474,6 +512,7 @@ const CFG = {
   sweeps:[{n:'N/A',v:0},{n:'L',v:1.0},{n:'M',v:2.5},{n:'H',v:5.3}],
   slots:['Skip','3rd','2nd','Lead'],
   defaultNames:new Set(['SKIP','3RD','2ND','LEAD','-','TEAM']),
+  colors:{ Skip:'#FF453A', '3rd':'#FF9F0A', '2nd':'#0A84FF', Lead:'#30D158', '-':'#98989D' },
 };
 
 function distToZone(ft) {
@@ -1038,7 +1077,7 @@ const App = {
       btn.classList.toggle('calibrated',n>=3);
       if(dot){ dot.style.opacity=n>=3?'0.9':'0.3'; }
     });
-    this._updateGhosts();
+    this.refreshIceGhost();
   },
 
   drawGrid(){
@@ -1186,7 +1225,6 @@ const App = {
     if(id==='sc-profiles') this._renderProfiles();
     if(id==='sc-games')    this._renderGames();
     if(id==='sc-save')     this._renderSave();
-    if(id==='sc-graphs')   this._renderGraph();
   },
   confirmNew(){ document.getElementById('ov-confirm').classList.add('show'); },
   closeOv(id){ document.getElementById(id).classList.remove('show'); },
@@ -1442,12 +1480,13 @@ const App = {
         case 'nav-back':    this._navBack(); break;
         case 'cycle-ice':   this.cycleIce(); break;
         case 'do-save':     this.doSave(); break;
+        case 'export':      this.exportCSV(); break;
         case 'confirm-new': this.confirmNew(); break;
         case 'do-new-game': this.doNewGame(); break;
         case 'close-ov':    this.closeOv(el.dataset.ov); break;
         case 'close-menu':  this._navBack(); break;
-        case 'toggle-scale': this._toggleScale(); break;
-        case 'cycle-graph':  this._cycleGraph(); break;
+        case 'toggle-scale': this.toggleScale(); break;
+        case 'show-graph':   this.showGraph(el.dataset.type); break;
         case 'close-pm':    this.closePM(); break;
         case 'open-pm':     this.openPM(el.dataset.name); break;
         case 'save-name':   this._saveName(el.dataset.id); break;
@@ -1571,109 +1610,123 @@ const App = {
   },
 
   // ── GHOST ICE SPEEDS on start button ─────────
-  _updateGhosts(){
-    const ZONES={'T 12':15.5, TEE:21.0, 'B 12':26.5};
-    const bhOff=sess.bh.iceBase+(sess.active?(()=>{
+  refreshIceGhost(){
+    const ICE_D={'T 12':15.5,TEE:21.0,'B 12':26.5};
+    let bhOff=sess.bh.iceBase;
+    if(sess.active){
       const man=sess.manOff[sess.active]||0;
-      return man!==0 ? man*CFG.bhSlope : (sess.slots[sess.active]?.effectiveOff||0);
-    })():0);
+      bhOff+=man!==0?man*CFG.bhSlope:(sess.slots[sess.active]?.effectiveOff||0);
+    }
     const hhOff=sess.hh.iceOff;
-    for(const [zone,d] of Object.entries(ZONES)){
+    const ghBH=document.getElementById('ice-ghost-bh');
+    const ghHH=document.getElementById('ice-ghost-hh');
+    if(!ghBH||!ghHH) return;
+    const zones=['T 12','TEE','B 12'];
+    const bhSpans=ghBH.children;
+    const hhSpans=ghHH.children;
+    zones.forEach((z,i)=>{
+      const d=ICE_D[z];
       const bh=(d-CFG.bhInt-bhOff)/CFG.bhSlope;
       const hh=(d-CFG.hhInt-hhOff)/CFG.hhSlope;
-      const zk=zone.replace(' ','').toLowerCase();
-      const $bh=document.getElementById('gh-bh-'+zk);
-      const $hh=document.getElementById('gh-hh-'+zk);
-      if($bh) $bh.textContent=bh>0?bh.toFixed(2):'';
-      if($hh) $hh.textContent=hh>0?hh.toFixed(1):'';
-    }
+      if(bhSpans[i]) bhSpans[i].textContent=bh>0?bh.toFixed(2):'—';
+      if(hhSpans[i]) hhSpans[i].textContent=hh>0?hh.toFixed(1):'—';
+    });
   },
 
-  // ── SCALE TOGGLE ──────────────────────────────
-  _scaled: false,
-  _toggleScale(){
-    this._scaled=!this._scaled;
-    const f=document.getElementById('watch');
-    if(this._scaled){
-      f.style.transform='scale(2.2)'; f.style.transformOrigin='center center';
-    } else {
-      f.style.transform=''; f.style.transformOrigin='';
-    }
+  // ── FULL-SCREEN SCALE TOGGLE ──────────────────
+  toggleScale(){
+    document.body.classList.toggle('fullscreen-mode');
   },
 
   // ── GRAPHS ────────────────────────────────────
-  _graphTypes: ['BH Shots','HH Shots','BH Error','HH Error'],
-  _graphIdx: 0,
-  _cycleGraph(){
-    this._graphIdx=(this._graphIdx+1)%this._graphTypes.length;
-    document.getElementById('graph-title').textContent=this._graphTypes[this._graphIdx]+' ›';
-    this._renderGraph();
+  showGraph(type){
+    const titles={'BH':'Back-Hog','HH':'Hog-Hog','BH-Error':'BH Error','HH-Error':'HH Error'};
+    document.getElementById('graph-title').textContent=titles[type]||type;
+    // build legend
+    const leg=document.getElementById('graph-legend');
+    leg.innerHTML=CFG.slots.map(id=>{
+      const n=(sess.profiles[id]||id).slice(0,4);
+      return `<span><span class="gdot" style="background:${CFG.colors[id]}"></span>${n}</span>`;
+    }).join('');
+    this.openSub('sc-graph-view');
+    setTimeout(()=>{
+      const canvas=document.getElementById('graph-canvas');
+      if(!canvas) return;
+      const ctx=canvas.getContext('2d');
+      const rect=canvas.getBoundingClientRect();
+      canvas.width=rect.width*2; canvas.height=rect.height*2; ctx.scale(2,2);
+      if(type.includes('Error')) this._drawError(ctx,type,rect.width,rect.height);
+      else this._drawGraph(ctx,type,rect.width,rect.height);
+    },60);
   },
-  _renderGraph(){
-    const c=document.getElementById('graph-canvas'); if(!c) return;
-    const ctx=c.getContext('2d');
-    const W=c.width, H=c.height;
-    ctx.clearRect(0,0,W,H);
 
-    const type=this._graphTypes[this._graphIdx];
-    const isBH=type.includes('BH');
-    const isError=type.includes('Error');
-    const slope=isBH?CFG.bhSlope:CFG.hhSlope;
-    const int_=isBH?CFG.bhInt:CFG.hhInt;
-    const off=isBH?sess.bh.iceBase:sess.hh.iceOff;
-
-    const shots=sess.history.filter(s=> isBH ? (s.useBH && s.bh>CFG.minBH && s.actual!=null) : (s.hh>CFG.minHH && s.actual!=null));
-    if(!shots.length){
-      ctx.fillStyle='#222'; ctx.font='10px sans-serif'; ctx.textAlign='center';
-      ctx.fillText('No data',W/2,H/2); return;
-    }
-
-    const pad={t:8,r:8,b:14,l:24};
-    const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
-
-    let vals;
-    if(isError){
-      vals=shots.map(s=>{
-        const t=isBH?s.bh:s.hh;
-        const pred=slope*t+int_+off;
-        let act=s.actual; if(isBH) act-=(s.sweep||0);
-        return act-pred;
-      });
-    } else {
-      vals=shots.map(s=>isBH?s.bh:s.hh);
-    }
-
-    const minV=Math.min(...vals), maxV=Math.max(...vals);
-    const range=maxV-minV||1;
-    const mapX=i=>pad.l+(i/(shots.length-1||1))*pw;
-    const mapY=v=>pad.t+(1-(v-minV)/range)*ph;
-
-    // Axes
-    ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=0.5;
-    ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,H-pad.b); ctx.lineTo(W-pad.r,H-pad.b); ctx.stroke();
-
-    // Zero line for error
-    if(isError && minV<0 && maxV>0){
-      ctx.strokeStyle='#222'; ctx.setLineDash([2,2]);
-      const zy=mapY(0); ctx.beginPath(); ctx.moveTo(pad.l,zy); ctx.lineTo(W-pad.r,zy); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-
-    // Labels
-    ctx.fillStyle='#333'; ctx.font='7px sans-serif'; ctx.textAlign='right';
-    ctx.fillText(isError?(maxV>=0?'+':'')+maxV.toFixed(1):maxV.toFixed(2), pad.l-2, pad.t+6);
-    ctx.fillText(isError?(minV>=0?'+':'')+minV.toFixed(1):minV.toFixed(2), pad.l-2, H-pad.b);
-
-    // Slot colors
-    const slotColors={Skip:'#0A84FF','3rd':'#30D158','2nd':'#BF5AF2',Lead:'#FF9F0A'};
-
-    // Points
-    shots.forEach((s,i)=>{
-      const v=vals[i];
-      const x=mapX(i), y=mapY(v);
-      const color=s.player?slotColors[s.player]||'#555':'#555';
-      ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,2.5,0,Math.PI*2); ctx.fill();
+  _drawGraph(ctx,type,w,h){
+    const xMin=type==='BH'?3.4:12.5, xMax=type==='BH'?4.7:18.0;
+    const yMin=5, yMax=30;
+    const pad={left:26,bottom:18,top:4,right:4};
+    const mapX=v=>pad.left+((v-xMin)/(xMax-xMin))*(w-pad.left-pad.right);
+    const mapY=v=>(h-pad.bottom)-((v-yMin)/(yMax-yMin))*(h-pad.top-pad.bottom);
+    ctx.font='7px sans-serif'; ctx.textAlign='left';
+    ['Mid','T 12','T 8','TEE','B 8','B 12'].forEach(name=>{
+      const z=CFG.zones.find(z=>z.n===name); if(!z) return;
+      const y=mapY(z.d);
+      ctx.strokeStyle='#222'; ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(w-pad.right,y); ctx.stroke();
+      ctx.fillStyle='#555'; ctx.fillText(name,1,y-1);
     });
+    const xStep=type==='BH'?0.2:1.0;
+    ctx.fillStyle='#444'; ctx.textAlign='center';
+    for(let xv=xMin;xv<=xMax+0.001;xv+=xStep){
+      const x=mapX(xv);
+      ctx.strokeStyle='#1a1a1a'; ctx.beginPath(); ctx.moveTo(x,pad.top); ctx.lineTo(x,h-pad.bottom); ctx.stroke();
+      ctx.fillStyle='#444'; ctx.fillText(xv.toFixed(1),x,h-3);
+    }
+    const slope=type==='BH'?CFG.bhSlope:CFG.hhSlope;
+    const int_=type==='BH'?CFG.bhInt:CFG.hhInt;
+    const off=type==='BH'?sess.bh.iceBase:sess.hh.iceOff;
+    ctx.strokeStyle='cyan'; ctx.lineWidth=1.5; ctx.beginPath();
+    ctx.moveTo(mapX(xMin),mapY(slope*xMin+int_+off));
+    ctx.lineTo(mapX(xMax),mapY(slope*xMax+int_+off));
+    ctx.stroke(); ctx.lineWidth=1;
+    sess.history.forEach(s=>{
+      if(!s.actual) return;
+      const t=type==='BH'?s.bh:s.hh;
+      if(t<xMin||t>xMax) return;
+      let y=s.actual;
+      if(type==='BH'&&s.sweep) y-=s.sweep;
+      ctx.fillStyle=CFG.colors[s.player]||'#666';
+      ctx.beginPath(); ctx.arc(mapX(t),mapY(y),3,0,Math.PI*2); ctx.fill();
+    });
+  },
+
+  _drawError(ctx,type,w,h){
+    const shots=sess.history.filter(s=>s.actual!=null&&(type==='BH-Error'?s.useBH:(s.useHH!==false)));
+    if(!shots.length) return;
+    const yRange=10;
+    const padB=14;
+    const plotShots=[...shots].reverse();
+    const mapX=idx=>(idx/(plotShots.length+1))*(w-12)+8;
+    const mapY=val=>((h-padB)/2)-(val/yRange)*((h-padB)/2);
+    const midY=(h-padB)/2;
+    ctx.strokeStyle='#333'; ctx.beginPath(); ctx.moveTo(0,midY); ctx.lineTo(w,midY); ctx.stroke();
+    ctx.strokeStyle='#1a1a1a'; ctx.beginPath();
+    ctx.moveTo(0,mapY(5)); ctx.lineTo(w,mapY(5));
+    ctx.moveTo(0,mapY(-5)); ctx.lineTo(w,mapY(-5));
+    ctx.stroke();
+    ctx.fillStyle='#555'; ctx.font='9px sans-serif'; ctx.textAlign='left';
+    ctx.fillText("+5'",2,mapY(5)-1); ctx.fillText("0'",2,midY-1); ctx.fillText("-5'",2,mapY(-5)-1);
+    const slope=type==='BH-Error'?CFG.bhSlope:CFG.hhSlope;
+    const int_=type==='BH-Error'?CFG.bhInt:CFG.hhInt;
+    for(let i=0;i<plotShots.length;i++){
+      const s=plotShots[i];
+      const off=type==='BH-Error'?sess.bh.iceBase:sess.hh.iceOff;
+      const t=type==='BH-Error'?s.bh:s.hh;
+      const pred=slope*t+int_+off;
+      let act=s.actual;
+      if(type==='BH-Error'&&s.sweep) act-=s.sweep;
+      const err=act-pred;
+      ctx.fillStyle=CFG.colors[s.player]||'#666';
+      ctx.beginPath(); ctx.arc(mapX(i+1),mapY(err),3,0,Math.PI*2); ctx.fill();
+    }
   },
 
   // ── SAVE GAME ────────────────────────────────
